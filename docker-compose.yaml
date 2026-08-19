@@ -1,0 +1,42 @@
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: database
+    restart: always
+    volumes:
+      - pgdata:/var/lib/postgres/data
+
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 15s
+      timeout: 15s
+      retries: 5
+      start_period: 30s
+    networks:
+      - tech-network
+
+  server:
+    container_name: server
+    build: ./server
+    ports:
+      - "8080:8080"
+    networks:
+      - tech-network
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      database:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+
+networks:
+  tech-network:
+    driver: bridge
