@@ -13,6 +13,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+server:
+  port: ${SERVER_PORT:8082}
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:

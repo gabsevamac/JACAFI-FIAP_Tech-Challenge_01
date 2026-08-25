@@ -16,5 +16,5 @@ WORKDIR /app
 COPY --from=build /app/target/*-SNAPSHOT.jar app.jar
 
 ENV TZ=UTC
-EXPOSE 8080
+EXPOSE 8082
 CMD ["java", "-jar", "app.jar"]
