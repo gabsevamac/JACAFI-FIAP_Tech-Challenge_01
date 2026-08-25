@@ -1,6 +1,5 @@
 package com.jacafi.tech.vehicle.application;
 
-import com.jacafi.tech.vehicle.domain.CustomerId;
 import com.jacafi.tech.vehicle.domain.LicensePlate;
 import com.jacafi.tech.vehicle.domain.Vehicle;
 import com.jacafi.tech.vehicle.domain.VehicleRepository;
@@ -53,7 +52,7 @@ class InMemoryVehicleRepository implements VehicleRepository, VehicleQueries {
     }
 
     @Override
-    public VehiclePage findActiveByCustomer(CustomerId customerId, int page, int size) {
+    public VehiclePage findActiveByCustomer(UUID customerId, int page, int size) {
         List<Vehicle> matching = activeVehicles()
                 .filter(vehicle -> vehicle.getCustomerId().equals(customerId))
                 .sorted(Comparator.comparing(Vehicle::getRegisteredAt))

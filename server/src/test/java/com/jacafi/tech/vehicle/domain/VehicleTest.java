@@ -21,12 +21,22 @@ class VehicleTest {
     private static final int CURRENT_YEAR = 2026;
 
     private static final UUID ID = UUID.fromString("0f7c9a1e-3b2d-4c5f-8a9b-1d2e3f4a5b6c");
-    private static final CustomerId CUSTOMER = new CustomerId(
-            UUID.fromString("5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e"));
+    private static final UUID CUSTOMER = UUID.fromString("5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e");
     private static final LicensePlate PLATE = new LicensePlate("ABC1234");
 
+    /** A registrable vehicle, so each test varies only the one step it is about. */
+    private static Vehicle.Builder aVehicle() {
+        return Vehicle.builder()
+                .id(ID)
+                .licensePlate(PLATE)
+                .make("Volkswagen")
+                .model("Gol")
+                .modelYear(2020)
+                .customerId(CUSTOMER);
+    }
+
     private static Vehicle register() {
-        return Vehicle.register(ID, PLATE, "Volkswagen", "Gol", 2020, CUSTOMER, CLOCK);
+        return aVehicle().register(CLOCK);
     }
 
     @Nested
@@ -52,7 +62,7 @@ class VehicleTest {
         @Test
         @DisplayName("trims and collapses whitespace in make and model")
         void normalizesText() {
-            Vehicle vehicle = Vehicle.register(ID, PLATE, "  Volks   wagen ", " Gol  GTI ", 2020, CUSTOMER, CLOCK);
+            Vehicle vehicle = aVehicle().make("  Volks   wagen ").model(" Gol  GTI ").register(CLOCK);
 
             assertThat(vehicle.getMake()).isEqualTo("Volks wagen");
             assertThat(vehicle.getModel()).isEqualTo("Gol GTI");
@@ -61,14 +71,14 @@ class VehicleTest {
         @Test
         void rejectsBlankMake() {
             assertThatIllegalArgumentException()
-                    .isThrownBy(() -> Vehicle.register(ID, PLATE, "   ", "Gol", 2020, CUSTOMER, CLOCK))
+                    .isThrownBy(() -> aVehicle().make("   ").register(CLOCK))
                     .withMessageContaining("make");
         }
 
         @Test
         void rejectsBlankModel() {
             assertThatIllegalArgumentException()
-                    .isThrownBy(() -> Vehicle.register(ID, PLATE, "Volkswagen", "", 2020, CUSTOMER, CLOCK))
+                    .isThrownBy(() -> aVehicle().model("").register(CLOCK))
                     .withMessageContaining("model");
         }
 
@@ -76,13 +86,13 @@ class VehicleTest {
         @DisplayName("every vehicle references a customer")
         void rejectsMissingCustomer() {
             assertThatExceptionOfType(NullPointerException.class)
-                    .isThrownBy(() -> Vehicle.register(ID, PLATE, "Volkswagen", "Gol", 2020, null, CLOCK));
+                    .isThrownBy(() -> aVehicle().customerId(null).register(CLOCK));
         }
 
         @Test
         void rejectsMissingLicensePlate() {
             assertThatExceptionOfType(NullPointerException.class)
-                    .isThrownBy(() -> Vehicle.register(ID, null, "Volkswagen", "Gol", 2020, CUSTOMER, CLOCK));
+                    .isThrownBy(() -> aVehicle().licensePlate(null).register(CLOCK));
         }
     }
 
@@ -92,27 +102,27 @@ class VehicleTest {
 
         @Test
         void accepts1900() {
-            assertThat(Vehicle.register(ID, PLATE, "Ford", "T", 1900, CUSTOMER, CLOCK).getModelYear())
+            assertThat(aVehicle().make("Ford").model("T").modelYear(1900).register(CLOCK).getModelYear())
                     .isEqualTo(1900);
         }
 
         @Test
         void rejects1899() {
             assertThatIllegalArgumentException()
-                    .isThrownBy(() -> Vehicle.register(ID, PLATE, "Ford", "T", 1899, CUSTOMER, CLOCK));
+                    .isThrownBy(() -> aVehicle().modelYear(1899).register(CLOCK));
         }
 
         @Test
         @DisplayName("accepts next year, because next year's models are sold this year")
         void acceptsNextYear() {
-            assertThat(Vehicle.register(ID, PLATE, "Fiat", "Argo", CURRENT_YEAR + 1, CUSTOMER, CLOCK)
-                    .getModelYear()).isEqualTo(CURRENT_YEAR + 1);
+            assertThat(aVehicle().modelYear(CURRENT_YEAR + 1).register(CLOCK).getModelYear())
+                    .isEqualTo(CURRENT_YEAR + 1);
         }
 
         @Test
         void rejectsTwoYearsAhead() {
             assertThatIllegalArgumentException()
-                    .isThrownBy(() -> Vehicle.register(ID, PLATE, "Fiat", "Argo", CURRENT_YEAR + 2, CUSTOMER, CLOCK));
+                    .isThrownBy(() -> aVehicle().modelYear(CURRENT_YEAR + 2).register(CLOCK));
         }
     }
 
@@ -199,15 +209,15 @@ class VehicleTest {
         @DisplayName("two vehicles with the same id are the same vehicle")
         void equalsById() {
             Vehicle one = register();
-            Vehicle other = Vehicle.register(ID, new LicensePlate("XYZ9K87"), "Fiat", "Uno", 2010, CUSTOMER, CLOCK);
+            Vehicle other = aVehicle().licensePlate(new LicensePlate("XYZ9K87"))
+                    .make("Fiat").model("Uno").modelYear(2010).register(CLOCK);
 
             assertThat(one).isEqualTo(other).hasSameHashCodeAs(other);
         }
 
         @Test
         void differentIdsAreDifferentVehicles() {
-            assertThat(register()).isNotEqualTo(
-                    Vehicle.register(UUID.randomUUID(), PLATE, "Volkswagen", "Gol", 2020, CUSTOMER, CLOCK));
+            assertThat(register()).isNotEqualTo(aVehicle().id(UUID.randomUUID()).register(CLOCK));
         }
     }
 
@@ -221,8 +231,11 @@ class VehicleTest {
             Instant registeredAt = Instant.parse("2020-01-15T09:00:00Z");
             Instant removedAt = Instant.parse("2026-03-20T14:00:00Z");
 
-            Vehicle vehicle = Vehicle.restore(ID, null, "Volkswagen", "Gol", 2020, CUSTOMER,
-                    registeredAt, removedAt, removedAt);
+            Vehicle vehicle = Vehicle.builder()
+                    .id(ID).licensePlate(null).make("Volkswagen").model("Gol").modelYear(2020)
+                    .customerId(CUSTOMER)
+                    .registeredAt(registeredAt).updatedAt(removedAt).removedAt(removedAt)
+                    .restore();
 
             assertThat(vehicle.getLicensePlate()).isEmpty();
             assertThat(vehicle.isRemoved()).isTrue();
@@ -234,10 +247,55 @@ class VehicleTest {
         void doesNotRevalidateBusinessRules() {
             Instant registeredAt = Instant.parse("2020-01-15T09:00:00Z");
 
-            Vehicle vehicle = Vehicle.restore(ID, PLATE, "Ford", "A", 1850, CUSTOMER,
-                    registeredAt, registeredAt, null);
+            Vehicle vehicle = Vehicle.builder()
+                    .id(ID).licensePlate(PLATE).make("Ford").model("A").modelYear(1850)
+                    .customerId(CUSTOMER)
+                    .registeredAt(registeredAt).updatedAt(registeredAt)
+                    .restore();
 
             assertThat(vehicle.getModelYear()).isEqualTo(1850);
+        }
+    }
+
+    @Nested
+    @DisplayName("the builder's two terminals mean different things")
+    class Building {
+
+        @Test
+        @DisplayName("registering will not accept timestamps: they come from the clock")
+        void registerRejectsSuppliedTimestamps() {
+            assertThatIllegalArgumentException()
+                    .isThrownBy(() -> aVehicle().registeredAt(Instant.EPOCH).register(CLOCK))
+                    .withMessageContaining("restore");
+        }
+
+        @Test
+        @DisplayName("registering a vehicle that is already removed is not representable")
+        void registerRejectsARemovalTimestamp() {
+            assertThatIllegalArgumentException()
+                    .isThrownBy(() -> aVehicle().removedAt(CLOCK.instant()).register(CLOCK));
+        }
+
+        @Test
+        void registerRequiresAModelYear() {
+            assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> Vehicle.builder()
+                    .id(ID).licensePlate(PLATE).make("Volkswagen").model("Gol").customerId(CUSTOMER)
+                    .register(CLOCK));
+        }
+
+        @Test
+        void registerRequiresAnIdentifier() {
+            assertThatExceptionOfType(NullPointerException.class)
+                    .isThrownBy(() -> aVehicle().id(null).register(CLOCK));
+        }
+
+        @Test
+        @DisplayName("restoring requires the timestamps storage already holds")
+        void restoreRequiresTimestamps() {
+            assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> Vehicle.builder()
+                    .id(ID).licensePlate(PLATE).make("Volkswagen").model("Gol").modelYear(2020)
+                    .customerId(CUSTOMER)
+                    .restore());
         }
     }
 

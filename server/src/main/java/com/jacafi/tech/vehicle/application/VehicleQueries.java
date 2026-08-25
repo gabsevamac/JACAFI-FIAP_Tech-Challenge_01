@@ -1,6 +1,7 @@
 package com.jacafi.tech.vehicle.application;
 
-import com.jacafi.tech.vehicle.domain.CustomerId;
+
+import java.util.UUID;
 
 /**
  * Read port for queries that serve a screen rather than a business rule.
@@ -18,5 +19,5 @@ public interface VehicleQueries {
      * @param page zero-based page number
      * @param size maximum number of vehicles per page
      */
-    VehiclePage findActiveByCustomer(CustomerId customerId, int page, int size);
+    VehiclePage findActiveByCustomer(UUID customerId, int page, int size);
 }

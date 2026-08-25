@@ -1,7 +1,6 @@
 package com.jacafi.tech.vehicle.application;
 
 import com.jacafi.tech.vehicle.domain.AuditedOperation;
-import com.jacafi.tech.vehicle.domain.CustomerId;
 import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
 import com.jacafi.tech.vehicle.domain.LicensePlate;
 import com.jacafi.tech.vehicle.domain.Vehicle;
@@ -53,13 +52,14 @@ public class RegisterVehicleUseCase {
             throw new DuplicateLicensePlateException("A vehicle with this license plate is already registered.");
         }
 
-        Vehicle vehicle = Vehicle.register(UUID.randomUUID(),
-                licensePlate,
-                command.make(),
-                command.model(),
-                command.modelYear(),
-                new CustomerId(command.customerId()),
-                clock);
+        Vehicle vehicle = Vehicle.builder()
+                .id(UUID.randomUUID())
+                .licensePlate(licensePlate)
+                .make(command.make())
+                .model(command.model())
+                .modelYear(command.modelYear())
+                .customerId(command.customerId())
+                .register(clock);
 
         repository.save(vehicle);
         auditTrail.append(new VehicleAuditEntry(vehicle.getId(), AuditedOperation.REGISTERED,

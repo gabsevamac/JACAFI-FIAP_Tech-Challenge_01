@@ -14,16 +14,23 @@ import java.util.regex.Pattern;
  * A vehicle presented to the workshop for maintenance, described by make, model and model year.
  *
  * <p>Aggregate root. It carries a surrogate identity ({@code id}) for references and a business
- * identity (its {@link LicensePlate}): the workshop recognizes a returning vehicle by the plate,
- * which is why a known vehicle is linked to a new visit rather than registered again.
+ * identity in its {@link LicensePlate}: the workshop recognizes a returning vehicle by the plate,
+ * which is why a known vehicle is linked to a new visit rather than registered again. The plate is
+ * a natural search key, not a permanent identity — see the note on mutability in §9 of the
+ * dictionary and HS8 on the Event Storming board.
  *
  * <p>Pure domain: no framework, no ORM, no HTTP. The only non-JDK import is the personal data
  * marker, which is an annotation and carries no behaviour. Time arrives as a {@link Clock}
  * parameter instead of being read from the ambient system, so that every rule involving dates is
  * deterministic under test.
  *
- * <p>No setters. State changes go through methods named after what the workshop actually does,
- * and each of them enforces the invariants that guard the change.
+ * <p>No setters. State changes go through methods named after what the workshop actually does, and
+ * each of them enforces the invariants that guard the change.
+ *
+ * <p>Construction goes through {@link #builder()}. Named steps rather than positional arguments,
+ * because this aggregate has three pairs of interchangeable-looking values — the two identifiers,
+ * make and model, and the three timestamps of a stored row — and a swap between any of them would
+ * compile, pass review and produce a consistent but wrong record.
  */
 public class Vehicle {
 
@@ -46,88 +53,40 @@ public class Vehicle {
     private String make;
     private String model;
     private int modelYear;
-    private final CustomerId customerId;
+
+    /**
+     * Reference to the customer responsible for the vehicle, by identifier.
+     *
+     * <p>Never an object reference: {@code Customer} is the root of another aggregate, owned by
+     * another slice, and a slice does not import another slice's domain. Holding the identifier is
+     * what keeps the two aggregates independently consistent, and what lets the customer slice be
+     * built in parallel.
+     */
+    private final UUID customerId;
+
     private final Instant registeredAt;
     private Instant updatedAt;
     private Instant removedAt;
 
-    private Vehicle(UUID id, LicensePlate licensePlate, String make, String model, int modelYear,
-                    CustomerId customerId, Instant registeredAt, Instant updatedAt, Instant removedAt) {
-        this.id = id;
-        this.licensePlate = licensePlate;
-        this.make = make;
-        this.model = model;
-        this.modelYear = modelYear;
-        this.customerId = customerId;
-        this.registeredAt = registeredAt;
-        this.updatedAt = updatedAt;
-        this.removedAt = removedAt;
+    private Vehicle(Builder builder) {
+        this.id = builder.id;
+        this.licensePlate = builder.licensePlate;
+        this.make = builder.make;
+        this.model = builder.model;
+        this.modelYear = builder.modelYear;
+        this.customerId = builder.customerId;
+        this.registeredAt = builder.registeredAt;
+        this.updatedAt = builder.updatedAt;
+        this.removedAt = builder.removedAt;
     }
 
     /**
-     * Registers a vehicle for a customer.
-     *
-     * <p>The identifier is supplied by the caller rather than generated here: a domain object that
-     * invents its own random identity cannot be asserted on in a test, and the application layer
-     * needs the identifier anyway, to write the audit entry.
-     *
-     * <p>Plate uniqueness is <em>not</em> checked here. An aggregate can only enforce invariants
-     * over its own state, and uniqueness spans the whole collection — that check belongs to the
-     * application layer, which owns the repository.
-     *
-     * @throws InvalidLicensePlateException from {@link LicensePlate} when the format is rejected
-     * @throws IllegalArgumentException     when a required attribute is missing or out of range
+     * Starts building a vehicle. Finish with {@link Builder#register(Clock)} for a new one or
+     * {@link Builder#restore()} to rebuild one that is already stored — the two mean different
+     * things and enforce different rules.
      */
-    public static Vehicle register(UUID id,
-                                   LicensePlate licensePlate,
-                                   String make,
-                                   String model,
-                                   int modelYear,
-                                   CustomerId customerId,
-                                   Clock clock) {
-        Objects.requireNonNull(id, "id must not be null");
-        Objects.requireNonNull(licensePlate, "licensePlate must not be null");
-        Objects.requireNonNull(customerId, "customerId must not be null");
-        Objects.requireNonNull(clock, "clock must not be null");
-
-        Instant now = clock.instant();
-        return new Vehicle(id,
-                licensePlate,
-                requireText(make, "make"),
-                requireText(model, "model"),
-                requireModelYearInRange(modelYear, clock),
-                customerId,
-                now,
-                now,
-                null);
-    }
-
-    /**
-     * Rebuilds an aggregate already stored, for the persistence layer only.
-     *
-     * <p>Business rules are not re-applied: this data was validated when it was first accepted,
-     * and re-running the checks would let a rule introduced today reject a row written yesterday.
-     * A removed vehicle arrives here with no plate and a {@code removedAt}, which is a legitimate
-     * state to rebuild and an impossible one to register.
-     */
-    public static Vehicle restore(UUID id,
-                                  LicensePlate licensePlate,
-                                  String make,
-                                  String model,
-                                  int modelYear,
-                                  CustomerId customerId,
-                                  Instant registeredAt,
-                                  Instant updatedAt,
-                                  Instant removedAt) {
-        return new Vehicle(Objects.requireNonNull(id, "id must not be null"),
-                licensePlate,
-                make,
-                model,
-                modelYear,
-                Objects.requireNonNull(customerId, "customerId must not be null"),
-                Objects.requireNonNull(registeredAt, "registeredAt must not be null"),
-                Objects.requireNonNull(updatedAt, "updatedAt must not be null"),
-                removedAt);
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -137,7 +96,8 @@ public class Vehicle {
      * identity and is immutable after registration.
      *
      * <p>TODO: correcting a plate that was recorded wrongly is a use case of its own, with its own
-     * audit entry and its own authorization — not a field on this method. Out of scope for the MVP.
+     * audit entry and its own authorization — not a field on this method. Out of scope for the MVP,
+     * and distinct from a plate that legitimately changed, which is HS8 and HS9 on the board.
      */
     public void update(String make, String model, int modelYear, Clock clock) {
         Objects.requireNonNull(clock, "clock must not be null");
@@ -194,7 +154,7 @@ public class Vehicle {
         return modelYear;
     }
 
-    public CustomerId getCustomerId() {
+    public UUID getCustomerId() {
         return customerId;
     }
 
@@ -264,5 +224,130 @@ public class Vehicle {
     public String toString() {
         return "Vehicle[id=%s, licensePlate=%s, removed=%s]"
                 .formatted(id, getLicensePlate().map(LicensePlate::masked).orElse("<erased>"), isRemoved());
+    }
+
+    /**
+     * Builds a vehicle by named step, the only way to obtain one.
+     *
+     * <p>Two terminal operations, because creating and rehydrating are different acts:
+     * {@link #register(Clock)} applies every business rule and stamps the clock, while
+     * {@link #restore()} rebuilds what storage already holds and applies none.
+     *
+     * <p>There is deliberately no way to copy an existing vehicle with altered fields. Changes go
+     * through {@link Vehicle#update} and {@link Vehicle#remove}, which enforce the invariants; a
+     * copy step that accepted any field would be a way around the plate's immutability, which
+     * {@code update} enforces precisely by not offering it.
+     */
+    public static final class Builder {
+
+        private UUID id;
+        private LicensePlate licensePlate;
+        private String make;
+        private String model;
+        private Integer modelYear;
+        private UUID customerId;
+        private Instant registeredAt;
+        private Instant updatedAt;
+        private Instant removedAt;
+
+        private Builder() {
+        }
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder licensePlate(LicensePlate licensePlate) {
+            this.licensePlate = licensePlate;
+            return this;
+        }
+
+        public Builder make(String make) {
+            this.make = make;
+            return this;
+        }
+
+        public Builder model(String model) {
+            this.model = model;
+            return this;
+        }
+
+        public Builder modelYear(int modelYear) {
+            this.modelYear = modelYear;
+            return this;
+        }
+
+        public Builder customerId(UUID customerId) {
+            this.customerId = customerId;
+            return this;
+        }
+
+        /** Rehydration only: a new registration takes its timestamps from the clock. */
+        public Builder registeredAt(Instant registeredAt) {
+            this.registeredAt = registeredAt;
+            return this;
+        }
+
+        /** Rehydration only. */
+        public Builder updatedAt(Instant updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
+        }
+
+        /** Rehydration only, and only for a vehicle that was removed. */
+        public Builder removedAt(Instant removedAt) {
+            this.removedAt = removedAt;
+            return this;
+        }
+
+        /**
+         * Registers a new vehicle, applying every rule.
+         *
+         * <p>Plate uniqueness is not among them. An aggregate can only enforce invariants over its
+         * own state, and uniqueness spans the whole collection — that check belongs to the
+         * application layer, which owns the repository.
+         *
+         * @throws InvalidLicensePlateException from {@link LicensePlate} when the format is rejected
+         * @throws IllegalArgumentException     when a required attribute is missing or out of range
+         */
+        public Vehicle register(Clock clock) {
+            Objects.requireNonNull(clock, "clock must not be null");
+            Objects.requireNonNull(id, "id must not be null");
+            Objects.requireNonNull(licensePlate, "licensePlate must not be null");
+            Objects.requireNonNull(customerId, "customerId must not be null");
+            Objects.requireNonNull(modelYear, "modelYear must not be null");
+
+            if (registeredAt != null || updatedAt != null || removedAt != null) {
+                throw new IllegalArgumentException(
+                        "Timestamps come from the clock when registering; they are for restore only");
+            }
+
+            this.make = requireText(make, "make");
+            this.model = requireText(model, "model");
+            this.modelYear = requireModelYearInRange(modelYear, clock);
+            this.registeredAt = clock.instant();
+            this.updatedAt = this.registeredAt;
+
+            return new Vehicle(this);
+        }
+
+        /**
+         * Rebuilds an aggregate already stored, for the persistence layer only.
+         *
+         * <p>Business rules are not re-applied: this data was validated when it was first accepted,
+         * and re-running the checks would let a rule introduced today reject a row written
+         * yesterday. A removed vehicle arrives here with no plate and a {@code removedAt}, which is
+         * a legitimate state to rebuild and an impossible one to register.
+         */
+        public Vehicle restore() {
+            Objects.requireNonNull(id, "id must not be null");
+            Objects.requireNonNull(customerId, "customerId must not be null");
+            Objects.requireNonNull(modelYear, "modelYear must not be null");
+            Objects.requireNonNull(registeredAt, "registeredAt must not be null");
+            Objects.requireNonNull(updatedAt, "updatedAt must not be null");
+
+            return new Vehicle(this);
+        }
     }
 }

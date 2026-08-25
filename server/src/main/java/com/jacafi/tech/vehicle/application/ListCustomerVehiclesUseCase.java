@@ -1,6 +1,5 @@
 package com.jacafi.tech.vehicle.application;
 
-import com.jacafi.tech.vehicle.domain.CustomerId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +14,8 @@ import java.util.UUID;
  *
  * <p>An unknown customer yields an empty page, not a 404: this slice cannot tell a customer that
  * does not exist from one that owns no vehicle — that knowledge belongs to the customer slice, and
- * reaching into it would break the boundary that {@link CustomerId} exists to keep.
+ * reaching into it would cross the boundary that referencing a customer by identifier,
+ * rather than by object, exists to keep.
  */
 @Service
 public class ListCustomerVehiclesUseCase {
@@ -28,6 +28,6 @@ public class ListCustomerVehiclesUseCase {
 
     @Transactional(readOnly = true)
     public VehiclePage list(UUID customerId, int page, int size) {
-        return queries.findActiveByCustomer(new CustomerId(customerId), page, size);
+        return queries.findActiveByCustomer(customerId, page, size);
     }
 }
