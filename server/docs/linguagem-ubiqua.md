@@ -191,14 +191,17 @@ Pertencem aos genéricos: `Cliente` · `Veículo` · `Placa` · `Identificação
 ### Veículo
 **Estereótipo:** Entidade · raiz de agregado próprio
 **Definição:** Automóvel apresentado à oficina para manutenção, descrito por marca, modelo e ano.
-**Regra de reconhecimento:** identifica-se um veículo pela sua placa.
+**Identidade do agregado:** o identificador técnico (UUID). Interno ao sistema, sem significado de negócio — ninguém o pronuncia na oficina — e é por ele que outros agregados referenciam o veículo.
+**Chave natural de busca:** a placa. É como a oficina localiza o veículo no balcão, e é única entre os veículos ativos do cadastro. Chave de busca não é identidade: ver a nota sobre mutabilidade.
+**Identidade do objeto físico:** o chassi (VIN), único e estável ao longo da vida do veículo, independente de qualquer registro administrativo. **Fora do escopo do MVP** — ver HS7.
 **Termo depreciado:** *cadastro de veículo* — cadastrar é ação, não conceito.
-**Nota:** Como a identidade é a placa, um veículo já conhecido não é recriado a cada visita: vincula-se ao novo atendimento. É essa relação acumulada que constitui o histórico do veículo.
+**Nota:** Um veículo já conhecido não é recriado a cada visita: localiza-se pela placa e vincula-se ao novo atendimento. Essa relação acumulada constitui o histórico do veículo — **enquanto a placa não mudar**.
+**Nota sobre a mutabilidade da placa:** no mundo real a placa **não é imutável**. Conversão para o padrão Mercosul, transferência entre estados e emissão de segunda via alteram a placa sem que o veículo mude. O MVP a trata como imutável, o que é simplificação assumida e não propriedade do domínio: quando a placa muda, `FindVehicle` não encontra o veículo, `RegisterVehicle` cria um segundo cadastro e o histórico do mesmo carro passa a existir em dois lugares. Consequência registrada em HS8.
 **Fonte:** "Cadastro de veículo (placa, marca, modelo, ano)"
 
 ### Placa
 **Estereótipo:** Objeto de Valor
-**Definição:** Código oficial de identificação de um veículo, imutável e sujeito a validação de formato.
+**Definição:** Código oficial de identificação de um veículo, estável no uso corrente porém **mutável** — ver a nota sobre mutabilidade no verbete `Veículo` —, sujeito a validação de formato.
 **Fonte:** "Validação dos dados sensíveis (CPF/CNPJ, placa de veículo)"
 
 ### Identificação

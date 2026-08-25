@@ -23,7 +23,7 @@ import java.util.UUID;
  * as a legal obligation and for warranty (LGPD Art. 16 I), while the data subject's right to
  * erasure is satisfied by the plate being gone (Art. 18 VI).
  *
- * <p>See HS7 in the Event Storming board: this single operation currently serves two acts with
+ * <p>See HS11 in the Event Storming board: this single operation currently serves two acts with
  * different legal bases — the workshop tidying up its registry, and a data subject exercising a
  * right. The audit trail records that the removal happened, but not under which basis.
  *

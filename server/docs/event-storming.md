@@ -44,6 +44,7 @@ flowchart TD
     EVT5["VehicleNotFound"]:::event
     CMD4["RegisterVehicle"]:::command
     EVT6["VehicleRegistered"]:::event
+    HS8{{"Vehicle whose license plate<br/>changed is registered again<br/>as a new record"}}:::hotspot
 
     CMD5["OpenServiceOrder"]:::command
     EVT7["ServiceOrderOpened<br/><i>status → RECEIVED</i>"]:::event
@@ -67,6 +68,7 @@ flowchart TD
     CMD3 -.-> EVT5
     EVT5 -.-> CMD4
     CMD4 --> EVT6
+    CMD4 -.-> HS8
     EVT4 --> CMD5
     EVT6 --> CMD5
     CMD5 --> EVT7
@@ -79,6 +81,8 @@ flowchart TD
 ```
 
 `CustomerNotFound` e `VehicleNotFound` estão desenhados como eventos por fidelidade ao quadro original do grupo, mas **não são eventos de domínio** — nada muda no mundo quando uma busca não encontra. No nível de código são retorno vazio de read model.
+
+A placa é **chave natural de busca**, não identidade permanente do veículo: é por ela que a oficina localiza o veículo no balcão, mas ela pertence ao registro administrativo e não ao objeto físico — que só o chassi identifica de forma estável. O MVP trata a placa como se fosse imutável, e a consequência é a que HS8 aponta: quando ela muda, `FindVehicle` não encontra nada, `RegisterVehicle` cria um segundo cadastro e o histórico do mesmo carro passa a existir em dois lugares. É uma limitação assumida conscientemente, não um descuido — resolvê-la exige o chassi, que a oficina talvez nem anote (HS7).
 
 ---
 
@@ -255,8 +259,12 @@ flowchart TD
 | HS4 | Por qual canal o cliente é notificado da conclusão? | Idem HS1 |
 | HS5 | Há pagamento antes da entrega? | O enunciado não menciona dinheiro trocando de mãos |
 | HS6 | "Aprovação" e "autorização" são o mesmo ato? | O cliente citou os dois separadamente na descrição da dor |
-| HS7 | A remoção de veículo atende a dois atos com base legal distinta? | A base legal muda o que precisa ser provado depois, e a trilha atual não distingue |
+| HS7 | A oficina anota o chassi (VIN) dos veículos hoje? | Sem VIN não existe identificador permanente do objeto físico; a identificação depende inteiramente da placa |
+| HS8 | O que acontece quando a placa de um veículo muda? | Conversão Mercosul, transferência entre estados e segunda via são eventos legítimos. Hoje `FindVehicle` não encontra e o sistema cria um cadastro novo, partindo o histórico em dois |
+| HS9 | Como distinguir mudança legítima de placa de correção de digitação? | A trilha de auditoria registra que o valor mudou, não por quê. Os dois casos têm consequências diferentes: no segundo, ordens de serviço anteriores foram emitidas com placa errada |
+| HS10 | Um veículo removido pode ser recadastrado com a mesma placa? | Define se a constraint de unicidade cobre a tabela inteira ou apenas os registros ativos |
+| HS11 | A remoção de veículo atende a dois atos com base legal distinta? | A base legal muda o que precisa ser provado depois, e a trilha atual não distingue |
 
-**HS7 em detalhe.** `RemoveVehicle` cobre hoje duas situações que só se parecem na superfície. Na primeira, a oficina limpa o cadastro de um veículo que não atende mais: decisão administrativa dela, sem titular envolvido. Na segunda, o titular exerce o direito de eliminação do dado pessoal (LGPD Art. 18 VI): pedido dele, com prazo de resposta e dever de comprovação por parte da oficina.
+**HS11 em detalhe.** `RemoveVehicle` cobre hoje duas situações que só se parecem na superfície. Na primeira, a oficina limpa o cadastro de um veículo que não atende mais: decisão administrativa dela, sem titular envolvido. Na segunda, o titular exerce o direito de eliminação do dado pessoal (LGPD Art. 18 VI): pedido dele, com prazo de resposta e dever de comprovação por parte da oficina.
 
 As duas terminam na mesma anonimização, e é isso que torna aceitável tratá-las como um caso de uso único no MVP. Mas a base legal é diferente, e a trilha de auditoria registra apenas que o veículo foi removido — não a pedido de quem, nem sob qual fundamento. Se o titular questionar o atendimento do pedido, o registro atual não serve de prova. Separar os dois atos, quando for a hora, significa dois comandos distintos e um campo de fundamento na trilha, não um `boolean`.
