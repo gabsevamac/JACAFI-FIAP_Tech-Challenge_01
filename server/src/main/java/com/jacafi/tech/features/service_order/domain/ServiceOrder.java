@@ -2,9 +2,6 @@ package com.jacafi.tech.features.service_order.domain;
 import com.jacafi.tech.features.service.domain.Service;
 import com.jacafi.tech.features.service_order.add_service_to_order.ServiceOrderService;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
@@ -14,10 +11,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "service_orders")
 public class ServiceOrder {
@@ -58,6 +54,14 @@ public class ServiceOrder {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    /**
+     * Required by JPA, which instantiates entities reflectively before populating their state.
+     * Kept {@code protected} so that {@link #open(UUID, UUID)} stays the only way to create a
+     * service order, and its invariants cannot be bypassed.
+     */
+    protected ServiceOrder() {
+    }
 
     //TODO: Alterar parâmetros quando as entidades Vehicle e User estiverem feitas.
     public static ServiceOrder open(UUID vehicleId, UUID clientId) {
@@ -123,8 +127,59 @@ public class ServiceOrder {
     }
 
 
+    public UUID getId() {
+        return id;
+    }
+
+    public ServiceOrderStatus getStatus() {
+        return status;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public UUID getVehicleId() {
+        return vehicleId;
+    }
+
+    public UUID getClientId() {
+        return clientId;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
     public List<ServiceOrderService> getServices() {
         return Collections.unmodifiableList(services);
+    }
+
+    /** Identity-based equality: field-based equality breaks for managed entities. */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ServiceOrder other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : System.identityHashCode(this);
+    }
+
+    /**
+     * Prints the identifier and the status only. {@code vehicleId} and {@code clientId} point at
+     * a natural person and at a vehicle, so they stay out of logs and error messages
+     * (LGPD Art. 6 VII).
+     */
+    @Override
+    public String toString() {
+        return "ServiceOrder[id=%s, status=%s]".formatted(id, status);
     }
 
 

@@ -15,8 +15,8 @@ public class AuthService {
     public Authentication login(LoginRequestDTO request) {
         return authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
+                        request.username(),
+                        request.password()
                 )
         );
     }

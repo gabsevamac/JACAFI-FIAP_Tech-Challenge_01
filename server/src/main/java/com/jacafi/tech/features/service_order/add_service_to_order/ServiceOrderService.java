@@ -2,15 +2,17 @@ package com.jacafi.tech.features.service_order.add_service_to_order;
 
 import com.jacafi.tech.features.service.domain.Service;
 import com.jacafi.tech.features.service_order.domain.ServiceOrder;
-import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "service_orders_service")
 public class ServiceOrderService {
@@ -34,6 +36,13 @@ public class ServiceOrderService {
     @JoinColumn(name = "service_id", nullable = false, updatable = false)
     private Service service;
 
+    /**
+     * Required by JPA. Kept {@code protected} so the invariants in
+     * {@link #create(ServiceOrder, Service, BigDecimal, int)} cannot be bypassed.
+     */
+    protected ServiceOrderService() {
+    }
+
     public static ServiceOrderService create(ServiceOrder serviceOrder, Service service,
                                              BigDecimal priceAtSale,
                                              int quantity) {
@@ -52,5 +61,43 @@ public class ServiceOrderService {
         item.priceAtSale = priceAtSale;
         item.quantity = quantity;
         return item;
+    }
+
+    public ServiceOrderServiceId getId() {
+        return id;
+    }
+
+    public BigDecimal getPriceAtSale() {
+        return priceAtSale;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public ServiceOrder getServiceOrder() {
+        return serviceOrder;
+    }
+
+    public Service getService() {
+        return service;
+    }
+
+    /** Identity-based equality, the identity here being the composite {@link ServiceOrderServiceId}. */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ServiceOrderService other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : System.identityHashCode(this);
+    }
+
+    @Override
+    public String toString() {
+        return "ServiceOrderService[id=%s, quantity=%d]".formatted(id, quantity);
     }
 }
