@@ -1,4 +1,4 @@
-package com.jacafi.tech.features.client.api;
+package com.jacafi.tech.client.controller;
 
 import com.jacafi.tech.client.exception.ClientAlreadyExistsException;
 import com.jacafi.tech.client.exception.ClientNotFoundException;

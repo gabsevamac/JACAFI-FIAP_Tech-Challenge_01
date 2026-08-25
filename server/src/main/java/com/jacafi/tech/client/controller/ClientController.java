@@ -1,17 +1,15 @@
-package com.jacafi.tech.features.client.api;
+package com.jacafi.tech.client.controller;
 
-import com.jacafi.tech.client.entity.Client;
+import com.jacafi.tech.client.dto.ClientResponse;
+import com.jacafi.tech.client.dto.CreateClientRequest;
+import com.jacafi.tech.client.dto.PageResponse;
+import com.jacafi.tech.client.dto.UpdateClientRequest;
 import com.jacafi.tech.client.entity.PersonType;
 import com.jacafi.tech.client.service.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +24,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "Clients")
@@ -93,66 +89,5 @@ public class ClientController {
     public ResponseEntity<Void> deactivate(@PathVariable UUID id) {
         clientService.deactivate(id);
         return ResponseEntity.noContent().build();
-    }
-
-    public record CreateClientRequest(
-            @NotNull PersonType personType,
-            @NotBlank @Size(max = 18) String taxIdentifier,
-            @NotBlank @Size(max = 150) String name,
-            @Size(max = 150) String tradeName,
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(max = 20) String phone) {
-    }
-
-    public record UpdateClientRequest(
-            @NotBlank @Size(max = 150) String name,
-            @Size(max = 150) String tradeName,
-            @NotBlank @Email @Size(max = 254) String email,
-            @NotBlank @Size(max = 20) String phone) {
-    }
-
-    public record ClientResponse(
-            UUID id,
-            PersonType personType,
-            String taxIdentifier,
-            String name,
-            String tradeName,
-            String email,
-            String phone,
-            boolean active,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt) {
-
-        static ClientResponse from(Client client) {
-            var party = client.getParty();
-            return new ClientResponse(
-                    client.getId(),
-                    party.getPersonType(),
-                    party.getTaxIdentifier().getValue(),
-                    party.getName(),
-                    party.getTradeName(),
-                    client.getEmail(),
-                    client.getPhone(),
-                    client.isActive(),
-                    client.getCreatedAt(),
-                    client.getUpdatedAt());
-        }
-    }
-
-    public record PageResponse<T>(
-            List<T> content,
-            int page,
-            int size,
-            long totalElements,
-            int totalPages) {
-
-        static <T> PageResponse<T> from(Page<T> result) {
-            return new PageResponse<>(
-                    result.getContent(),
-                    result.getNumber(),
-                    result.getSize(),
-                    result.getTotalElements(),
-                    result.getTotalPages());
-        }
     }
 }
