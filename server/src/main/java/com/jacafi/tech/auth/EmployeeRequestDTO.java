@@ -1,13 +1,14 @@
 package com.jacafi.tech.auth;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+/**
+ * Payload for creating an employee account.
+ *
+ * <p>No {@code toString} exposing the password — see {@link LoginRequestDTO}.
+ */
+public record EmployeeRequestDTO(String username, String password) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class EmployeeRequestDTO {
-    private String username;
-    private String password;
+    @Override
+    public String toString() {
+        return "EmployeeRequestDTO[username=***, password=***]";
+    }
 }

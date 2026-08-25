@@ -21,11 +21,10 @@ public class EmployeeController {
 
     @PostMapping
     public ResponseEntity<EmployeeResponseDTO> createEmployee(@RequestBody EmployeeRequestDTO request) {
-        User user = User.builder()
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role("USER")
-                .build();
+        User user = User.create(
+                request.username(),
+                passwordEncoder.encode(request.password()),
+                "USER");
 
         User userOpt = userRepository.save(user);
 

@@ -1,0 +1,23 @@
+# Perfil de teste. O datasource real vem do container do Testcontainers via @ServiceConnection;
+# os valores abaixo existem apenas para satisfazer o binding de spring.datasource.*, que no
+# application.yaml aponta para variaveis de ambiente inexistentes na maquina de quem roda o build.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/replaced-by-testcontainers
+    username: test
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    # O segundo local existe so no classpath de teste e contem um remendo: as tabelas da fatia
+    # service_order, que nao tem migracao e fazem o ddl-auto=validate derrubar qualquer
+    # @SpringBootTest. Ver o comentario dentro do arquivo. Sai quando o dono entregar a migracao.
+    locations:
+      - classpath:db/migration
+      - classpath:db/migration-test-support
+
+jwt:
+  # Chave de teste, sem valor em producao. HS256 exige no minimo 32 bytes.
+  secret: test-only-secret-key-with-at-least-32-bytes-of-length
+  expiration-minutes: 60

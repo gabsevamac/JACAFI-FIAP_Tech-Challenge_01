@@ -19,6 +19,24 @@ server:
 
   flyway:
     enabled: true
+    # As migracoes usam versao por timestamp (V<AAAAMMDDhhmm>__<task_id>.sql). Com esse formato,
+    # uma migracao criada antes pode ser mergeada depois de outra de versao maior — cenario
+    # normal com quatro fatias em paralelo. Sem out-of-order o Flyway falha quando isso ocorre.
+    # E inofensivo aqui porque o banco e descartavel e sobe do zero a cada `docker compose up`.
+    out-of-order: true
+
+logging:
+  level:
+    # O Postgres inclui o valor do campo na mensagem de violacao de constraint
+    # ("Detail: Key (license_plate)=(ABC1D23) already exists"), e o Hibernate registra essa
+    # mensagem em WARN. Isso colocaria a placa completa no log por um caminho que nao passa pelo
+    # mascaramento da aplicacao, contra o Art. 6 VII da LGPD.
+    #
+    # A violacao em si ja e tratada: a camada de aplicacao verifica a placa antes de gravar, e o
+    # adaptador traduz a constraint em erro de dominio, respondendo 409. O que se perde aqui e a
+    # visibilidade de OUTROS avisos de SQL, e isso e um custo real — a alternativa seria indexar
+    # um digest da placa em vez do valor, ao custo de complexidade no schema.
+    org.hibernate.orm.jdbc.error: ERROR
 
 jwt:
   secret: ${JWT_SECRET}

@@ -25,13 +25,18 @@ services:
     container_name: server
     build: ./server
     ports:
-      - "8082:8082"
+      # A aplicacao escuta na 8080 dentro do container (ver EXPOSE no Dockerfile);
+      # 8082 e apenas a porta publicada no host.
+      - "8082:8080"
     networks:
       - tech-network
     environment:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      # Obrigatorio: application.yaml resolve ${JWT_SECRET} na subida do contexto e,
+      # sem a variavel, o container nao inicia. Minimo de 32 bytes para HS256.
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       database:
         condition: service_healthy

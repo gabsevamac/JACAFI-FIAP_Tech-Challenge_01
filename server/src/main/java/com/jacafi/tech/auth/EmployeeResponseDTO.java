@@ -1,14 +1,7 @@
 package com.jacafi.tech.auth;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class EmployeeResponseDTO {
-    private Long id;
-    private String username;
-    private String role;
+/**
+ * Employee account as exposed by the API. Carries no credential.
+ */
+public record EmployeeResponseDTO(Long id, String username, String role) {
 }

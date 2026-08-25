@@ -21,6 +21,14 @@ import java.util.List;
 @Configuration
 public class SecurityConfig {
 
+    /** Paths served by springdoc: the OpenAPI 3.1 document and the Swagger UI. */
+    private static final String[] SPRINGDOC_PATHS = {
+            "/v3/api-docs",
+            "/v3/api-docs/**",
+            "/swagger-ui.html",
+            "/swagger-ui/**"
+    };
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -35,14 +43,25 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   JwtAuthenticationFilter jwtAuthenticationFilter,
+                                                   SecurityProblemDetailHandler problemDetailHandler) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Without an explicit entry point, a request with no credentials got 403 instead of 401.
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(problemDetailHandler)
+                        .accessDeniedHandler(problemDetailHandler)
+                )
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // API documentation is a project requirement, and the Swagger UI has to
+                        // fetch its own JSON before any token exists.
+                        // TODO: restrict these paths outside development — the MVP has a single environment.
+                        .requestMatchers(SPRINGDOC_PATHS).permitAll()
                         .requestMatchers(HttpMethod.POST, "/employee").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/employee/**").hasRole("ADMIN")
                         .anyRequest().authenticated()

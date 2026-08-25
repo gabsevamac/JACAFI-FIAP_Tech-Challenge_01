@@ -6,20 +6,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
  * Domain entity representing a type of mechanical/technical service offered by the workshop.
  * Acts as a catalogue item that can be associated with {@link ServiceOrder}s.
  */
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // Required by JPA; hidden from application code
 @Entity
 @Table(name = "services")
 public class Service {
@@ -35,6 +31,13 @@ public class Service {
 
     @Column(name = "base_price", nullable = false)
     private BigDecimal basePrice;
+
+    /**
+     * Required by JPA, which instantiates entities reflectively. Kept {@code protected} so that
+     * application code has to go through {@link #create(String, BigDecimal)} and its invariants.
+     */
+    protected Service() {
+    }
 
     /**
      * Factory method — the only public way to create a new {@link Service}.
@@ -68,5 +71,35 @@ public class Service {
             throw new IllegalArgumentException("Service base price must be zero or positive");
         }
         this.basePrice = newPrice;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public BigDecimal getBasePrice() {
+        return basePrice;
+    }
+
+    /** Identity-based equality: field-based equality breaks for managed entities. */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Service other)) return false;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : System.identityHashCode(this);
+    }
+
+    @Override
+    public String toString() {
+        return "Service[id=%s, description=%s]".formatted(id, description);
     }
 }

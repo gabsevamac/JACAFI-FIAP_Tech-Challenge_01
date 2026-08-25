@@ -1,13 +1,14 @@
 package com.jacafi.tech.auth;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+/**
+ * Result of a successful login.
+ *
+ * <p>The token is a bearer credential, so {@code toString} masks it.
+ */
+public record LoginResponseDTO(String username, String token) {
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class LoginResponseDTO {
-    private String username;
-    private String token;
+    @Override
+    public String toString() {
+        return "LoginResponseDTO[username=%s, token=***]".formatted(username);
+    }
 }
