@@ -5,11 +5,7 @@ import com.jacafi.tech.client.entity.Party;
 import com.jacafi.tech.client.entity.PersonType;
 import com.jacafi.tech.client.entity.TaxIdentifier;
 import com.jacafi.tech.client.exception.ClientAlreadyExistsException;
-import com.jacafi.tech.features.client.create.CreateClientUseCase;
-import com.jacafi.tech.features.client.query.FindClientUseCase;
-import com.jacafi.tech.features.client.query.ListClientsUseCase;
-import com.jacafi.tech.features.client.update.DeactivateClientUseCase;
-import com.jacafi.tech.features.client.update.UpdateClientUseCase;
+import com.jacafi.tech.client.service.ClientService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
@@ -26,18 +22,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ClientControllerTest {
 
-    private CreateClientUseCase createClient;
+    private ClientService clientService;
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
-        createClient = mock(CreateClientUseCase.class);
-        var controller = new ClientController(
-                createClient,
-                mock(FindClientUseCase.class),
-                mock(ListClientsUseCase.class),
-                mock(UpdateClientUseCase.class),
-                mock(DeactivateClientUseCase.class));
+        clientService = mock(ClientService.class);
+        var controller = new ClientController(clientService);
         mvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new ClientExceptionHandler())
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
@@ -46,7 +37,7 @@ class ClientControllerTest {
 
     @Test
     void createsAClient() throws Exception {
-        when(createClient.execute(any())).thenReturn(client());
+        when(clientService.create(any(), any(), any(), any(), any(), any())).thenReturn(client());
 
         mvc.perform(post("/api/v1/clients")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -65,7 +56,8 @@ class ClientControllerTest {
 
     @Test
     void mapsDuplicateClientsToConflict() throws Exception {
-        when(createClient.execute(any())).thenThrow(new ClientAlreadyExistsException());
+        when(clientService.create(any(), any(), any(), any(), any(), any()))
+                .thenThrow(new ClientAlreadyExistsException());
 
         mvc.perform(post("/api/v1/clients")
                         .contentType(MediaType.APPLICATION_JSON)

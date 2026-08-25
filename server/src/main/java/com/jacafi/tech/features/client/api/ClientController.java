@@ -1,14 +1,8 @@
 package com.jacafi.tech.features.client.api;
 
-import com.jacafi.tech.features.client.create.CreateClientCommand;
-import com.jacafi.tech.features.client.create.CreateClientUseCase;
 import com.jacafi.tech.client.entity.Client;
 import com.jacafi.tech.client.entity.PersonType;
-import com.jacafi.tech.features.client.query.FindClientUseCase;
-import com.jacafi.tech.features.client.query.ListClientsUseCase;
-import com.jacafi.tech.features.client.update.DeactivateClientUseCase;
-import com.jacafi.tech.features.client.update.UpdateClientCommand;
-import com.jacafi.tech.features.client.update.UpdateClientUseCase;
+import com.jacafi.tech.client.service.ClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -41,29 +35,22 @@ import java.util.UUID;
 @RequestMapping("/api/v1/clients")
 public class ClientController {
 
-    private final CreateClientUseCase createClient;
-    private final FindClientUseCase findClient;
-    private final ListClientsUseCase listClients;
-    private final UpdateClientUseCase updateClient;
-    private final DeactivateClientUseCase deactivateClient;
+    private final ClientService clientService;
 
-    public ClientController(
-            CreateClientUseCase createClient,
-            FindClientUseCase findClient,
-            ListClientsUseCase listClients,
-            UpdateClientUseCase updateClient,
-            DeactivateClientUseCase deactivateClient) {
-        this.createClient = createClient;
-        this.findClient = findClient;
-        this.listClients = listClients;
-        this.updateClient = updateClient;
-        this.deactivateClient = deactivateClient;
+    public ClientController(ClientService clientService) {
+        this.clientService = clientService;
     }
 
     @Operation(summary = "Create a client")
     @PostMapping
     public ResponseEntity<ClientResponse> create(@Valid @RequestBody CreateClientRequest request) {
-        var client = createClient.execute(request.toCommand());
+        var client = clientService.create(
+                request.personType(),
+                request.taxIdentifier(),
+                request.name(),
+                request.tradeName(),
+                request.email(),
+                request.phone());
         return ResponseEntity.created(URI.create("/api/v1/clients/" + client.getId()))
                 .body(ClientResponse.from(client));
     }
@@ -71,7 +58,7 @@ public class ClientController {
     @Operation(summary = "Find a client by id")
     @GetMapping("/{id}")
     public ClientResponse findById(@PathVariable UUID id) {
-        return ClientResponse.from(findClient.byId(id));
+        return ClientResponse.from(clientService.findById(id));
     }
 
     @Operation(summary = "Find a client by CPF or CNPJ")
@@ -79,7 +66,7 @@ public class ClientController {
     public ClientResponse findByTaxIdentifier(
             @RequestParam PersonType personType,
             @RequestParam String taxIdentifier) {
-        return ClientResponse.from(findClient.byTaxIdentifier(personType, taxIdentifier));
+        return ClientResponse.from(clientService.findByTaxIdentifier(personType, taxIdentifier));
     }
 
     @Operation(summary = "List clients")
@@ -87,19 +74,24 @@ public class ClientController {
     public PageResponse<ClientResponse> list(
             @RequestParam(required = false) Boolean active,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        return PageResponse.from(listClients.execute(active, pageable).map(ClientResponse::from));
+        return PageResponse.from(clientService.list(active, pageable).map(ClientResponse::from));
     }
 
     @Operation(summary = "Update a client")
     @PatchMapping("/{id}")
     public ClientResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateClientRequest request) {
-        return ClientResponse.from(updateClient.execute(id, request.toCommand()));
+        return ClientResponse.from(clientService.update(
+                id,
+                request.name(),
+                request.tradeName(),
+                request.email(),
+                request.phone()));
     }
 
     @Operation(summary = "Deactivate a client")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(@PathVariable UUID id) {
-        deactivateClient.execute(id);
+        clientService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 
@@ -110,10 +102,6 @@ public class ClientController {
             @Size(max = 150) String tradeName,
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(max = 20) String phone) {
-
-        CreateClientCommand toCommand() {
-            return new CreateClientCommand(personType, taxIdentifier, name, tradeName, email, phone);
-        }
     }
 
     public record UpdateClientRequest(
@@ -121,10 +109,6 @@ public class ClientController {
             @Size(max = 150) String tradeName,
             @NotBlank @Email @Size(max = 254) String email,
             @NotBlank @Size(max = 20) String phone) {
-
-        UpdateClientCommand toCommand() {
-            return new UpdateClientCommand(name, tradeName, email, phone);
-        }
     }
 
     public record ClientResponse(
