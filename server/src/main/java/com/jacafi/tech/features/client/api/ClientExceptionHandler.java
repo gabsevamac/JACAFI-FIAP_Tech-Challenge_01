@@ -1,8 +1,8 @@
 package com.jacafi.tech.features.client.api;
 
-import com.jacafi.tech.features.client.create.ClientAlreadyExistsException;
-import com.jacafi.tech.features.client.domain.InvalidTaxIdentifierException;
-import com.jacafi.tech.features.client.query.ClientNotFoundException;
+import com.jacafi.tech.client.exception.ClientAlreadyExistsException;
+import com.jacafi.tech.client.exception.ClientNotFoundException;
+import com.jacafi.tech.client.exception.InvalidTaxIdentifierException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;

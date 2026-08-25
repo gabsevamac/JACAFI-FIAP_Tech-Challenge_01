@@ -1,4 +1,7 @@
-package com.jacafi.tech.features.client.domain;
+package com.jacafi.tech.client.repository;
+
+import com.jacafi.tech.client.entity.Client;
+import com.jacafi.tech.client.entity.PersonType;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;

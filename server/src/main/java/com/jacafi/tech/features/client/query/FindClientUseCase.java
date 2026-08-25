@@ -1,9 +1,10 @@
 package com.jacafi.tech.features.client.query;
 
-import com.jacafi.tech.features.client.domain.Client;
-import com.jacafi.tech.features.client.domain.ClientRepository;
-import com.jacafi.tech.features.client.domain.PersonType;
-import com.jacafi.tech.features.client.domain.TaxIdentifier;
+import com.jacafi.tech.client.entity.Client;
+import com.jacafi.tech.client.entity.PersonType;
+import com.jacafi.tech.client.entity.TaxIdentifier;
+import com.jacafi.tech.client.exception.ClientNotFoundException;
+import com.jacafi.tech.client.repository.ClientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,5 +1,6 @@
-package com.jacafi.tech.features.client.domain;
+package com.jacafi.tech.client.entity;
 
+import com.jacafi.tech.client.exception.InvalidTaxIdentifierException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

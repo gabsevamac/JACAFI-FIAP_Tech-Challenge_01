@@ -1,4 +1,4 @@
-package com.jacafi.tech.features.client.create;
+package com.jacafi.tech.client.exception;
 
 public class ClientAlreadyExistsException extends RuntimeException {
 

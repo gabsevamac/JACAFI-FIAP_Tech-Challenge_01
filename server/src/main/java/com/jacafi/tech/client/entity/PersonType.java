@@ -1,4 +1,4 @@
-package com.jacafi.tech.features.client.domain;
+package com.jacafi.tech.client.entity;
 
 public enum PersonType {
     INDIVIDUAL,

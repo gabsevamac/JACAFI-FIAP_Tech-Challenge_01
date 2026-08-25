@@ -1,7 +1,7 @@
 package com.jacafi.tech.features.client.update;
 
-import com.jacafi.tech.features.client.domain.ClientRepository;
-import com.jacafi.tech.features.client.query.ClientNotFoundException;
+import com.jacafi.tech.client.exception.ClientNotFoundException;
+import com.jacafi.tech.client.repository.ClientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

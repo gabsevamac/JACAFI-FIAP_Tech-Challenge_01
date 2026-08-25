@@ -1,7 +1,8 @@
 package com.jacafi.tech.features.client.create;
 
-import com.jacafi.tech.features.client.domain.ClientRepository;
-import com.jacafi.tech.features.client.domain.PersonType;
+import com.jacafi.tech.client.entity.PersonType;
+import com.jacafi.tech.client.exception.ClientAlreadyExistsException;
+import com.jacafi.tech.client.repository.ClientRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

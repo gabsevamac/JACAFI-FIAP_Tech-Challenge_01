@@ -1,4 +1,6 @@
-package com.jacafi.tech.features.client.domain;
+package com.jacafi.tech.client.entity;
+
+import com.jacafi.tech.client.exception.InvalidTaxIdentifierException;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

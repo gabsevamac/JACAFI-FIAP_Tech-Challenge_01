@@ -1,4 +1,4 @@
-package com.jacafi.tech.features.client.query;
+package com.jacafi.tech.client.exception;
 
 public class ClientNotFoundException extends RuntimeException {
 

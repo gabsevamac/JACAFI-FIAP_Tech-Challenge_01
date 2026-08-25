@@ -1,6 +1,6 @@
 package com.jacafi.tech.features.client.query;
 
-import com.jacafi.tech.features.client.domain.ClientRepository;
+import com.jacafi.tech.client.repository.ClientRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

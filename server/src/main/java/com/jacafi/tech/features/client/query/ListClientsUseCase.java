@@ -1,7 +1,7 @@
 package com.jacafi.tech.features.client.query;
 
-import com.jacafi.tech.features.client.domain.Client;
-import com.jacafi.tech.features.client.domain.ClientRepository;
+import com.jacafi.tech.client.entity.Client;
+import com.jacafi.tech.client.repository.ClientRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;

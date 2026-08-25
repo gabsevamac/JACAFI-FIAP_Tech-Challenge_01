@@ -1,9 +1,10 @@
 package com.jacafi.tech.features.client.create;
 
-import com.jacafi.tech.features.client.domain.Client;
-import com.jacafi.tech.features.client.domain.ClientRepository;
-import com.jacafi.tech.features.client.domain.Party;
-import com.jacafi.tech.features.client.domain.TaxIdentifier;
+import com.jacafi.tech.client.entity.Client;
+import com.jacafi.tech.client.entity.Party;
+import com.jacafi.tech.client.entity.TaxIdentifier;
+import com.jacafi.tech.client.exception.ClientAlreadyExistsException;
+import com.jacafi.tech.client.repository.ClientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

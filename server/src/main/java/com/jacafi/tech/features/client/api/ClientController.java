@@ -2,8 +2,8 @@ package com.jacafi.tech.features.client.api;
 
 import com.jacafi.tech.features.client.create.CreateClientCommand;
 import com.jacafi.tech.features.client.create.CreateClientUseCase;
-import com.jacafi.tech.features.client.domain.Client;
-import com.jacafi.tech.features.client.domain.PersonType;
+import com.jacafi.tech.client.entity.Client;
+import com.jacafi.tech.client.entity.PersonType;
 import com.jacafi.tech.features.client.query.FindClientUseCase;
 import com.jacafi.tech.features.client.query.ListClientsUseCase;
 import com.jacafi.tech.features.client.update.DeactivateClientUseCase;

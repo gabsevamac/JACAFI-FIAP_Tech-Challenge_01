@@ -1,10 +1,10 @@
 package com.jacafi.tech.features.client.update;
 
-import com.jacafi.tech.features.client.domain.Client;
-import com.jacafi.tech.features.client.domain.ClientRepository;
-import com.jacafi.tech.features.client.domain.Party;
-import com.jacafi.tech.features.client.domain.PersonType;
-import com.jacafi.tech.features.client.domain.TaxIdentifier;
+import com.jacafi.tech.client.entity.Client;
+import com.jacafi.tech.client.entity.Party;
+import com.jacafi.tech.client.entity.PersonType;
+import com.jacafi.tech.client.entity.TaxIdentifier;
+import com.jacafi.tech.client.repository.ClientRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
