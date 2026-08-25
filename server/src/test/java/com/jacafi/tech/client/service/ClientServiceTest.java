@@ -121,6 +121,16 @@ class ClientServiceTest {
     }
 
     @Test
+    void rejectsUpdatingAMissingClient() {
+        var id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.update(id, "Maria", null, "maria@example.com", "11999999999"))
+                .isInstanceOf(ClientNotFoundException.class)
+                .hasMessage("Client not found");
+    }
+
+    @Test
     void deactivatesTheClientWithoutDeletingItsParty() {
         var id = UUID.randomUUID();
         var client = client();

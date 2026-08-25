@@ -1,4 +1,4 @@
-package com.jacafi.tech.features.client.api;
+package com.jacafi.tech.client.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

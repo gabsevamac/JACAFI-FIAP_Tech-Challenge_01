@@ -157,7 +157,7 @@
                                 <rule>
                                     <element>PACKAGE</element>
                                     <includes>
-                                        <include>com.jacafi.tech.features.client.domain</include>
+                                        <include>com.jacafi.tech.client.entity</include>
                                     </includes>
                                     <limits>
                                         <limit>
