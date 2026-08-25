@@ -175,6 +175,24 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Failsafe roda os testes de integracao (*IT) na fase integration-test, separados
+                 dos unitarios do Surefire (*Test). A separacao importa: os *IT sobem contexto
+                 Spring e container Postgres, levam dezenas de segundos e nao devem atrasar o
+                 feedback de quem roda `mvn test`. Sem este plugin, arquivos *IT sao
+                 silenciosamente ignorados pelo build — que foi exatamente o que aconteceu aqui. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
