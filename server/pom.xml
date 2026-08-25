@@ -2,33 +2,27 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>4.1.0</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
+
     <groupId>com.jacafi</groupId>
     <artifactId>tech</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name/>
-    <description/>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+    <name>sinates</name>
+    <description>Sistema Integrado de Atendimento e Execucao de Servicos</description>
+
     <properties>
         <java.version>25</java.version>
+        <!-- springdoc 3.x e a linha para Spring Boot 4 / Spring Framework 7. A 2.x e para Boot 3.x. -->
+        <springdoc.version>3.0.3</springdoc.version>
+        <jjwt.version>0.13.0</jjwt.version>
     </properties>
+
     <dependencies>
         <!-- Spring -->
         <dependency>
@@ -43,10 +37,23 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
+        <!-- Habilita @Valid nos DTOs de entrada (placa, documento, ano do modelo).
+             Jakarta Validation 3.1 na linha Spring Framework 7. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Documentacao da API: OpenAPI 3.1 + Swagger UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
 
         <!-- Database -->
@@ -64,11 +71,26 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
-        <!-- Lombok -->
+        <!-- JWT.
+             Atencao: Spring Boot 4 usa Jackson 3 por padrao (pacote tools.jackson).
+             jjwt-jackson ainda depende de Jackson 2 (com.fasterxml.jackson).
+             Os pacotes coexistem, mas rode `mvn dependency:tree` para saber o que entrou. -->
         <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Tests -->
@@ -88,23 +110,25 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- JWT -->
+        <!-- Testes de integracao contra Postgres real, nao H2.
+             H2 nao valida a constraint de unicidade da placa do mesmo jeito. -->
         <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>0.13.0</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testcontainers 2.x renomeou todos os modulos com o prefixo `testcontainers-`.
+             O testcontainers-bom gerenciado pelo Spring Boot 4.1.0 e o 2.0.5; os artefatos
+             antigos (org.testcontainers:junit-jupiter, :postgresql) nao existem mais nele. -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>0.13.0</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>0.13.0</version>
-            <scope>runtime</scope>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -114,6 +138,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -127,8 +152,8 @@
                         <configuration>
                             <annotationProcessorPaths>
                                 <path>
-                                    <groupId>org.projectlombok</groupId>
-                                    <artifactId>lombok</artifactId>
+                                    <groupId>org.springframework.boot</groupId>
+                                    <artifactId>spring-boot-configuration-processor</artifactId>
                                 </path>
                             </annotationProcessorPaths>
                         </configuration>
@@ -142,8 +167,8 @@
                         <configuration>
                             <annotationProcessorPaths>
                                 <path>
-                                    <groupId>org.projectlombok</groupId>
-                                    <artifactId>lombok</artifactId>
+                                    <groupId>org.springframework.boot</groupId>
+                                    <artifactId>spring-boot-configuration-processor</artifactId>
                                 </path>
                             </annotationProcessorPaths>
                         </configuration>
