@@ -11,9 +11,4 @@ import java.util.UUID;
  *
  * @param actor who is performing the operation, taken from the JWT subject by the api layer
  */
-public record UpdateVehicleCommand(UUID vehicleId,
-                                   String make,
-                                   String model,
-                                   int modelYear,
-                                   String actor) {
-}
+public record UpdateVehicleCommand(UUID vehicleId, String make, String model, int modelYear, String actor) {}

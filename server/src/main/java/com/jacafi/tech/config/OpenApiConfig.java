@@ -1,11 +1,12 @@
 package com.jacafi.tech.config;
 
+import org.springframework.context.annotation.Configuration;
+
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Declares the API document and the bearer scheme the endpoints reference.
@@ -14,10 +15,12 @@ import org.springframework.context.annotation.Configuration;
  * annotates its own controllers.
  */
 @Configuration
-@OpenAPIDefinition(info = @Info(
-        title = "SINATES",
-        version = "v1",
-        description = "Sistema Integrado de Atendimento e Execucao de Servicos"))
+@OpenAPIDefinition(
+        info =
+                @Info(
+                        title = "SINATES",
+                        version = "v1",
+                        description = "Sistema Integrado de Atendimento e Execucao de Servicos"))
 @SecurityScheme(
         name = "bearer-jwt",
         type = SecuritySchemeType.HTTP,
@@ -25,5 +28,4 @@ import org.springframework.context.annotation.Configuration;
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER,
         description = "Token obtained from POST /auth/login")
-public class OpenApiConfig {
-}
+public class OpenApiConfig {}

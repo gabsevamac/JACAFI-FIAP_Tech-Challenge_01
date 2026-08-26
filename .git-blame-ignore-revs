@@ -1,0 +1,24 @@
+# Commits que apenas reformatam codigo, sem mudar comportamento.
+#
+# O `git blame` atribui cada linha ao ultimo commit que a tocou. Um commit de
+# reformatacao toca praticamente todas as linhas do repositorio, o que faria o blame
+# responder "quem escreveu isto?" com o nome de quem rodou o formatador — apagando a
+# autoria real de quatro pessoas de uma vez.
+#
+# Para o git ignorar estes commits ao calcular autoria, ative o arquivo uma vez:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# A configuracao e local por clone e nao se propaga sozinha: cada integrante precisa
+# rodar o comando na sua maquina. A interface web do GitHub respeita este arquivo
+# automaticamente, sem configuracao.
+#
+# Regra para adicionar aqui: SO commits comprovadamente sem mudanca de comportamento.
+# Um commit misto — reformatacao junto com alteracao de logica — nao entra, porque
+# ignora-lo esconderia a alteracao de logica do blame.
+#
+# Formato: um hash completo (40 caracteres) por linha, com o assunto do commit em
+# comentario logo acima.
+
+# style: aplicar o palantir-java-format ao repositorio inteiro
+84cd90f868548bfe6785b54ea724c14f9b186e52

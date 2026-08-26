@@ -1,9 +1,13 @@
 package com.jacafi.tech.vehicle.application;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import com.jacafi.tech.shared.application.PageQuery;
+import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.vehicle.domain.Vehicle;
 
 /**
  * Lists the vehicles of one customer, a page at a time.
@@ -27,7 +31,7 @@ public class ListCustomerVehiclesUseCase {
     }
 
     @Transactional(readOnly = true)
-    public VehiclePage list(UUID customerId, int page, int size) {
-        return queries.findActiveByCustomer(customerId, page, size);
+    public PageResult<Vehicle> list(UUID customerId, PageQuery query) {
+        return queries.findActiveByCustomer(customerId, query);
     }
 }

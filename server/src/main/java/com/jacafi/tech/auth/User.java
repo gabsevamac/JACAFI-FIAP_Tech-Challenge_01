@@ -7,8 +7,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.util.Objects;
-
 /**
  * Account used to authenticate against the administrative APIs.
  *
@@ -37,8 +35,7 @@ public class User {
      * Kept {@code protected} so application code cannot build a User in an invalid state —
      * {@link #create(String, String, String)} is the only supported entry point.
      */
-    protected User() {
-    }
+    protected User() {}
 
     /**
      * Creates a new account, validating every argument.
