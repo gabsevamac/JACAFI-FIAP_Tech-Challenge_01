@@ -20,7 +20,10 @@ import com.jacafi.tech.vehicle.domain.Vehicle;
 public class VehicleQueriesAdapter implements VehicleQueries {
 
     /** Stable order, so page two does not overlap page one when rows are added in between. */
-    private static final Sort BY_REGISTRATION = Sort.by(Sort.Direction.ASC, "registeredAt", "id");
+    // "createdAt" e o nome da propriedade herdada de AuditableEntity, nao o do dicionario. O Sort
+    // do Spring Data e resolvido contra a entidade de persistencia, e e a unica razao de o nome
+    // padronizado vazar para fora do mapper. A resposta da API continua dizendo registeredAt.
+    private static final Sort BY_REGISTRATION = Sort.by(Sort.Direction.ASC, "createdAt", "id");
 
     private final VehicleJpaRepository jpaRepository;
     private final VehiclePersistenceMapper mapper;
@@ -32,7 +35,7 @@ public class VehicleQueriesAdapter implements VehicleQueries {
 
     @Override
     public VehiclePage findActiveByCustomer(UUID customerId, int page, int size) {
-        Page<VehicleJpaEntity> found = jpaRepository.findByCustomerIdAndRemovedAtIsNull(
+        Page<VehicleJpaEntity> found = jpaRepository.findByCustomerIdAndDeletedAtIsNull(
                 customerId, PageRequest.of(page, size, BY_REGISTRATION));
 
         List<Vehicle> content =

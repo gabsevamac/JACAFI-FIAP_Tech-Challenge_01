@@ -25,8 +25,20 @@ public class VehiclePersistenceMapper {
                 vehicle.getModel(),
                 vehicle.getModelYear(),
                 vehicle.getCustomerId(),
-                vehicle.getRegisteredAt(),
-                vehicle.getUpdatedAt(),
+                vehicle.getRemovedAt().orElse(null),
+                // O autor da remocao ainda nao chega ate aqui: RemoveVehicleUseCase o conhece, mas
+                // a porta do repositorio recebe apenas o agregado, e o agregado nao carrega ator.
+                // Deixar null e admitir isso; inventar "system" afirmaria que ninguem removeu.
+                null);
+    }
+
+    /** Overwrites a managed row with the aggregate's current state. See {@code applyState}. */
+    public void copyInto(VehicleJpaEntity target, Vehicle vehicle) {
+        target.applyState(
+                storedLicensePlate(vehicle),
+                vehicle.getMake(),
+                vehicle.getModel(),
+                vehicle.getModelYear(),
                 vehicle.getRemovedAt().orElse(null));
     }
 

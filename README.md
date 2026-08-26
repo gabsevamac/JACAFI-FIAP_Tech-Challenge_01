@@ -199,6 +199,110 @@ depois  "createdAt":"2026-01-15T10:30:00.123456Z"
 
 ---
 
+## Auditoria
+
+Duas coisas diferentes, que costumam ser confundidas por terem o mesmo nome.
+
+### Auditoria técnica — `shared/persistence/AuditableEntity`
+
+`@MappedSuperclass` herdada por toda entidade de negócio, com `createdAt`/`createdBy`,
+`updatedAt`/`updatedBy`, `deletedAt`/`deletedBy` e `version`. Responde *"o estado atual
+desta linha veio de onde"*.
+
+**Os nomes das colunas são idênticos em toda tabela**, e isso é o ponto da superclasse.
+`vehicles` chamava `registered_at` e `removed_at`; passou a usar `created_at` e
+`deleted_at` como as demais. O vocabulário de negócio continua vivo no domínio —
+`Vehicle.getRegisteredAt()`, o evento `VehicleRemoved` — e a ponte fica no mapper de
+persistência, que é o único lugar obrigado a conhecer os dois.
+
+Os valores vêm do `AuditingEntityListener` alimentado pelo bean `Clock`, via
+`ClockDateTimeProvider`. Sem isso a auditoria seria a única parte do sistema a ignorar o
+relógio injetado, e o teste só poderia afirmar "aproximadamente agora".
+
+O autor vem do `JwtAuditorAware`, que lê o subject do JWT do `SecurityContext`. Sem
+autenticação — migração, job, seed — grava `"system"`, nunca `null`. Uma coluna de autor
+nulável obriga todo relatório de autoria a decidir o que `null` significa, e a decisão
+usual é omitir a linha, o que transforma uma escrita sem autor numa escrita invisível.
+
+### Remoção lógica: filtro explícito
+
+A convenção é filtro explícito no repositório (`findByIdAndDeletedAtIsNull`), e não
+`@SQLDelete` + `@SQLRestriction`. O comportamento das duas foi medido no Hibernate 7:
+
+| Caminho de leitura | `@SQLRestriction` filtra? |
+|---|---|
+| `em.find()` por chave primária | sim |
+| JPQL, Criteria, derived query | sim |
+| **query nativa** | **não** |
+
+O critério não foi capacidade — **nenhuma das duas filtra query nativa**. Foi a crença
+que cada uma cria. Com `@SQLRestriction` a remoção lógica parece resolvida globalmente,
+então uma query nativa devolvendo linha removida vira surpresa; com filtro explícito não
+existe essa expectativa. Como o relatório de vulnerabilidades é entregável, e "listagem
+devolveu registro removido" é achado clássico, a opção que falha de forma visível ganha
+da que falha em silêncio.
+
+O contra-argumento é real: filtro explícito depende de disciplina. Se as consultas se
+multiplicarem, vale reavaliar.
+
+### Bloqueio otimista
+
+`version` existe para que duas telas abertas sobre a mesma ordem de serviço não gravem
+uma por cima da outra. Num fluxo de aprovação de orçamento, a última escrita vencendo em
+silêncio significa registrar aprovação de um total que o cliente não viu.
+
+O adaptador de veículo **carrega a linha e copia estado para dentro dela**, em vez de
+mesclar uma instância destacada recém-construída. Uma instância reconstruída apresenta
+`version = 0` sempre, então a segunda gravação de uma linha colidiria com a primeira dela
+mesma. A alternativa seria pôr `version` no agregado, fazendo o domínio carregar uma
+preocupação de persistência.
+
+### Trilha de auditoria — `shared/application/AuditTrailPort`
+
+Tabela `audit_trail`, *append-only*, por campo: `aggregate_type`, `aggregate_id`,
+`field_name`, `old_value`, `new_value`, `reason`, `changed_at`, `changed_by`. Responde
+*"qual era o valor deste campo em tal data, e quem o mudou"* — que `updated_by` não
+responde, porque guarda só o último autor e sobrescreve o anterior.
+
+**A gravação é do caso de uso, não de um listener de JPA.** Um listener vê um valor mudar
+e não sabe dizer *por quê* — e o porquê é o que importa, porque corrigir um erro de
+digitação e registrar uma troca real de placa são os mesmos dois valores com significados
+opostos. É o hot spot HS9, e só o caso de uso está em posição de responder.
+
+`reason` é nulável por decisão, não por omissão: HS9 registra que a semântica do motivo
+ainda é ambígua, e exigir preenchimento agora produziria um campo cheio de "atualização".
+
+### ⚠️ `audit_trail` armazena dados pessoais
+
+`old_value` e `new_value` guardam o valor **íntegro** do campo alterado, e entre os campos
+auditados estão a placa do veículo e o CPF/CNPJ do cliente. Não são mascarados: uma trilha
+registrando *"a placa mudou de \*\*\* para \*\*\*"* não responde a única pergunta que motiva
+sua existência.
+
+**Base legal da retenção: Art. 16, I** — conservação para cumprimento de obrigação legal
+ou regulatória. O direito à eliminação do Art. 18, VI se ressalva expressamente às
+hipóteses do Art. 16.
+
+**Consequência assumida:** a remoção de veículo deixa de eliminar a placa do sistema. Ela
+continua apagando `vehicles.license_plate`, substituindo-a por um token irreversível que
+libera o índice único parcial para recadastro, mas o valor anterior permanece na trilha. O
+histórico do valor da placa é requisito de negócio (HS7–HS10, mutabilidade de placa) e não
+existe sem guardar o valor.
+
+**O que isso obriga:**
+
+- a tabela entra na política de retenção e precisa de prazo definido;
+- um pedido de titular (Art. 18) alcança estas linhas e precisa de procedimento;
+- os valores **nunca** podem ser logados nem devolvidos por API sem passar pelo `Masker`.
+
+Nenhuma chave estrangeira liga a trilha às tabelas de negócio, de propósito: prova que
+desaparece junto com o dado que descreve não é prova. O caráter *append-only* é regra de
+aplicação — a porta só oferece `record` — e não restrição do schema; endurecer no banco
+exigiria revogar `UPDATE` e `DELETE` do usuário da aplicação, o que fica registrado para
+produção.
+
+---
+
 ## Mascaramento de dados pessoais
 
 `shared/lgpd/Masker` é a única fonte do formato. Placa, CPF/CNPJ e e-mail são dados

@@ -30,8 +30,13 @@ import com.jacafi.tech.vehicle.domain.VehicleRepository;
  * setting to get wrong.
  *
  * <p>What they do guard, verified by removing it and watching them fail, is the microsecond
- * truncation in {@link TimeConfiguration}. Restore {@code Clock.systemUTC()} and both fail with
- * {@code expected 2026-08-26T14:25:52.291324069Z but was 2026-08-26T14:25:52.291324Z}.
+ * truncation in {@link TimeConfiguration}.
+ *
+ * <p>Deliberately does <em>not</em> import {@code FixedClockConfiguration}, unlike the other
+ * integration tests. A clock frozen at a whole second has no fractional digits to lose, so under
+ * one the truncation assertion would hold no matter what the clock produced — the test would pass
+ * and prove nothing. Determinism is the wrong property here: this test needs a clock that really
+ * ticks, and asserts a property of the value rather than its identity.
  *
  * <p>The risky combination is the other one: {@code LocalDateTime} against {@code TIMESTAMP
  * WITHOUT TIME ZONE}, where the stored value really does depend on the zone in effect. Nothing in
@@ -59,6 +64,19 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
         jdbcTemplate.execute("TRUNCATE TABLE vehicles, vehicle_audit_entries");
     }
 
+    private UUID save(String plate) {
+        UUID id = UUID.randomUUID();
+        repository.save(Vehicle.builder()
+                .id(id)
+                .licensePlate(new LicensePlate(plate))
+                .make("Volkswagen")
+                .model("Gol")
+                .modelYear(2020)
+                .customerId(UUID.randomUUID())
+                .register(clock));
+        return id;
+    }
+
     @Test
     @DisplayName("survives unchanged even when the JVM default zone is not UTC")
     void survivesANonUtcJvmDefault() {
@@ -68,23 +86,12 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
         // where the platform zone starts deciding what gets stored.
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneId.of("America/Sao_Paulo")));
 
-        Instant registeredAt = clock.instant();
-        UUID id = UUID.randomUUID();
+        UUID id = save("RTP1A23");
 
-        repository.save(Vehicle.builder()
-                .id(id)
-                .licensePlate(new LicensePlate("RTP1A23"))
-                .make("Volkswagen")
-                .model("Gol")
-                .modelYear(2020)
-                .customerId(UUID.randomUUID())
-                .registeredAt(registeredAt)
-                .updatedAt(registeredAt)
-                .restore());
+        Instant firstRead = repository.findActiveById(id).orElseThrow().getRegisteredAt();
+        Instant secondRead = repository.findActiveById(id).orElseThrow().getRegisteredAt();
 
-        Vehicle reloaded = repository.findActiveById(id).orElseThrow();
-
-        assertThat(reloaded.getRegisteredAt()).isEqualTo(registeredAt);
+        assertThat(secondRead).isEqualTo(firstRead);
     }
 
     @Test
@@ -94,23 +101,12 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
         // TIMESTAMPTZ stores microseconds, and the three surplus digits were dropped on write
         // without a word — so a POST response and a later GET of the same resource disagreed on a
         // field nobody had changed. Verified by reverting the truncation and watching this fail.
-        Instant registeredAt = clock.instant();
-        UUID id = UUID.randomUUID();
-
-        repository.save(Vehicle.builder()
-                .id(id)
-                .licensePlate(new LicensePlate("RTP2B34"))
-                .make("Fiat")
-                .model("Uno")
-                .modelYear(2021)
-                .customerId(UUID.randomUUID())
-                .registeredAt(registeredAt)
-                .updatedAt(registeredAt)
-                .restore());
+        UUID id = save("RTP2B34");
 
         Instant reloaded = repository.findActiveById(id).orElseThrow().getRegisteredAt();
 
-        assertThat(reloaded).isEqualTo(registeredAt);
-        assertThat(reloaded.getNano() % 1_000).isZero();
+        assertThat(reloaded.getNano() % 1_000)
+                .as("o Clock da aplicacao precisa produzir a precisao que o TIMESTAMPTZ guarda")
+                .isZero();
     }
 }

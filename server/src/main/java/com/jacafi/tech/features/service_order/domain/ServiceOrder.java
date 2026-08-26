@@ -1,7 +1,6 @@
 package com.jacafi.tech.features.service_order.domain;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,16 +8,15 @@ import java.util.UUID;
 
 import jakarta.persistence.*;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 
 import com.jacafi.tech.features.service.domain.Service;
 import com.jacafi.tech.features.service_order.add_service_to_order.ServiceOrderService;
+import com.jacafi.tech.shared.persistence.AuditableEntity;
 
 @Entity
 @Table(name = "service_orders")
-public class ServiceOrder {
+public class ServiceOrder extends AuditableEntity {
 
     @Id
     @GeneratedValue
@@ -43,14 +41,6 @@ public class ServiceOrder {
 
     @OneToMany(mappedBy = "serviceOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ServiceOrderService> services = new ArrayList<>();
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
 
     /**
      * Required by JPA, which instantiates entities reflectively before populating their state.
@@ -134,14 +124,6 @@ public class ServiceOrder {
 
     public UUID getCustomerId() {
         return customerId;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 
     public List<ServiceOrderService> getServices() {

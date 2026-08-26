@@ -12,10 +12,22 @@ CREATE TABLE vehicles (
     model         VARCHAR(60)  NOT NULL,
     model_year    INTEGER      NOT NULL,
     customer_id   UUID         NOT NULL,
-    registered_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-    updated_at    TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-    -- Preenchido na remocao. A presenca deste campo e o que tira a linha de todas as consultas.
-    removed_at    TIMESTAMP(6) WITH TIME ZONE
+
+    -- Colunas de auditoria tecnica, iguais em toda tabela de negocio (AuditableEntity).
+    -- Os nomes sao os da superclasse, e nao os do dicionario de veiculo: created_at em vez de
+    -- registered_at, deleted_at em vez de removed_at. O vocabulario de negocio continua no
+    -- dominio — Vehicle.getRegisteredAt(), o evento VehicleRemoved — e o mapper faz a ponte. Um
+    -- schema onde cada fatia nomeia auditoria a seu modo obriga qualquer consulta transversal a
+    -- decorar quatro vocabularios.
+    created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    created_by VARCHAR(120) NOT NULL,
+    updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    updated_by VARCHAR(120) NOT NULL,
+    -- Preenchido na remocao logica. A presenca deste campo e o que tira a linha de todas as
+    -- consultas, e e o predicado do indice unico parcial abaixo.
+    deleted_at TIMESTAMP(6) WITH TIME ZONE,
+    deleted_by VARCHAR(120),
+    version    BIGINT       NOT NULL
 );
 
 -- Unicidade de placa ENTRE VEICULOS ATIVOS, nao na tabela inteira.
@@ -28,18 +40,21 @@ CREATE TABLE vehicles (
 -- indice unico com predicado, entao um teste verde nele nao provaria nada sobre esta restricao.
 CREATE UNIQUE INDEX ux_vehicles_license_plate_active
     ON vehicles (license_plate)
-    WHERE removed_at IS NULL;
+    WHERE deleted_at IS NULL;
 
 -- Suporta a listagem paginada por cliente, que tambem so ve veiculos ativos.
 CREATE INDEX ix_vehicles_customer_active
-    ON vehicles (customer_id, registered_at, id)
-    WHERE removed_at IS NULL;
+    ON vehicles (customer_id, created_at, id)
+    WHERE deleted_at IS NULL;
 
 -- Trilha de auditoria (LGPD Art. 37): quem, quando e qual operacao.
 --
--- Referencia o veiculo por identificador e NUNCA guarda a placa. Uma trilha que copiasse o dado
--- pessoal que ela existe para vigiar manteria esse dado vivo depois da remocao que deveria
--- te-lo apagado.
+-- Registra QUE operacao ocorreu, sem os valores dos campos. O historico do valor em si vive na
+-- tabela audit_trail, compartilhada, que guarda old_value e new_value integros — inclusive a
+-- placa, retida sob o Art. 16 I e portanto sobrevivendo a remocao do veiculo.
+--
+-- As duas coexistem porque respondem perguntas diferentes: esta responde "quem mexeu neste
+-- veiculo e quando", audit_trail responde "qual era o valor deste campo em tal data".
 CREATE TABLE vehicle_audit_entries (
     id          BIGSERIAL    PRIMARY KEY,
     vehicle_id  UUID         NOT NULL,

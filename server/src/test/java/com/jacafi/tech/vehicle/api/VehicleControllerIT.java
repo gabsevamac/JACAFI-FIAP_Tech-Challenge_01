@@ -232,9 +232,9 @@ class VehicleControllerIT extends AbstractIntegrationTest {
 
         // The row survives, for the service history required by Art. 16 I...
         Map<String, Object> row =
-                jdbcTemplate.queryForMap("SELECT license_plate, make, removed_at FROM vehicles WHERE id = ?", id);
+                jdbcTemplate.queryForMap("SELECT license_plate, make, deleted_at FROM vehicles WHERE id = ?", id);
         assertThat(row.get("make")).isEqualTo("Volkswagen");
-        assertThat(row.get("removed_at")).isNotNull();
+        assertThat(row.get("deleted_at")).isNotNull();
         // ...but the plate is gone from it, satisfying Art. 18 VI.
         assertThat(row.get("license_plate").toString()).doesNotContain(PLATE).startsWith("ANON-");
 

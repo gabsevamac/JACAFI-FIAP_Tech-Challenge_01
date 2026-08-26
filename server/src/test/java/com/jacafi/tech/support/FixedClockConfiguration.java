@@ -26,6 +26,12 @@ import org.springframework.context.annotation.Primary;
  * context, and this one wins injection. Overriding by name requires
  * {@code spring.main.allow-bean-definition-overriding}, which would silently permit accidental
  * overrides everywhere else.
+ *
+ * <p>The factory method is named {@code fixedClock} and not {@code clock} for that to work at all.
+ * A bean's name comes from its method, so naming it {@code clock} makes this a redefinition of the
+ * production bean rather than a second candidate beside it — and Spring Boot rejects that outright
+ * with {@code BeanDefinitionOverrideException}, before {@code @Primary} is ever consulted.
+ * {@code @Primary} chooses among distinct beans; it does not settle a name collision.
  */
 @TestConfiguration
 public class FixedClockConfiguration {
@@ -38,7 +44,7 @@ public class FixedClockConfiguration {
 
     @Bean
     @Primary
-    public Clock clock() {
+    public Clock fixedClock() {
         return Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
     }
 }

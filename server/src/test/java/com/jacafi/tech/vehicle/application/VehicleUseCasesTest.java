@@ -28,6 +28,7 @@ class VehicleUseCasesTest {
 
     private InMemoryVehicleRepository repository;
     private RecordingAuditTrail auditTrail;
+    private RecordingFieldTrail fieldTrail;
     private RegisterVehicleUseCase register;
     private UpdateVehicleUseCase update;
     private RemoveVehicleUseCase remove;
@@ -38,8 +39,9 @@ class VehicleUseCasesTest {
     void setUp() {
         repository = new InMemoryVehicleRepository();
         auditTrail = new RecordingAuditTrail();
+        fieldTrail = new RecordingFieldTrail();
         register = new RegisterVehicleUseCase(repository, auditTrail, CLOCK);
-        update = new UpdateVehicleUseCase(repository, auditTrail, CLOCK);
+        update = new UpdateVehicleUseCase(repository, auditTrail, fieldTrail, CLOCK);
         remove = new RemoveVehicleUseCase(repository, auditTrail, CLOCK);
         find = new FindVehicleUseCase(repository);
         list = new ListCustomerVehiclesUseCase(repository);

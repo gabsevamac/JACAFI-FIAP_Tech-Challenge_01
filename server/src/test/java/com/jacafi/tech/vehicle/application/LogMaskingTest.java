@@ -53,8 +53,9 @@ class LogMaskingTest {
 
         repository = new InMemoryVehicleRepository();
         RecordingAuditTrail auditTrail = new RecordingAuditTrail();
+        RecordingFieldTrail fieldTrail = new RecordingFieldTrail();
         register = new RegisterVehicleUseCase(repository, auditTrail, CLOCK);
-        update = new UpdateVehicleUseCase(repository, auditTrail, CLOCK);
+        update = new UpdateVehicleUseCase(repository, auditTrail, fieldTrail, CLOCK);
         remove = new RemoveVehicleUseCase(repository, auditTrail, CLOCK);
     }
 

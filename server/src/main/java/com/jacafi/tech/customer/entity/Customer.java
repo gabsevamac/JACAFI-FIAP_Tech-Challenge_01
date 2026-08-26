@@ -1,6 +1,5 @@
 package com.jacafi.tech.customer.entity;
 
-import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -10,9 +9,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
+
+import com.jacafi.tech.shared.persistence.AuditableEntity;
 
 /**
  * Whoever the workshop bills for the work: a natural person or a company, told apart by which
@@ -29,7 +28,7 @@ import org.hibernate.annotations.UuidGenerator;
  */
 @Entity
 @Table(name = "customers")
-public class Customer {
+public class Customer extends AuditableEntity {
 
     @Id
     @GeneratedValue
@@ -60,14 +59,6 @@ public class Customer {
 
     @Column(nullable = false)
     private boolean active;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
 
     /**
      * Required by JPA, which instantiates entities reflectively before populating their state.
@@ -148,14 +139,6 @@ public class Customer {
 
     public boolean isActive() {
         return active;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 
     /**
