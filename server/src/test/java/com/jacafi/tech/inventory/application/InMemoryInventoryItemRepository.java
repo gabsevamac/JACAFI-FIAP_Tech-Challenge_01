@@ -1,9 +1,5 @@
 package com.jacafi.tech.inventory.application;
 
-import com.jacafi.tech.inventory.domain.InventoryItem;
-import com.jacafi.tech.inventory.domain.InventoryItemRepository;
-import com.jacafi.tech.inventory.domain.MaterialType;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -13,6 +9,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
+
+import com.jacafi.tech.inventory.domain.InventoryItem;
+import com.jacafi.tech.inventory.domain.InventoryItemRepository;
+import com.jacafi.tech.inventory.domain.MaterialType;
 
 /**
  * Hand-written stand-in for the repository, implementing the same contract in a map.
@@ -54,9 +54,7 @@ class InMemoryInventoryItemRepository implements InventoryItemRepository, Invent
 
     @Override
     public boolean existsActiveWithNameExcluding(String name, UUID excludedId) {
-        return activeItems()
-                .filter(item -> !item.getId().equals(excludedId))
-                .anyMatch(item -> matchesName(item, name));
+        return activeItems().filter(item -> !item.getId().equals(excludedId)).anyMatch(item -> matchesName(item, name));
     }
 
     @Override

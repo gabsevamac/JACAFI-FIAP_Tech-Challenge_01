@@ -13,8 +13,4 @@ import java.util.UUID;
  *
  * @param actor who is performing the operation, taken from the JWT subject by the api layer
  */
-public record UpdateMaterialCommand(UUID inventoryItemId,
-                                    String name,
-                                    BigDecimal unitPrice,
-                                    String actor) {
-}
+public record UpdateMaterialCommand(UUID inventoryItemId, String name, BigDecimal unitPrice, String actor) {}

@@ -1,17 +1,18 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
-import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
-import com.jacafi.tech.inventory.domain.InventoryItem;
-import com.jacafi.tech.inventory.domain.InventoryItemRepository;
-import com.jacafi.tech.inventory.domain.Reservation;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Repository;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Repository;
+
+import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
+import com.jacafi.tech.inventory.domain.InventoryItem;
+import com.jacafi.tech.inventory.domain.InventoryItemRepository;
+import com.jacafi.tech.inventory.domain.Reservation;
 
 /**
  * Implements the domain port over Spring Data.
@@ -42,9 +43,10 @@ public class InventoryItemRepositoryAdapter implements InventoryItemRepository {
     private final InventoryReservationJpaRepository reservationRepository;
     private final InventoryPersistenceMapper mapper;
 
-    public InventoryItemRepositoryAdapter(InventoryItemJpaRepository itemRepository,
-                                          InventoryReservationJpaRepository reservationRepository,
-                                          InventoryPersistenceMapper mapper) {
+    public InventoryItemRepositoryAdapter(
+            InventoryItemJpaRepository itemRepository,
+            InventoryReservationJpaRepository reservationRepository,
+            InventoryPersistenceMapper mapper) {
         this.itemRepository = itemRepository;
         this.reservationRepository = reservationRepository;
         this.mapper = mapper;
@@ -61,8 +63,7 @@ public class InventoryItemRepositoryAdapter implements InventoryItemRepository {
             itemRepository.flush();
         } catch (DataIntegrityViolationException e) {
             if (namesActiveNameIndex(e)) {
-                throw new DuplicateMaterialException(
-                        "A material with this name is already registered.");
+                throw new DuplicateMaterialException("A material with this name is already registered.");
             }
             throw e;
         }
@@ -108,7 +109,8 @@ public class InventoryItemRepositoryAdapter implements InventoryItemRepository {
 
         List<Reservation> open = item.getReservations();
         List<InventoryReservationJpaEntity> obsolete = stored.entrySet().stream()
-                .filter(entry -> open.stream().noneMatch(reservation -> reservation.id().equals(entry.getKey())))
+                .filter(entry ->
+                        open.stream().noneMatch(reservation -> reservation.id().equals(entry.getKey())))
                 .map(Map.Entry::getValue)
                 .toList();
 
@@ -119,7 +121,8 @@ public class InventoryItemRepositoryAdapter implements InventoryItemRepository {
 
         for (Reservation reservation : open) {
             InventoryReservationJpaEntity existing = stored.get(reservation.id());
-            if (existing == null || existing.getQuantity() != reservation.quantity().value()) {
+            if (existing == null
+                    || existing.getQuantity() != reservation.quantity().value()) {
                 reservationRepository.save(mapper.toEntity(item.getId(), reservation));
             }
         }

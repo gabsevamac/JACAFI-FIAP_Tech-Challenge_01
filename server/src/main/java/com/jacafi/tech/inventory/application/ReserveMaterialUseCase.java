@@ -1,5 +1,12 @@
 package com.jacafi.tech.inventory.application;
 
+import java.time.Clock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.inventory.domain.AuditedOperation;
 import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
@@ -7,12 +14,6 @@ import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
 import com.jacafi.tech.inventory.domain.InventoryItemRepository;
 import com.jacafi.tech.inventory.domain.Stock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
 
 /**
  * Holds units for a service order — the {@code ReserveMaterial} command, which the board triggers
@@ -41,9 +42,7 @@ public class ReserveMaterialUseCase {
     private final InventoryAuditTrail auditTrail;
     private final Clock clock;
 
-    public ReserveMaterialUseCase(InventoryItemRepository repository,
-                                  InventoryAuditTrail auditTrail,
-                                  Clock clock) {
+    public ReserveMaterialUseCase(InventoryItemRepository repository, InventoryAuditTrail auditTrail, Clock clock) {
         this.repository = repository;
         this.auditTrail = auditTrail;
         this.clock = clock;
@@ -52,7 +51,8 @@ public class ReserveMaterialUseCase {
     /** @return the item as it now stands, so the caller can see what is left available */
     @Transactional
     public InventoryItem reserve(ReserveMaterialCommand command) {
-        InventoryItem item = repository.findActiveByIdForUpdate(command.inventoryItemId())
+        InventoryItem item = repository
+                .findActiveByIdForUpdate(command.inventoryItemId())
                 .orElseThrow(() -> new InventoryItemNotFoundException(command.inventoryItemId()));
 
         Stock requested = Stock.of(command.quantity());
@@ -61,11 +61,20 @@ public class ReserveMaterialUseCase {
         repository.save(item);
         // The audited quantity is what this command added, not the total the order now holds: a
         // ledger records movements. The running total is the aggregate's business.
-        auditTrail.append(InventoryAuditEntry.movement(item.getId(), AuditedOperation.RESERVED,
-                command.serviceOrderId(), requested, command.actor(), clock.instant()));
+        auditTrail.append(InventoryAuditEntry.movement(
+                item.getId(),
+                AuditedOperation.RESERVED,
+                command.serviceOrderId(),
+                requested,
+                command.actor(),
+                clock.instant()));
 
-        log.info("Material reserved: id={} name={} serviceOrderId={} reserved={} available={}",
-                item.getId(), item.getName(), command.serviceOrderId(), requested,
+        log.info(
+                "Material reserved: id={} name={} serviceOrderId={} reserved={} available={}",
+                item.getId(),
+                item.getName(),
+                command.serviceOrderId(),
+                requested,
                 item.stockAvailable());
         return item;
     }

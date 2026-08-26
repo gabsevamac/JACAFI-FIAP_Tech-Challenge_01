@@ -1,6 +1,9 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
-import com.jacafi.tech.inventory.domain.MaterialType;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,9 +11,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
+import com.jacafi.tech.inventory.domain.MaterialType;
 
 /**
  * Storage shape of a stock item. Deliberately separate from the aggregate: {@code domain/} may not
@@ -62,12 +63,17 @@ public class InventoryItemJpaEntity {
      * Required by JPA, which instantiates entities reflectively before populating their state.
      * Kept {@code protected} so only Hibernate and the mapper in this package can reach it.
      */
-    protected InventoryItemJpaEntity() {
-    }
+    protected InventoryItemJpaEntity() {}
 
-    InventoryItemJpaEntity(UUID id, String name, MaterialType type, BigDecimal unitPrice,
-                           int stockOnHand, Instant registeredAt, Instant updatedAt,
-                           Instant removedAt) {
+    InventoryItemJpaEntity(
+            UUID id,
+            String name,
+            MaterialType type,
+            BigDecimal unitPrice,
+            int stockOnHand,
+            Instant registeredAt,
+            Instant updatedAt,
+            Instant removedAt) {
         this.id = id;
         this.name = name;
         this.type = type;

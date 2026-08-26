@@ -25,12 +25,13 @@ import java.util.UUID;
  * @param actor           who did it, as identified by the subject of the JWT
  * @param occurredAt      when it happened
  */
-public record InventoryAuditEntry(UUID inventoryItemId,
-                                  AuditedOperation operation,
-                                  UUID serviceOrderId,
-                                  Stock quantity,
-                                  String actor,
-                                  Instant occurredAt) {
+public record InventoryAuditEntry(
+        UUID inventoryItemId,
+        AuditedOperation operation,
+        UUID serviceOrderId,
+        Stock quantity,
+        String actor,
+        Instant occurredAt) {
 
     public InventoryAuditEntry {
         Objects.requireNonNull(inventoryItemId, "inventoryItemId must not be null");
@@ -42,26 +43,30 @@ public record InventoryAuditEntry(UUID inventoryItemId,
     }
 
     /** A catalogue operation: registered, updated, removed. */
-    public static InventoryAuditEntry of(UUID inventoryItemId, AuditedOperation operation,
-                                         String actor, Instant occurredAt) {
+    public static InventoryAuditEntry of(
+            UUID inventoryItemId, AuditedOperation operation, String actor, Instant occurredAt) {
         return new InventoryAuditEntry(inventoryItemId, operation, null, null, actor, occurredAt);
     }
 
     /** A stock movement tied to a service order: reserved, released, withdrawn. */
-    public static InventoryAuditEntry movement(UUID inventoryItemId, AuditedOperation operation,
-                                               UUID serviceOrderId, Stock quantity,
-                                               String actor, Instant occurredAt) {
+    public static InventoryAuditEntry movement(
+            UUID inventoryItemId,
+            AuditedOperation operation,
+            UUID serviceOrderId,
+            Stock quantity,
+            String actor,
+            Instant occurredAt) {
         Objects.requireNonNull(serviceOrderId, "serviceOrderId must not be null for a movement");
         Objects.requireNonNull(quantity, "quantity must not be null for a movement");
         return new InventoryAuditEntry(inventoryItemId, operation, serviceOrderId, quantity, actor, occurredAt);
     }
 
     /** A replenishment moves stock without an order behind it: the shelf is filled, not promised. */
-    public static InventoryAuditEntry replenishment(UUID inventoryItemId, Stock quantity,
-                                                    String actor, Instant occurredAt) {
+    public static InventoryAuditEntry replenishment(
+            UUID inventoryItemId, Stock quantity, String actor, Instant occurredAt) {
         Objects.requireNonNull(quantity, "quantity must not be null for a replenishment");
-        return new InventoryAuditEntry(inventoryItemId, AuditedOperation.REPLENISHED, null, quantity,
-                actor, occurredAt);
+        return new InventoryAuditEntry(
+                inventoryItemId, AuditedOperation.REPLENISHED, null, quantity, actor, occurredAt);
     }
 
     public Optional<UUID> optionalServiceOrderId() {

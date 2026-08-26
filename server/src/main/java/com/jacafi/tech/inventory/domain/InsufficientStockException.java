@@ -17,8 +17,7 @@ public class InsufficientStockException extends RuntimeException {
     private final int available;
 
     public InsufficientStockException(Stock requested, Stock available) {
-        super("Requested %d units but only %d are available"
-                .formatted(requested.value(), available.value()));
+        super("Requested %d units but only %d are available".formatted(requested.value(), available.value()));
         this.requested = requested.value();
         this.available = available.value();
     }

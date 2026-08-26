@@ -1,5 +1,13 @@
 package com.jacafi.tech.inventory.application;
 
+import java.time.Clock;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.inventory.domain.AuditedOperation;
 import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
 import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
@@ -7,13 +15,6 @@ import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
 import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.InventoryItemRepository;
 import com.jacafi.tech.inventory.domain.Stock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.util.UUID;
 
 /**
  * Writes a part or a supply into the catalogue — the {@code RegisterMaterial} command of the
@@ -37,9 +38,7 @@ public class RegisterMaterialUseCase {
     private final InventoryAuditTrail auditTrail;
     private final Clock clock;
 
-    public RegisterMaterialUseCase(InventoryItemRepository repository,
-                                   InventoryAuditTrail auditTrail,
-                                   Clock clock) {
+    public RegisterMaterialUseCase(InventoryItemRepository repository, InventoryAuditTrail auditTrail, Clock clock) {
         this.repository = repository;
         this.auditTrail = auditTrail;
         this.clock = clock;
@@ -58,16 +57,19 @@ public class RegisterMaterialUseCase {
         // Checked against the normalized name the aggregate produced, not the raw input: "Filtro
         // de  óleo" and "filtro de óleo" are the same material to everyone but a string compare.
         if (repository.existsActiveWithName(item.getName())) {
-            throw new DuplicateMaterialException(
-                    "A material with this name is already registered: " + item.getName());
+            throw new DuplicateMaterialException("A material with this name is already registered: " + item.getName());
         }
 
         repository.save(item);
-        auditTrail.append(InventoryAuditEntry.of(item.getId(), AuditedOperation.REGISTERED,
-                command.actor(), clock.instant()));
+        auditTrail.append(
+                InventoryAuditEntry.of(item.getId(), AuditedOperation.REGISTERED, command.actor(), clock.instant()));
 
-        log.info("Material registered: id={} name={} type={} initialStock={}",
-                item.getId(), item.getName(), item.getType(), item.getStockOnHand());
+        log.info(
+                "Material registered: id={} name={} type={} initialStock={}",
+                item.getId(),
+                item.getName(),
+                item.getType(),
+                item.getStockOnHand());
         return item;
     }
 }

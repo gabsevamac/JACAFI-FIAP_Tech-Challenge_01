@@ -1,5 +1,13 @@
 package com.jacafi.tech.inventory.application;
 
+import java.time.Clock;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.inventory.domain.AuditedOperation;
 import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
@@ -7,13 +15,6 @@ import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
 import com.jacafi.tech.inventory.domain.InventoryItemRepository;
 import com.jacafi.tech.inventory.domain.StockWithdrawal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.util.UUID;
 
 /**
  * Takes the reserved units off the shelf — the {@code WithdrawMaterial} command, driven by
@@ -36,9 +37,7 @@ public class WithdrawMaterialUseCase {
     private final InventoryAuditTrail auditTrail;
     private final Clock clock;
 
-    public WithdrawMaterialUseCase(InventoryItemRepository repository,
-                                   InventoryAuditTrail auditTrail,
-                                   Clock clock) {
+    public WithdrawMaterialUseCase(InventoryItemRepository repository, InventoryAuditTrail auditTrail, Clock clock) {
         this.repository = repository;
         this.auditTrail = auditTrail;
         this.clock = clock;
@@ -46,17 +45,27 @@ public class WithdrawMaterialUseCase {
 
     @Transactional
     public StockWithdrawal withdraw(UUID inventoryItemId, UUID serviceOrderId, String actor) {
-        InventoryItem item = repository.findActiveByIdForUpdate(inventoryItemId)
+        InventoryItem item = repository
+                .findActiveByIdForUpdate(inventoryItemId)
                 .orElseThrow(() -> new InventoryItemNotFoundException(inventoryItemId));
 
         StockWithdrawal withdrawal = item.withdraw(serviceOrderId, clock);
 
         repository.save(item);
-        auditTrail.append(InventoryAuditEntry.movement(item.getId(), AuditedOperation.WITHDRAWN,
-                serviceOrderId, withdrawal.quantity(), actor, clock.instant()));
+        auditTrail.append(InventoryAuditEntry.movement(
+                item.getId(),
+                AuditedOperation.WITHDRAWN,
+                serviceOrderId,
+                withdrawal.quantity(),
+                actor,
+                clock.instant()));
 
-        log.info("Material withdrawn: id={} name={} serviceOrderId={} withdrawn={} onHand={}",
-                item.getId(), item.getName(), serviceOrderId, withdrawal.quantity(),
+        log.info(
+                "Material withdrawn: id={} name={} serviceOrderId={} withdrawn={} onHand={}",
+                item.getId(),
+                item.getName(),
+                serviceOrderId,
+                withdrawal.quantity(),
                 item.getStockOnHand());
         return withdrawal;
     }

@@ -1,9 +1,9 @@
 package com.jacafi.tech.inventory.application;
 
-import com.jacafi.tech.inventory.domain.InventoryItem;
-
 import java.util.List;
 import java.util.Objects;
+
+import com.jacafi.tech.inventory.domain.InventoryItem;
 
 /**
  * One page of stock items, plus what a caller needs to ask for the next one.

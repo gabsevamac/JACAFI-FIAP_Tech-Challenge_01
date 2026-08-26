@@ -1,6 +1,8 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
-import com.jacafi.tech.inventory.domain.AuditedOperation;
+import java.time.Instant;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,8 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
-import java.util.UUID;
+import com.jacafi.tech.inventory.domain.AuditedOperation;
 
 /**
  * Storage shape of one audit trail line (LGPD Art. 37), which here doubles as the stock ledger.
@@ -51,11 +52,15 @@ public class InventoryAuditEntryJpaEntity {
     private Instant occurredAt;
 
     /** Required by JPA. */
-    protected InventoryAuditEntryJpaEntity() {
-    }
+    protected InventoryAuditEntryJpaEntity() {}
 
-    InventoryAuditEntryJpaEntity(UUID inventoryItemId, AuditedOperation operation, UUID serviceOrderId,
-                                 Integer quantity, String actor, Instant occurredAt) {
+    InventoryAuditEntryJpaEntity(
+            UUID inventoryItemId,
+            AuditedOperation operation,
+            UUID serviceOrderId,
+            Integer quantity,
+            String actor,
+            Instant occurredAt) {
         this.inventoryItemId = inventoryItemId;
         this.operation = operation;
         this.serviceOrderId = serviceOrderId;

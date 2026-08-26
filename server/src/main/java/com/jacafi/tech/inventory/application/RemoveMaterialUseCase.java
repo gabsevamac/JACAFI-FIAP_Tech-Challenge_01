@@ -1,18 +1,19 @@
 package com.jacafi.tech.inventory.application;
 
+import java.time.Clock;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.inventory.domain.AuditedOperation;
 import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
 import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
 import com.jacafi.tech.inventory.domain.InventoryItemRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.util.UUID;
 
 /**
  * Takes a material out of the catalogue — the {@code RemoveMaterial} command.
@@ -39,9 +40,7 @@ public class RemoveMaterialUseCase {
     private final InventoryAuditTrail auditTrail;
     private final Clock clock;
 
-    public RemoveMaterialUseCase(InventoryItemRepository repository,
-                                 InventoryAuditTrail auditTrail,
-                                 Clock clock) {
+    public RemoveMaterialUseCase(InventoryItemRepository repository, InventoryAuditTrail auditTrail, Clock clock) {
         this.repository = repository;
         this.auditTrail = auditTrail;
         this.clock = clock;
@@ -49,14 +48,14 @@ public class RemoveMaterialUseCase {
 
     @Transactional
     public void remove(UUID inventoryItemId, String actor) {
-        InventoryItem item = repository.findActiveByIdForUpdate(inventoryItemId)
+        InventoryItem item = repository
+                .findActiveByIdForUpdate(inventoryItemId)
                 .orElseThrow(() -> new InventoryItemNotFoundException(inventoryItemId));
 
         item.remove(clock);
 
         repository.save(item);
-        auditTrail.append(InventoryAuditEntry.of(item.getId(), AuditedOperation.REMOVED,
-                actor, clock.instant()));
+        auditTrail.append(InventoryAuditEntry.of(item.getId(), AuditedOperation.REMOVED, actor, clock.instant()));
 
         log.info("Material removed from the catalogue: id={} name={}", item.getId(), item.getName());
     }

@@ -268,8 +268,7 @@ public class InventoryItem {
         requireActive();
 
         if (!reservations.isEmpty()) {
-            throw new IllegalStateException(
-                    "An inventory item with open reservations cannot be removed: " + id);
+            throw new IllegalStateException("An inventory item with open reservations cannot be removed: " + id);
         }
 
         this.removedAt = clock.instant();
@@ -303,9 +302,7 @@ public class InventoryItem {
 
     /** What every open reservation holds, added up. */
     public Stock stockReserved() {
-        return reservations.values().stream()
-                .map(Reservation::quantity)
-                .reduce(Stock.ZERO, Stock::plus);
+        return reservations.values().stream().map(Reservation::quantity).reduce(Stock.ZERO, Stock::plus);
     }
 
     /** What a new order could still be promised. Never negative, by the reservation rule. */
@@ -415,8 +412,7 @@ public class InventoryItem {
         private Instant updatedAt;
         private Instant removedAt;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder id(UUID id) {
             this.id = id;
