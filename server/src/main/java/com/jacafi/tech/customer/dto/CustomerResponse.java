@@ -1,6 +1,6 @@
 package com.jacafi.tech.customer.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 import com.jacafi.tech.customer.entity.Customer;
@@ -28,8 +28,8 @@ public record CustomerResponse(
         @PersonalData("LGPD Art. 5 I") String email,
         @PersonalData("LGPD Art. 5 I") String phone,
         boolean active,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        Instant createdAt,
+        Instant updatedAt) {
 
     public static CustomerResponse from(Customer customer) {
         return new CustomerResponse(

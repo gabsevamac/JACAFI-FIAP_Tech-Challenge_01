@@ -33,10 +33,10 @@ import com.jacafi.tech.vehicle.domain.VehicleRepository;
  * truncation in {@link TimeConfiguration}. Restore {@code Clock.systemUTC()} and both fail with
  * {@code expected 2026-08-26T14:25:52.291324069Z but was 2026-08-26T14:25:52.291324Z}.
  *
- * <p>Worth being explicit about the gap this leaves, because it is not covered here: the risky
- * combination is {@code LocalDateTime} against {@code TIMESTAMP WITHOUT TIME ZONE}, where the
- * stored value really does depend on the zone in effect. The customer and service order slices
- * are mapped that way today. Nothing in this class detects that.
+ * <p>The risky combination is the other one: {@code LocalDateTime} against {@code TIMESTAMP
+ * WITHOUT TIME ZONE}, where the stored value really does depend on the zone in effect. Nothing in
+ * this class detects that, and nothing should — it is a property of the schema rather than of a
+ * round trip, and {@code DatabaseMigrationTest} asserts it across every table at once.
  *
  * <p>The vehicle aggregate is used because it is, today, the only persisted type carrying an
  * {@code Instant}. What is under test is the shared configuration, not that slice.

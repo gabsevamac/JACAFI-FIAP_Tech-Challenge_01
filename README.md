@@ -172,11 +172,30 @@ discrepância: a aplicação passa a produzir exatamente o que o banco consegue 
 `InstantRoundTripIT` guarda essa decisão — reverter para `Clock.systemUTC()` faz os
 dois testes falharem.
 
+### Colunas: `TIMESTAMP WITH TIME ZONE`, sem exceção
+
+Toda coluna de tempo do schema carrega o fuso. `DatabaseMigrationTest` consulta o
+`information_schema` e falha se qualquer tabela nossa tiver uma coluna
+`timestamp without time zone` — a verificação é do schema inteiro, então uma fatia nova
+que criar `created_at TIMESTAMP` é barrada sem depender de alguém lembrar da regra na
+revisão.
+
+O tipo sem fuso guarda hora de parede sem procedência: quem escreveu decidiu o fuso, a
+coluna não registrou qual foi, e não há como descobrir depois.
+
 ### Serialização JSON
 
 ISO-8601 com sufixo `Z`, que é o comportamento **default** do Jackson 3 no Boot 4.
 Verificado num teste de controller antes de configurar qualquer coisa; nenhuma
 configuração foi necessária.
+
+Com a troca de `LocalDateTime` por `Instant`, o JSON de `customers` passou a incluir o
+sufixo — e só então passou a cumprir o contrato acima:
+
+```
+antes   "createdAt":"2026-01-15T10:30:00.123456"
+depois  "createdAt":"2026-01-15T10:30:00.123456Z"
+```
 
 ---
 
