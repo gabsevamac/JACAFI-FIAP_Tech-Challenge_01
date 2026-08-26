@@ -10,12 +10,11 @@ spring:
     hibernate:
       ddl-auto: validate
   flyway:
-    # O segundo local existe so no classpath de teste e contem um remendo: as tabelas da fatia
-    # service_order, que nao tem migracao e fazem o ddl-auto=validate derrubar qualquer
-    # @SpringBootTest. Ver o comentario dentro do arquivo. Sai quando o dono entregar a migracao.
+    # Um unico local, o de producao. O remendo de teste que criava as tabelas da fatia
+    # service_order saiu: V20260824_01 passou a cria-las de verdade, e manter os dois fazia o
+    # Flyway falhar com "relation services already exists" antes de qualquer teste rodar.
     locations:
       - classpath:db/migration
-      - classpath:db/migration-test-support
 
 jwt:
   # Chave de teste, sem valor em producao. HS256 exige no minimo 32 bytes.
