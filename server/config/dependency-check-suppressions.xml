@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!--
+      Supressoes do Dependency-Check.
+
+      Cada entrada precisa de motivo e de data de reavaliacao. Uma supressao sem prazo vira
+      permissao permanente por inercia, e o relatorio passa a afirmar que nao ha vulnerabilidade
+      quando o que ha e uma lista de coisas que decidimos nao olhar.
+
+      Formato:
+
+      <suppress until="2026-12-31Z">
+        <notes>Por que este achado nao se aplica a este projeto.</notes>
+        <cve>CVE-AAAA-NNNNN</cve>
+      </suppress>
+
+      Vazio ate agora: a primeira execucao completa ainda nao foi feita, porque exige chave de API
+      do NVD. Preencher a partir do relatorio, e nao preventivamente.
+    -->
+</suppressions>

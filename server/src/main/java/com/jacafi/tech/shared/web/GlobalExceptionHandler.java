@@ -58,7 +58,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Business rule violated [{}] traceId={} {}",
                 e.errorCode().code(),
                 TraceIdFilter.currentTraceId(),
-                e.logContext().orElse(""));
+                LogSafe.value(e.logContext().orElse("")));
         return problem(e.errorCode(), e.getMessage());
     }
 
@@ -287,7 +287,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Client error [{}] traceId={}: {}",
                 code.code(),
                 TraceIdFilter.currentTraceId(),
-                e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                LogSafe.value(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
     }
 
     /** {@code registerVehicle.command.licensePlate} to {@code licensePlate}. */

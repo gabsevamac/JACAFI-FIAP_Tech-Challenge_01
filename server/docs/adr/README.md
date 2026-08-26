@@ -24,6 +24,12 @@ certa na época, que é justamente o que torna o registro útil.
 | [0009](0009-trilha-de-auditoria-com-valores-integros.md) | Trilha de auditoria com valores íntegros | Aceito |
 | [0010](0010-contrato-proprio-de-paginacao.md) | Contrato próprio de paginação com lista branca | Aceito |
 | [0011](0011-tratamento-de-erros-centralizado.md) | Tratamento de erros centralizado com traceId | Aceito |
+| [0012](0012-permanecer-no-nivel-2-de-richardson-por-ora.md) | Permanecer no nível 2 de Richardson, por ora | Aceito |
+| [0013](0013-jacoco-para-cobertura.md) | JaCoCo para cobertura, com dois agentes | Aceito |
+| [0014](0014-spotbugs-e-findsecbugs-para-sast.md) | SpotBugs + FindSecBugs para SAST | Aceito |
+| [0015](0015-dependency-check-em-perfil-separado.md) | Dependency-Check em perfil separado | Aceito |
+| [0016](0016-trivy-para-a-imagem-de-container.md) | Trivy para a imagem de container | Aceito |
+| [0017](0017-resolucao-direta-do-maven-central.md) | Resolução direta do Maven Central | Aceito |
 
 ## Modelo
 

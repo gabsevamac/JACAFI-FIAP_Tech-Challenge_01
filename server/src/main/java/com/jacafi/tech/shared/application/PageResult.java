@@ -38,8 +38,19 @@ public record PageResult<T>(List<T> content, int page, int size, long totalEleme
         }
     }
 
-    /** Derives {@code totalPages} rather than taking it, so the two cannot disagree. */
+    /**
+     * Derives {@code totalPages} rather than taking it, so the two cannot disagree.
+     *
+     * <p>{@code size} is checked here and not only in the compact constructor because the division
+     * below is an argument to that constructor, and arguments are evaluated first. Leaving it to
+     * the constructor meant {@code size = 0} surfaced as {@code ArithmeticException: / by zero}
+     * from inside {@code Math.ceilDiv} instead of as the validation failure it is — an error whose
+     * stack trace points at the JDK rather than at the caller's mistake.
+     */
     public static <T> PageResult<T> of(List<T> content, int page, int size, long totalElements) {
+        if (size < 1) {
+            throw new IllegalArgumentException("size must be at least 1");
+        }
         return new PageResult<>(content, page, size, totalElements, (int) Math.ceilDiv(totalElements, size));
     }
 

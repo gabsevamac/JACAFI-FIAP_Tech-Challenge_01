@@ -523,6 +523,70 @@ formato, o que produzia um log onde a mesma pessoa aparecia de duas maneiras.
 
 ---
 
+## Cobertura e análise de vulnerabilidades
+
+### Cobertura — JaCoCo
+
+Meta de **80% em `*/domain` e `*/application`**, verificada no `mvn verify`. Relatório em
+`server/target/site/jacoco/index.html`.
+
+**Duas execuções de preparação, não uma.** `prepare-agent` instrumenta a JVM do Surefire e
+`prepare-agent-integration` a do Failsafe. Com apenas a primeira, os testes `*IT` **não
+contam** — e aqui eles são 47 dos 245, concentrados justamente na infraestrutura que os
+unitários não alcançam. Cada uma grava seu próprio arquivo e exporta o `argLine` sob nome
+próprio; deixar as duas no `argLine` default faria a segunda sobrescrever a primeira.
+
+Situação medida:
+
+| Pacote | Cobertura |
+|---|---|
+| `vehicle.application` | 98,8% |
+| `vehicle.domain` | 98,4% |
+| `shared.application` | 97,9% |
+| `features.service_order.domain` | **15,2%** ⚠️ |
+| `features.service.domain` | **4,8%** ⚠️ |
+| **Projeto** | 78,3% |
+
+A fatia `features` está **excluída da regra**, e o motivo precisa ser lido: ela tem zero
+arquivos de teste — não há API, nem repositório, nem caso de uso, só o agregado. Não está
+excluída por a meta ser inatingível, mas porque reprovar o build de quatro pessoas por uma
+fatia que ainda não começou pararia o grupo inteiro. O número real continua visível no
+relatório, que é onde ele deve incomodar. **É dívida registrada, não dispensa.**
+
+### Vulnerabilidades
+
+O relatório com a triagem dos achados está em
+[`server/docs/analise-vulnerabilidades.md`](server/docs/analise-vulnerabilidades.md).
+
+| Frente | Ferramenta | Quando roda |
+|---|---|---|
+| Código | SpotBugs + FindSecBugs | `mvn verify` |
+| Dependências | OWASP Dependency-Check | `mvn -Psecurity-scan verify -Dnvd.api.key=...` |
+| Imagem | Trivy | fora do Maven |
+
+O Dependency-Check fica em perfil separado porque baixa a base do NVD — dezenas de minutos
+na primeira execução, e com chave de API obrigatória. Um scan assim no build de todo dia
+torna o feedback inutilizável e faz o build depender de serviço externo.
+
+---
+
+## Resolução de dependências
+
+O projeto resolve **direto do Maven Central**, por `.mvn/settings.xml` aplicado via
+`.mvn/maven.config`.
+
+Isso existe porque um integrante tem no `~/.m2/settings.xml` um mirror corporativo com
+`<mirrorOf>*</mirrorOf>`, apontando para um Nexus interno que exige VPN da empresa. Um
+mirror com curinga intercepta **todos** os repositórios, inclusive o central — então, sem
+esse arquivo, o build resolve por um host que os outros três integrantes não alcançam, e
+falha na máquina deles com erro de DNS.
+
+Consequência a conhecer: `-s` **substitui** o settings do usuário, não complementa. Nenhum
+artefato deste projeto exige autenticação, então não há perda. E o build precisa ser
+invocado a partir de `server/` — de outro diretório, passe `-s server/.mvn/settings.xml`.
+
+---
+
 ## Decisões de arquitetura
 
 As padronizações descritas nas seções seguintes têm um registro por decisão em
