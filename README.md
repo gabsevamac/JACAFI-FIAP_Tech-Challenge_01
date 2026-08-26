@@ -523,6 +523,18 @@ formato, o que produzia um log onde a mesma pessoa aparecia de duas maneiras.
 
 ---
 
+## Decisões de arquitetura
+
+As padronizações descritas nas seções seguintes têm um registro por decisão em
+[`server/docs/adr/`](server/docs/adr/), no formato de Nygard: contexto, decisão,
+alternativas recusadas **com o motivo**, e consequências — inclusive o que piorou.
+
+O README diz *o que* vale hoje. O ADR diz *por que*, e por que não a outra coisa. Quando as
+duas informações moram no mesmo parágrafo, a segunda some na primeira revisão que enxuga o
+texto.
+
+---
+
 ## Padrão de código e guarda-corpos de build
 
 Com quatro pessoas editando fatias paralelas, formatação divergente vira ruído de diff:
