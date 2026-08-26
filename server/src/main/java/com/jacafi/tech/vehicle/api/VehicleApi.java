@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 
+import com.jacafi.tech.shared.web.PageParameters;
 import com.jacafi.tech.vehicle.api.dto.RegisterVehicleRequest;
 import com.jacafi.tech.vehicle.api.dto.UpdateVehicleRequest;
 import com.jacafi.tech.vehicle.api.dto.VehicleResponse;
@@ -66,7 +67,9 @@ public interface VehicleApi {
     @Operation(
             summary = "Find by license plate, or list a customer's vehicles",
             description = "Exactly one of licensePlate or customerId must be given. A plate "
-                    + "identifies a single vehicle and yields one object; customerId yields a page.")
+                    + "identifies a single vehicle and yields one object; customerId yields a page. "
+                    + "Sortable fields: registeredAt, make, model, modelYear. Any other value is "
+                    + "rejected with 400.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Found"),
         @ApiResponse(
@@ -82,8 +85,7 @@ public interface VehicleApi {
     ResponseEntity<?> findByQuery(
             @Parameter(description = "Exact plate, in either layout; separators are ignored") String licensePlate,
             @Parameter(description = "Owner of the vehicles to list") UUID customerId,
-            @Parameter(description = "Zero-based page number") int page,
-            @Parameter(description = "Page size, at most 100") int size);
+            PageParameters paging);
 
     @Operation(
             summary = "Correct make, model and model year",

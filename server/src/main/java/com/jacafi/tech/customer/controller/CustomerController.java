@@ -5,9 +5,6 @@ import java.util.UUID;
 
 import jakarta.validation.Valid;
 
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,9 +18,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jacafi.tech.customer.dto.CreateCustomerRequest;
 import com.jacafi.tech.customer.dto.CustomerResponse;
-import com.jacafi.tech.customer.dto.PageResponse;
 import com.jacafi.tech.customer.dto.UpdateCustomerRequest;
 import com.jacafi.tech.customer.service.CustomerService;
+import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.web.PageParameters;
+import com.jacafi.tech.shared.web.SortableFields;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +31,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/v1/customers")
 public class CustomerController {
+
+    /**
+     * What a client may sort this collection by.
+     *
+     * <p>taxId is absent deliberately. It is personal data, and ordering by it lets a caller
+     * binary-search the registrations that exist without ever reading one — the page boundaries
+     * disclose the values.
+     */
+    private static final SortableFields SORTABLE = SortableFields.of("id", "name", "createdAt", "active");
 
     private final CustomerService customerService;
 
@@ -63,12 +71,12 @@ public class CustomerController {
         return CustomerResponse.from(customerService.findByTaxId(taxId));
     }
 
-    @Operation(summary = "List customers")
+    @Operation(
+            summary = "List customers",
+            description = "Sortable fields: name, createdAt, active. Any other value is rejected with 400.")
     @GetMapping
-    public PageResponse<CustomerResponse> list(
-            @RequestParam(required = false) Boolean active,
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        return PageResponse.from(customerService.list(active, pageable).map(CustomerResponse::from));
+    public PageResult<CustomerResponse> list(@RequestParam(required = false) Boolean active, PageParameters paging) {
+        return customerService.list(active, paging.toQuery(SORTABLE)).map(CustomerResponse::from);
     }
 
     @Operation(summary = "Update a customer")

@@ -3,8 +3,6 @@ package com.jacafi.tech.customer.service;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +11,9 @@ import com.jacafi.tech.customer.entity.TaxId;
 import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
 import com.jacafi.tech.customer.exception.CustomerNotFoundException;
 import com.jacafi.tech.customer.repository.CustomerRepository;
+import com.jacafi.tech.shared.application.PageQuery;
+import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.infrastructure.persistence.SpringDataPaging;
 
 @Service
 public class CustomerService {
@@ -51,9 +52,12 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Customer> list(Boolean active, Pageable pageable) {
-        Objects.requireNonNull(pageable, "Pageable must not be null");
-        return active == null ? repository.findAll(pageable) : repository.findAllByActive(active, pageable);
+    public PageResult<Customer> list(Boolean active, PageQuery query) {
+        Objects.requireNonNull(query, "query must not be null");
+
+        var pageable = SpringDataPaging.toPageable(query);
+        var found = active == null ? repository.findAll(pageable) : repository.findAllByActive(active, pageable);
+        return SpringDataPaging.toPageResult(found, query, customer -> customer);
     }
 
     @Transactional

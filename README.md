@@ -199,6 +199,85 @@ depois  "createdAt":"2026-01-15T10:30:00.123456Z"
 
 ---
 
+## Paginação
+
+Contrato único para toda listagem da API — veículos, clientes, ordens de serviço, peças.
+
+### Requisição
+
+```
+GET /api/v1/vehicles?customerId=...&page=0&size=20&sort=registeredAt,desc
+```
+
+| Parâmetro | Default | Regra |
+|---|---|---|
+| `page` | `0` | Base zero. Negativo → **400** |
+| `size` | `20` | Máximo **100**. Acima → **400**, nunca truncado em silêncio |
+| `sort` | identificador | `campo` ou `campo,asc` / `campo,desc`. Repetível. Fora da lista branca → **400** |
+
+### Resposta
+
+```json
+{
+  "content": [ { "id": "…", "licensePlate": "ABC1D23", "make": "Volkswagen" } ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 37,
+  "totalPages": 2
+}
+```
+
+### As quatro decisões
+
+**`PageResult`, e nunca `PagedModel`.** Esse nome já existe em
+`org.springframework.data.web` **e** em `org.springframework.hateoas`. Um terceiro tornaria
+todo import ambíguo no momento em que hipermídia entrasse.
+
+**Nunca devolver `Page<T>` do Spring Data.** O formato JSON dele é consequência acidental
+dos campos Java da classe — traz `pageable`, `numberOfElements`, `first`, `last` e um
+`sort` aninhado — e muda com upgrade de framework. O próprio Spring Data desaconselha
+serializá-lo.
+
+**Tamanho acima do teto é recusado, não truncado.** Devolver 100 elementos em silêncio a
+quem pediu 500 faz o laço do cliente pular quatro quintos dos dados e reportar sucesso.
+Resposta errada é pior que erro, porque só o erro é corrigido.
+
+**Lista branca de campos ordenáveis, por recurso.** Passar a string do cliente direto para
+o Spring Data deixa ele resolver qualquer propriedade da entidade — `?sort=passwordHash`
+ordena por uma coluna que a API não expõe, e a `PropertyReferenceException` resultante
+**nomeia as propriedades que existem**. A lista branca responde a toda sondagem do mesmo
+jeito, e a mensagem de erro não repete o campo submetido.
+
+`taxId` está fora da lista de clientes de propósito: ordenar por ele permite fazer busca
+binária sobre os documentos cadastrados sem nunca ler um — as fronteiras de página
+revelam os valores.
+
+### Desempate determinístico
+
+Toda ordenação termina no identificador. Ordenar só por coluna não única deixa linhas de
+mesmo valor numa ordem que o banco pode escolher diferente entre duas consultas, e aí um
+registro aparece na página 1 e de novo na 2, ou em nenhuma.
+
+Vale registrar o limite do teste disso: `PagingContractIT` verifica que percorrer as
+páginas devolve cada registro exatamente uma vez, mas **continua verde se o desempate for
+removido** — o Postgres devolve ordem estável por conta própria numa tabela pequena.
+Instabilidade é permitida, não garantida, então nenhum teste de integração consegue
+forçá-la. Quem guarda o desempate de fato é `PageParametersTest.appendsTheTieBreaker`, que
+afirma sobre os critérios resolvidos e falha sob essa mutação.
+
+### Onde cada tipo mora
+
+| Camada | Tipos | Regra |
+|---|---|---|
+| Aplicação (`shared/application`) | `PageQuery`, `PageResult<T>`, `SortCriterion` | **Não importa `org.springframework.data`** |
+| Web (`shared/web`) | `PageParameters` (`@ParameterObject`), `SortableFields` | Valida limites e lista branca |
+| Infraestrutura (`shared/infrastructure/persistence`) | `SpringDataPaging` | Único ponto que converte para `Pageable`/`Page` |
+
+O nome do campo na API não precisa casar com o da persistência: a resposta de veículo diz
+`registeredAt` enquanto a propriedade JPA diz `createdAt`, e o adaptador declara esse mapa.
+
+---
+
 ## Auditoria
 
 Duas coisas diferentes, que costumam ser confundidas por terem o mesmo nome.

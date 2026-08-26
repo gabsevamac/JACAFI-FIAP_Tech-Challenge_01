@@ -18,9 +18,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.web.PageParameters;
+import com.jacafi.tech.shared.web.SortableFields;
 import com.jacafi.tech.vehicle.api.dto.RegisterVehicleRequest;
 import com.jacafi.tech.vehicle.api.dto.UpdateVehicleRequest;
-import com.jacafi.tech.vehicle.api.dto.VehiclePageResponse;
 import com.jacafi.tech.vehicle.api.dto.VehicleResponse;
 import com.jacafi.tech.vehicle.application.FindVehicleUseCase;
 import com.jacafi.tech.vehicle.application.ListCustomerVehiclesUseCase;
@@ -46,7 +48,15 @@ import com.jacafi.tech.vehicle.domain.Vehicle;
 public class VehicleController implements VehicleApi {
 
     /** Cap on page size, so a caller cannot ask for the whole table in one request. */
-    private static final int MAX_PAGE_SIZE = 100;
+    /**
+     * What a client may sort this collection by, plus the tie-breaker.
+     *
+     * <p>Short on purpose. Every name here is a promise the API keeps, and a field added because
+     * it happened to exist on the entity is a promise nobody decided to make. The ceiling on page
+     * size lives in {@code PageParameters}, shared by every collection.
+     */
+    private static final SortableFields SORTABLE =
+            SortableFields.of("id", "registeredAt", "make", "model", "modelYear");
 
     private final RegisterVehicleUseCase registerVehicle;
     private final UpdateVehicleUseCase updateVehicle;
@@ -101,8 +111,7 @@ public class VehicleController implements VehicleApi {
     public ResponseEntity<?> findByQuery(
             @RequestParam(required = false) String licensePlate,
             @RequestParam(required = false) UUID customerId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            PageParameters paging) {
         if ((licensePlate == null) == (customerId == null)) {
             throw new IllegalArgumentException("Exactly one of licensePlate or customerId must be provided");
         }
@@ -111,13 +120,9 @@ public class VehicleController implements VehicleApi {
             return ResponseEntity.ok(VehicleResponse.from(findVehicle.byLicensePlate(licensePlate)));
         }
 
-        if (page < 0) {
-            throw new IllegalArgumentException("page must not be negative");
-        }
-        if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException("size must be between 1 and " + MAX_PAGE_SIZE);
-        }
-        return ResponseEntity.ok(VehiclePageResponse.from(listCustomerVehicles.list(customerId, page, size)));
+        PageResult<VehicleResponse> page =
+                listCustomerVehicles.list(customerId, paging.toQuery(SORTABLE)).map(VehicleResponse::from);
+        return ResponseEntity.ok(page);
     }
 
     @Override

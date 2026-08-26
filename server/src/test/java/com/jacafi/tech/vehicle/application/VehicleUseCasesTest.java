@@ -13,6 +13,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import com.jacafi.tech.shared.application.PageQuery;
+import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.application.SortCriterion;
 import com.jacafi.tech.vehicle.domain.AuditedOperation;
 import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
 import com.jacafi.tech.vehicle.domain.InvalidLicensePlateException;
@@ -185,7 +188,7 @@ class VehicleUseCasesTest {
 
             assertThatExceptionOfType(VehicleNotFoundException.class).isThrownBy(() -> find.byId(vehicle.getId()));
             assertThatExceptionOfType(VehicleNotFoundException.class).isThrownBy(() -> find.byLicensePlate("ABC1234"));
-            assertThat(list.list(CUSTOMER, 0, 20).content()).isEmpty();
+            assertThat(list.list(CUSTOMER, page(0, 20)).content()).isEmpty();
         }
 
         @Test
@@ -241,8 +244,8 @@ class VehicleUseCasesTest {
             registerGol("DEF5678");
             registerGol("GHI9012");
 
-            VehiclePage firstPage = list.list(CUSTOMER, 0, 2);
-            VehiclePage secondPage = list.list(CUSTOMER, 1, 2);
+            PageResult<Vehicle> firstPage = list.list(CUSTOMER, page(0, 2));
+            PageResult<Vehicle> secondPage = list.list(CUSTOMER, page(1, 2));
 
             assertThat(firstPage.content()).hasSize(2);
             assertThat(firstPage.totalElements()).isEqualTo(3);
@@ -253,10 +256,15 @@ class VehicleUseCasesTest {
         @Test
         @DisplayName("a customer with no vehicle gets an empty page, not a not-found")
         void unknownCustomerYieldsAnEmptyPage() {
-            VehiclePage page = list.list(UUID.randomUUID(), 0, 20);
+            PageResult<Vehicle> page = list.list(UUID.randomUUID(), page(0, 20));
 
             assertThat(page.content()).isEmpty();
             assertThat(page.totalElements()).isZero();
         }
+    }
+
+    /** Consulta de pagina equivalente a que a lista branca da camada web produziria. */
+    private static PageQuery page(int number, int size) {
+        return new PageQuery(number, size, java.util.List.of(SortCriterion.ascending("id")));
     }
 }

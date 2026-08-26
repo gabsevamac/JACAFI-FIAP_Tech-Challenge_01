@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,7 +16,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 
 import com.jacafi.tech.customer.entity.Cpf;
 import com.jacafi.tech.customer.entity.Customer;
@@ -23,6 +23,9 @@ import com.jacafi.tech.customer.entity.TaxId;
 import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
 import com.jacafi.tech.customer.exception.CustomerNotFoundException;
 import com.jacafi.tech.customer.repository.CustomerRepository;
+import com.jacafi.tech.shared.application.PageQuery;
+import com.jacafi.tech.shared.application.SortCriterion;
+import com.jacafi.tech.shared.infrastructure.persistence.SpringDataPaging;
 
 @ExtendWith(MockitoExtension.class)
 class CustomerServiceTest {
@@ -79,12 +82,16 @@ class CustomerServiceTest {
 
     @Test
     void listsAllCustomersOrFiltersByActiveState() {
-        var page = PageRequest.of(0, 20);
-        when(repository.findAll(page)).thenReturn(Page.empty(page));
-        when(repository.findAllByActive(true, page)).thenReturn(Page.empty(page));
+        // O service recebe PageQuery e converte para Pageable internamente, entao o stub precisa
+        // casar com o Pageable que essa conversao produz — incluindo a ordenacao, que a lista
+        // branca sempre acrescenta.
+        var query = new PageQuery(0, 20, List.of(SortCriterion.ascending("id")));
+        var pageable = SpringDataPaging.toPageable(query);
+        when(repository.findAll(pageable)).thenReturn(Page.empty(pageable));
+        when(repository.findAllByActive(true, pageable)).thenReturn(Page.empty(pageable));
 
-        assertThat(service.list(null, page)).isEmpty();
-        assertThat(service.list(true, page)).isEmpty();
+        assertThat(service.list(null, query).content()).isEmpty();
+        assertThat(service.list(true, query).content()).isEmpty();
     }
 
     @Test
