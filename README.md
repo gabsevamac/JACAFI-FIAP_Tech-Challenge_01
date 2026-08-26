@@ -199,6 +199,117 @@ depois  "createdAt":"2026-01-15T10:30:00.123456Z"
 
 ---
 
+## Tratamento de erros
+
+RFC 9457 (`application/problem+json`), um `@RestControllerAdvice` global, e uma regra que
+não tem exceção.
+
+### O que o cliente recebe
+
+```json
+{
+  "type": "about:blank",
+  "title": "Conflict",
+  "status": 409,
+  "detail": "Placa já cadastrada para outro veículo ativo.",
+  "instance": "/api/v1/vehicles",
+  "code": "VEI-002",
+  "traceId": "8aab65dd-a531-4963-bc39-e31c456992b2"
+}
+```
+
+Status, código estável, uma frase escrita para humano, e o identificador de rastreio. E
+**nada mais** — nunca stack trace, SQL, nome de constraint ou de índice, nome de classe ou
+propriedade, caminho de arquivo, nem o valor que o cliente submeteu.
+
+### O traceId é o mecanismo central
+
+`TraceIdFilter` gera um UUID por requisição, coloca no MDC do log, devolve no header
+`X-Trace-Id` e repete no corpo. O cliente recebe um identificador opaco; o log do servidor
+tem o detalhe completo. Suporte correlaciona, atacante não aprende nada.
+
+O identificador **não** é lido de header de entrada: aceitar um valor escolhido pelo
+cliente permitiria colidir com — ou forjar — as linhas de log de outra pessoa.
+
+O filtro tem `HIGHEST_PRECEDENCE` porque uma falha num filtro posterior, como um JWT
+ilegível, também precisa sair com o header, e um filtro que ainda não rodou não consegue
+acrescentá-lo.
+
+### Catálogo de códigos
+
+`ErrorCode` é a lista inteira, numa tela. Um código existe para o cliente ramificar sem
+casar com texto — texto é reescrito, traduzido e corrigido; `VEI-002` não.
+
+| Prefixo | Fatia |
+|---|---|
+| `GEN-00x` | genéricos |
+| `SEG-00x` | autenticação e autorização |
+| `PAG-001` | paginação e ordenação |
+| `VEI-00x` | veículos |
+| `CLI-00x` | clientes |
+
+O status vive no código, e **não existe `@ResponseStatus` em lugar nenhum**: com a
+anotação, "o que esta falha responde" fica espalhado por tantos arquivos quantas exceções
+existem, e duas exceções que significam a mesma coisa divergem sem ninguém notar.
+
+### A distinção em que tudo se apoia
+
+| Tipo | Mensagem vai ao cliente? |
+|---|---|
+| `BusinessException` | **Sim.** É escrita para o cliente, em pt-BR, sem valor submetido |
+| Todo o resto | **Não.** Resposta genérica; a mensagem real vai só para o log |
+
+Isso corrige um vazamento que estava ativo: os dois advices por fatia mapeavam
+`IllegalArgumentException` para 400 **e copiavam a mensagem para o corpo**, publicando
+invariantes de domínio como `"vehicleId must not be null"` para quem pedisse.
+
+`BusinessException` também aceita um `logContext` — o identificador do registro, por
+exemplo — que vai para o log e nunca para a resposta.
+
+### O caso da placa duplicada
+
+O Postgres relata violação do índice único assim:
+
+```
+duplicate key value violates unique constraint "ux_vehicles_license_plate_active"
+Detail: Key (license_plate)=(ABC1D23) already exists.
+```
+
+O nome do índice **e** a placa, na mesma string. O Hibernate embrulha, o Spring reembrulha,
+e qualquer handler que chame `getMessage()` publica os dois: o schema, e um dado pessoal
+que o chamador talvez não tivesse direito de confirmar. Por isso `DataIntegrityViolation`
+é respondido genericamente, com a mensagem completa indo só para o log.
+
+### Log
+
+| Faixa | Nível | Stack trace |
+|---|---|---|
+| 4xx | `WARN` | não — cliente mandando entrada ruim não é incidente, e uma stack por requisição malformada esconde os 5xx que importam |
+| 5xx | `ERROR` | sim, completa |
+
+Toda linha carrega o `traceId` pelo padrão de log configurado no `application.yaml`. Sem
+isso o identificador na resposta não serviria para nada.
+
+### Endurecimento do `application.yaml`
+
+`server.error.include-stacktrace/message/binding-errors=never`, `include-exception=false`,
+`whitelabel.enabled=false` e `spring.jpa.show-sql=false`. Todos já são default do Boot;
+ficam explícitos porque são decisão de segurança, e um default silencioso pode mudar entre
+versões sem ninguém notar.
+
+### Os testes são o entregável
+
+`ErrorLeakageIT` e `UnhandledExceptionTest` são escritos como **proibições**, não como
+expectativas. Um teste que verifica se o 409 tem a mensagem certa continua verde enquanto
+o corpo também carrega o nome do índice e a placa submetida; só um teste que afirma sobre
+ausência pega isso.
+
+`UnhandledExceptionTest` usa um controller que existe só no teste e cuja única função é
+lançar `NullPointerException` — forçar 500 num endpoint real exigiria quebrá-lo de
+propósito ou encontrar um defeito, e nenhum dos dois dá teste repetível.
+
+---
+
 ## Paginação
 
 Contrato único para toda listagem da API — veículos, clientes, ordens de serviço, peças.

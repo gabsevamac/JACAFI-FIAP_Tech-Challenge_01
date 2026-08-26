@@ -31,6 +31,7 @@ import com.jacafi.tech.vehicle.application.RegisterVehicleUseCase;
 import com.jacafi.tech.vehicle.application.RemoveVehicleUseCase;
 import com.jacafi.tech.vehicle.application.UpdateVehicleCommand;
 import com.jacafi.tech.vehicle.application.UpdateVehicleUseCase;
+import com.jacafi.tech.vehicle.domain.AmbiguousVehicleQueryException;
 import com.jacafi.tech.vehicle.domain.Vehicle;
 
 /**
@@ -113,7 +114,7 @@ public class VehicleController implements VehicleApi {
             @RequestParam(required = false) UUID customerId,
             PageParameters paging) {
         if ((licensePlate == null) == (customerId == null)) {
-            throw new IllegalArgumentException("Exactly one of licensePlate or customerId must be provided");
+            throw new AmbiguousVehicleQueryException();
         }
 
         if (licensePlate != null) {

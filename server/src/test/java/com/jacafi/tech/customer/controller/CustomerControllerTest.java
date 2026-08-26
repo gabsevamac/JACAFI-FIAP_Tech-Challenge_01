@@ -18,6 +18,7 @@ import com.jacafi.tech.customer.entity.Customer;
 import com.jacafi.tech.customer.entity.TaxId;
 import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
 import com.jacafi.tech.customer.service.CustomerService;
+import com.jacafi.tech.shared.web.GlobalExceptionHandler;
 
 class CustomerControllerTest {
 
@@ -29,7 +30,7 @@ class CustomerControllerTest {
         customerService = mock(CustomerService.class);
         var controller = new CustomerController(customerService);
         mvc = MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new CustomerExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();
     }
@@ -67,7 +68,10 @@ class CustomerControllerTest {
                                 }
                                 """))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("A customer with this tax id already exists"));
+                .andExpect(jsonPath("$.detail").value("Já existe um cliente com este CPF ou CNPJ."))
+                // O codigo e o que um cliente deve usar para tratar programaticamente: o texto e
+                // traduzivel e reescrevivel, CLI-002 nao.
+                .andExpect(jsonPath("$.code").value("CLI-002"));
     }
 
     private Customer customer() {

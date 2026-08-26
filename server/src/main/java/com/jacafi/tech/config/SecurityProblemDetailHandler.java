@@ -14,6 +14,9 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
+import com.jacafi.tech.shared.web.ErrorCode;
+import com.jacafi.tech.shared.web.TraceIdFilter;
+
 /**
  * Renders authentication and authorization failures as RFC 7807 {@code application/problem+json}.
  *
@@ -35,28 +38,37 @@ public class SecurityProblemDetailHandler implements AuthenticationEntryPoint, A
     public void commence(
             HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException {
-        write(request, response, HttpStatus.UNAUTHORIZED, "Authentication is required to access this resource.");
+        write(request, response, ErrorCode.AUTHENTICATION_REQUIRED);
     }
 
     @Override
     public void handle(
             HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException)
             throws IOException {
-        write(
-                request,
-                response,
-                HttpStatus.FORBIDDEN,
-                "The authenticated principal is not allowed to perform this operation.");
+        write(request, response, ErrorCode.ACCESS_DENIED);
     }
 
-    private void write(HttpServletRequest request, HttpServletResponse response, HttpStatus status, String detail)
-            throws IOException {
+    /**
+     * Same shape the advice produces, {@code code} and {@code traceId} included.
+     *
+     * <p>These two responses are the ones an unauthenticated caller sees most, so a client that
+     * branches on {@code code} must be able to branch on them too. A contract that holds for every
+     * error except the two most common ones is not a contract.
+     */
+    private void write(HttpServletRequest request, HttpServletResponse response, ErrorCode code) throws IOException {
+        HttpStatus status = code.status();
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.getWriter().write("""
-                {"type":"about:blank","title":"%s","status":%d,"detail":"%s","instance":"%s"}""".formatted(
-                        status.getReasonPhrase(), status.value(), detail, escape(request.getRequestURI())));
+                        {"type":"about:blank","title":"%s","status":%d,"detail":"%s","instance":"%s",\
+                        "code":"%s","traceId":"%s"}""".formatted(
+                        status.getReasonPhrase(),
+                        status.value(),
+                        escape(code.message()),
+                        escape(request.getRequestURI()),
+                        code.code(),
+                        escape(TraceIdFilter.currentTraceId())));
     }
 
     /** Minimal JSON string escaping — the request URI is client-controlled input. */

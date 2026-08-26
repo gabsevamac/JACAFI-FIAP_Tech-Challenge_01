@@ -10,6 +10,9 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    # SQL no log carrega o valor dos parametros ligados, e entre eles estao placa e CPF. Fica
+    # desligado por padrao; quem precisar depurar liga no perfil local, nunca em producao.
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -36,8 +39,27 @@ spring:
 
 server:
   port: ${SERVER_PORT:8082}
+  error:
+    # Endurecimento do tratador de erro padrao do container, que responde /error quando algo
+    # escapa do @RestControllerAdvice. Todos ja sao o default do Boot; ficam explicitos porque
+    # sao decisao de seguranca, e um default silencioso pode mudar entre versoes sem ninguem notar.
+    #
+    # include-message=never vale ate para 4xx: as mensagens do dominio sao escritas para quem le o
+    # log — "vehicleId must not be null" — e nao para o cliente.
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+    include-exception: false
+    # Sem esta linha, uma requisicao a uma rota inexistente devolve um corpo com o caminho
+    # tentado e a whitelabel page.
+    whitelabel:
+      enabled: false
 
 logging:
+  pattern:
+    # O traceId acompanha cada linha. E o que liga a resposta opaca que o cliente recebeu ao
+    # detalhe completo que so o log tem — sem ele o identificador na resposta nao serve para nada.
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{traceId:-no-trace}] --- [%15.15t] %-40.40logger{39} : %m%n%wEx"
   level:
     # O Postgres inclui o valor do campo na mensagem de violacao de constraint
     # ("Detail: Key (license_plate)=(ABC1D23) already exists"), e o Hibernate registra essa

@@ -1,8 +1,11 @@
 package com.jacafi.tech.customer.exception;
 
-public class InvalidTaxIdException extends IllegalArgumentException {
+import com.jacafi.tech.shared.web.BusinessException;
+import com.jacafi.tech.shared.web.ErrorCode;
+
+public class InvalidTaxIdException extends BusinessException {
 
     public InvalidTaxIdException() {
-        super("Invalid tax id");
+        super(ErrorCode.INVALID_TAX_ID);
     }
 }

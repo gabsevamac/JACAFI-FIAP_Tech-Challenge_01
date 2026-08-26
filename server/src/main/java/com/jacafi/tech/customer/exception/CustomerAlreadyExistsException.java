@@ -1,8 +1,11 @@
 package com.jacafi.tech.customer.exception;
 
-public class CustomerAlreadyExistsException extends RuntimeException {
+import com.jacafi.tech.shared.web.BusinessException;
+import com.jacafi.tech.shared.web.ErrorCode;
+
+public class CustomerAlreadyExistsException extends BusinessException {
 
     public CustomerAlreadyExistsException() {
-        super("A customer with this tax id already exists");
+        super(ErrorCode.CUSTOMER_ALREADY_EXISTS);
     }
 }

@@ -114,7 +114,11 @@ class CustomerServiceTest {
 
         assertThatThrownBy(() -> service.update(id, "Maria", null, "maria@example.com", "11999999999"))
                 .isInstanceOf(CustomerNotFoundException.class)
-                .hasMessage("Customer not found");
+                // A mensagem vem do catalogo ErrorCode, em pt-BR, porque e o texto que o cliente
+                // recebe. O teste afirma sobre o codigo, que e o contrato estavel.
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.type(CustomerNotFoundException.class))
+                .extracting(e -> e.errorCode().code())
+                .isEqualTo("CLI-001");
     }
 
     @Test

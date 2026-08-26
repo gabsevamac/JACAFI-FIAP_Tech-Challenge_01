@@ -1,8 +1,11 @@
 package com.jacafi.tech.customer.exception;
 
-public class CustomerNotFoundException extends RuntimeException {
+import com.jacafi.tech.shared.web.BusinessException;
+import com.jacafi.tech.shared.web.ErrorCode;
+
+public class CustomerNotFoundException extends BusinessException {
 
     public CustomerNotFoundException() {
-        super("Customer not found");
+        super(ErrorCode.CUSTOMER_NOT_FOUND);
     }
 }

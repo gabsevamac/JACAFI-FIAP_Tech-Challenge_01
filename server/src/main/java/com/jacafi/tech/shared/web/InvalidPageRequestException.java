@@ -3,17 +3,17 @@ package com.jacafi.tech.shared.web;
 /**
  * A paging or sorting parameter the API will not accept.
  *
- * <p>Extends {@link IllegalArgumentException} so the existing per-slice advices already answer 400
- * for it without a new handler.
+ * <p>A {@link BusinessException} because its message is one of the few written for the client: it
+ * says what to change without saying anything about the resource. Everything else that reaches the
+ * handler as a bad argument is answered generically, because those messages describe invariants.
  *
- * <p><strong>The message is generic on purpose, and must stay that way.</strong> Both advices copy
- * it into the response body, so anything specific said here is said to the client. Naming the
- * rejected sort field would confirm which attribute names exist on the entity, which is how an
- * unauthenticated caller maps a schema one guess at a time.
+ * <p><strong>The messages must stay free of the submitted value.</strong> Naming the rejected sort
+ * field would confirm which attribute names are being probed, which is how a caller maps the
+ * schema one request at a time.
  */
-public class InvalidPageRequestException extends IllegalArgumentException {
+public class InvalidPageRequestException extends BusinessException {
 
     public InvalidPageRequestException(String message) {
-        super(message);
+        super(ErrorCode.INVALID_PAGING, message, null);
     }
 }
