@@ -1,13 +1,10 @@
 package com.jacafi.tech.customer.controller;
 
-import com.jacafi.tech.customer.dto.CustomerResponse;
-import com.jacafi.tech.customer.dto.CreateCustomerRequest;
-import com.jacafi.tech.customer.dto.PageResponse;
-import com.jacafi.tech.customer.dto.UpdateCustomerRequest;
-import com.jacafi.tech.customer.service.CustomerService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import java.net.URI;
+import java.util.UUID;
+
 import jakarta.validation.Valid;
+
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -22,8 +19,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URI;
-import java.util.UUID;
+import com.jacafi.tech.customer.dto.CreateCustomerRequest;
+import com.jacafi.tech.customer.dto.CustomerResponse;
+import com.jacafi.tech.customer.dto.PageResponse;
+import com.jacafi.tech.customer.dto.UpdateCustomerRequest;
+import com.jacafi.tech.customer.service.CustomerService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Customers")
 @RestController
@@ -40,11 +43,7 @@ public class CustomerController {
     @PostMapping
     public ResponseEntity<CustomerResponse> create(@Valid @RequestBody CreateCustomerRequest request) {
         var customer = customerService.create(
-                request.taxId(),
-                request.name(),
-                request.tradeName(),
-                request.email(),
-                request.phone());
+                request.taxId(), request.name(), request.tradeName(), request.email(), request.phone());
         return ResponseEntity.created(URI.create("/api/v1/customers/" + customer.getId()))
                 .body(CustomerResponse.from(customer));
     }
@@ -55,9 +54,10 @@ public class CustomerController {
         return CustomerResponse.from(customerService.findById(id));
     }
 
-    @Operation(summary = "Find a customer by CPF or CNPJ",
-            description = "Which of the two the value is comes from the value itself, so there is "
-                    + "no type to declare.")
+    @Operation(
+            summary = "Find a customer by CPF or CNPJ",
+            description =
+                    "Which of the two the value is comes from the value itself, so there is " + "no type to declare.")
     @GetMapping("/lookup")
     public CustomerResponse findByTaxId(@RequestParam String taxId) {
         return CustomerResponse.from(customerService.findByTaxId(taxId));
@@ -74,12 +74,8 @@ public class CustomerController {
     @Operation(summary = "Update a customer")
     @PatchMapping("/{id}")
     public CustomerResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateCustomerRequest request) {
-        return CustomerResponse.from(customerService.update(
-                id,
-                request.name(),
-                request.tradeName(),
-                request.email(),
-                request.phone()));
+        return CustomerResponse.from(
+                customerService.update(id, request.name(), request.tradeName(), request.email(), request.phone()));
     }
 
     @Operation(summary = "Deactivate a customer")

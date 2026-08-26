@@ -1,23 +1,24 @@
 package com.jacafi.tech.vehicle.domain;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 class VehicleTest {
 
     /** 2026-08-25T12:00:00Z. Fixed so that the model year bounds are the same on every run. */
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-25T12:00:00Z"), ZoneOffset.UTC);
+
     private static final int CURRENT_YEAR = 2026;
 
     private static final UUID ID = UUID.fromString("0f7c9a1e-3b2d-4c5f-8a9b-1d2e3f4a5b6c");
@@ -62,7 +63,8 @@ class VehicleTest {
         @Test
         @DisplayName("trims and collapses whitespace in make and model")
         void normalizesText() {
-            Vehicle vehicle = aVehicle().make("  Volks   wagen ").model(" Gol  GTI ").register(CLOCK);
+            Vehicle vehicle =
+                    aVehicle().make("  Volks   wagen ").model(" Gol  GTI ").register(CLOCK);
 
             assertThat(vehicle.getMake()).isEqualTo("Volks wagen");
             assertThat(vehicle.getModel()).isEqualTo("Gol GTI");
@@ -102,7 +104,12 @@ class VehicleTest {
 
         @Test
         void accepts1900() {
-            assertThat(aVehicle().make("Ford").model("T").modelYear(1900).register(CLOCK).getModelYear())
+            assertThat(aVehicle()
+                            .make("Ford")
+                            .model("T")
+                            .modelYear(1900)
+                            .register(CLOCK)
+                            .getModelYear())
                     .isEqualTo(1900);
         }
 
@@ -158,8 +165,7 @@ class VehicleTest {
         void appliesTheSameModelYearRange() {
             Vehicle vehicle = register();
 
-            assertThatIllegalArgumentException()
-                    .isThrownBy(() -> vehicle.update("Chevrolet", "Onix", 1899, CLOCK));
+            assertThatIllegalArgumentException().isThrownBy(() -> vehicle.update("Chevrolet", "Onix", 1899, CLOCK));
         }
 
         @Test
@@ -167,8 +173,7 @@ class VehicleTest {
             Vehicle vehicle = register();
             vehicle.remove(CLOCK);
 
-            assertThatIllegalStateException()
-                    .isThrownBy(() -> vehicle.update("Chevrolet", "Onix", 2021, CLOCK));
+            assertThatIllegalStateException().isThrownBy(() -> vehicle.update("Chevrolet", "Onix", 2021, CLOCK));
         }
     }
 
@@ -209,8 +214,12 @@ class VehicleTest {
         @DisplayName("two vehicles with the same id are the same vehicle")
         void equalsById() {
             Vehicle one = register();
-            Vehicle other = aVehicle().licensePlate(new LicensePlate("XYZ9K87"))
-                    .make("Fiat").model("Uno").modelYear(2010).register(CLOCK);
+            Vehicle other = aVehicle()
+                    .licensePlate(new LicensePlate("XYZ9K87"))
+                    .make("Fiat")
+                    .model("Uno")
+                    .modelYear(2010)
+                    .register(CLOCK);
 
             assertThat(one).isEqualTo(other).hasSameHashCodeAs(other);
         }
@@ -232,9 +241,15 @@ class VehicleTest {
             Instant removedAt = Instant.parse("2026-03-20T14:00:00Z");
 
             Vehicle vehicle = Vehicle.builder()
-                    .id(ID).licensePlate(null).make("Volkswagen").model("Gol").modelYear(2020)
+                    .id(ID)
+                    .licensePlate(null)
+                    .make("Volkswagen")
+                    .model("Gol")
+                    .modelYear(2020)
                     .customerId(CUSTOMER)
-                    .registeredAt(registeredAt).updatedAt(removedAt).removedAt(removedAt)
+                    .registeredAt(registeredAt)
+                    .updatedAt(removedAt)
+                    .removedAt(removedAt)
                     .restore();
 
             assertThat(vehicle.getLicensePlate()).isEmpty();
@@ -248,9 +263,14 @@ class VehicleTest {
             Instant registeredAt = Instant.parse("2020-01-15T09:00:00Z");
 
             Vehicle vehicle = Vehicle.builder()
-                    .id(ID).licensePlate(PLATE).make("Ford").model("A").modelYear(1850)
+                    .id(ID)
+                    .licensePlate(PLATE)
+                    .make("Ford")
+                    .model("A")
+                    .modelYear(1850)
                     .customerId(CUSTOMER)
-                    .registeredAt(registeredAt).updatedAt(registeredAt)
+                    .registeredAt(registeredAt)
+                    .updatedAt(registeredAt)
                     .restore();
 
             assertThat(vehicle.getModelYear()).isEqualTo(1850);
@@ -278,9 +298,14 @@ class VehicleTest {
 
         @Test
         void registerRequiresAModelYear() {
-            assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> Vehicle.builder()
-                    .id(ID).licensePlate(PLATE).make("Volkswagen").model("Gol").customerId(CUSTOMER)
-                    .register(CLOCK));
+            assertThatExceptionOfType(NullPointerException.class)
+                    .isThrownBy(() -> Vehicle.builder()
+                            .id(ID)
+                            .licensePlate(PLATE)
+                            .make("Volkswagen")
+                            .model("Gol")
+                            .customerId(CUSTOMER)
+                            .register(CLOCK));
         }
 
         @Test
@@ -292,10 +317,15 @@ class VehicleTest {
         @Test
         @DisplayName("restoring requires the timestamps storage already holds")
         void restoreRequiresTimestamps() {
-            assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> Vehicle.builder()
-                    .id(ID).licensePlate(PLATE).make("Volkswagen").model("Gol").modelYear(2020)
-                    .customerId(CUSTOMER)
-                    .restore());
+            assertThatExceptionOfType(NullPointerException.class)
+                    .isThrownBy(() -> Vehicle.builder()
+                            .id(ID)
+                            .licensePlate(PLATE)
+                            .make("Volkswagen")
+                            .model("Gol")
+                            .modelYear(2020)
+                            .customerId(CUSTOMER)
+                            .restore());
         }
     }
 
@@ -304,9 +334,7 @@ class VehicleTest {
     void toStringIsMasked() {
         Vehicle vehicle = register();
 
-        assertThat(vehicle.toString())
-                .doesNotContain("ABC1234")
-                .contains("ABC***4");
+        assertThat(vehicle.toString()).doesNotContain("ABC1234").contains("ABC***4");
     }
 
     @Test

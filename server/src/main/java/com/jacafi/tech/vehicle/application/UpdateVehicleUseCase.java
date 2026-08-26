@@ -1,5 +1,12 @@
 package com.jacafi.tech.vehicle.application;
 
+import java.time.Clock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.vehicle.domain.AuditedOperation;
 import com.jacafi.tech.vehicle.domain.LicensePlate;
 import com.jacafi.tech.vehicle.domain.Vehicle;
@@ -7,12 +14,6 @@ import com.jacafi.tech.vehicle.domain.VehicleAuditEntry;
 import com.jacafi.tech.vehicle.domain.VehicleAuditTrail;
 import com.jacafi.tech.vehicle.domain.VehicleNotFoundException;
 import com.jacafi.tech.vehicle.domain.VehicleRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
 
 /**
  * Corrects make, model and model year of a registered vehicle — the {@code UpdateVehicle} command.
@@ -37,16 +38,19 @@ public class UpdateVehicleUseCase {
 
     @Transactional
     public Vehicle update(UpdateVehicleCommand command) {
-        Vehicle vehicle = repository.findActiveById(command.vehicleId())
+        Vehicle vehicle = repository
+                .findActiveById(command.vehicleId())
                 .orElseThrow(() -> new VehicleNotFoundException(command.vehicleId()));
 
         vehicle.update(command.make(), command.model(), command.modelYear(), clock);
 
         repository.save(vehicle);
-        auditTrail.append(new VehicleAuditEntry(vehicle.getId(), AuditedOperation.UPDATED,
-                command.actor(), clock.instant()));
+        auditTrail.append(
+                new VehicleAuditEntry(vehicle.getId(), AuditedOperation.UPDATED, command.actor(), clock.instant()));
 
-        log.info("Vehicle updated: id={} licensePlate={}", vehicle.getId(),
+        log.info(
+                "Vehicle updated: id={} licensePlate={}",
+                vehicle.getId(),
                 vehicle.getLicensePlate().map(LicensePlate::masked).orElse("***"));
         return vehicle;
     }

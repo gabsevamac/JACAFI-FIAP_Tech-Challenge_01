@@ -1,11 +1,11 @@
 package com.jacafi.tech.features.service_order.add_service_to_order;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
 @Embeddable
 public class ServiceOrderServiceId implements Serializable {
@@ -20,8 +20,7 @@ public class ServiceOrderServiceId implements Serializable {
      * Required by JPA: an embeddable identifier is instantiated reflectively and populated
      * field by field. A record cannot be used for the same reason.
      */
-    protected ServiceOrderServiceId() {
-    }
+    protected ServiceOrderServiceId() {}
 
     ServiceOrderServiceId(UUID serviceOrderId, UUID serviceId) {
         this.serviceOrderId = serviceOrderId;
@@ -41,8 +40,7 @@ public class ServiceOrderServiceId implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof ServiceOrderServiceId that)) return false;
-        return Objects.equals(serviceOrderId, that.serviceOrderId)
-                && Objects.equals(serviceId, that.serviceId);
+        return Objects.equals(serviceOrderId, that.serviceOrderId) && Objects.equals(serviceId, that.serviceId);
     }
 
     @Override

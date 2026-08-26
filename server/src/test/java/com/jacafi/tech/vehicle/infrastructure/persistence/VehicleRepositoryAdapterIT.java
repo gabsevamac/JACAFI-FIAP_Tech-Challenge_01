@@ -1,23 +1,24 @@
 package com.jacafi.tech.vehicle.infrastructure.persistence;
 
-import com.jacafi.tech.support.AbstractIntegrationTest;
-import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
-import com.jacafi.tech.vehicle.domain.LicensePlate;
-import com.jacafi.tech.vehicle.domain.Vehicle;
-import com.jacafi.tech.vehicle.domain.VehicleRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import com.jacafi.tech.support.AbstractIntegrationTest;
+import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
+import com.jacafi.tech.vehicle.domain.LicensePlate;
+import com.jacafi.tech.vehicle.domain.Vehicle;
+import com.jacafi.tech.vehicle.domain.VehicleRepository;
 
 /**
  * Exercises the partial unique index directly, bypassing the application layer's check.
@@ -92,8 +93,8 @@ class VehicleRepositoryAdapterIT extends AbstractIntegrationTest {
                 "SELECT license_plate FROM vehicles WHERE id = ?", String.class, vehicle.getId());
 
         assertThat(storedPlate).doesNotContain(PLATE.value()).isEqualTo("ANON-" + vehicle.getId());
-        assertThat(jdbcTemplate.queryForObject("SELECT make FROM vehicles WHERE id = ?",
-                String.class, vehicle.getId())).isEqualTo("Volkswagen");
+        assertThat(jdbcTemplate.queryForObject("SELECT make FROM vehicles WHERE id = ?", String.class, vehicle.getId()))
+                .isEqualTo("Volkswagen");
     }
 
     @Test

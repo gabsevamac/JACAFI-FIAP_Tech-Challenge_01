@@ -1,11 +1,12 @@
 package com.jacafi.tech.customer.dto;
 
-import com.jacafi.tech.customer.entity.Customer;
-import com.jacafi.tech.shared.lgpd.PersonalData;
-import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import com.jacafi.tech.customer.entity.Customer;
+import com.jacafi.tech.shared.lgpd.PersonalData;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Customer as the API exposes it.
@@ -17,17 +18,15 @@ import java.util.UUID;
  */
 public record CustomerResponse(
         UUID id,
+
         @PersonalData("LGPD Art. 5 I — returned in full to an authenticated caller, never logged")
-        @Schema(description = "CPF (11 characters) or CNPJ (14); the length tells them apart",
-                example = "52998224725")
+        @Schema(description = "CPF (11 characters) or CNPJ (14); the length tells them apart", example = "52998224725")
         String taxId,
-        @PersonalData("LGPD Art. 5 I")
-        String name,
+
+        @PersonalData("LGPD Art. 5 I") String name,
         String tradeName,
-        @PersonalData("LGPD Art. 5 I")
-        String email,
-        @PersonalData("LGPD Art. 5 I")
-        String phone,
+        @PersonalData("LGPD Art. 5 I") String email,
+        @PersonalData("LGPD Art. 5 I") String phone,
         boolean active,
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {

@@ -1,5 +1,13 @@
 package com.jacafi.tech.vehicle.application;
 
+import java.time.Clock;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.vehicle.domain.AuditedOperation;
 import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
 import com.jacafi.tech.vehicle.domain.LicensePlate;
@@ -7,13 +15,6 @@ import com.jacafi.tech.vehicle.domain.Vehicle;
 import com.jacafi.tech.vehicle.domain.VehicleAuditEntry;
 import com.jacafi.tech.vehicle.domain.VehicleAuditTrail;
 import com.jacafi.tech.vehicle.domain.VehicleRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.util.UUID;
 
 /**
  * Registers a vehicle for a customer — the {@code RegisterVehicle} command of the Event Storming
@@ -62,8 +63,8 @@ public class RegisterVehicleUseCase {
                 .register(clock);
 
         repository.save(vehicle);
-        auditTrail.append(new VehicleAuditEntry(vehicle.getId(), AuditedOperation.REGISTERED,
-                command.actor(), clock.instant()));
+        auditTrail.append(
+                new VehicleAuditEntry(vehicle.getId(), AuditedOperation.REGISTERED, command.actor(), clock.instant()));
 
         log.info("Vehicle registered: id={} licensePlate={}", vehicle.getId(), licensePlate.masked());
         return vehicle;

@@ -12,9 +12,11 @@ import com.jacafi.tech.shared.lgpd.PersonalData;
  *
  * @param value the normalized registration, upper case
  */
-public record Cnpj(@PersonalData("LGPD Art. 5 I — identifies a legal entity and, in a single-member "
-                          + "company, a natural person through it")
-                   String value) implements TaxId {
+public record Cnpj(
+        @PersonalData("LGPD Art. 5 I — identifies a legal entity and, in a single-member "
+                + "company, a natural person through it")
+        String value)
+        implements TaxId {
 
     public Cnpj {
         if (value == null) {
@@ -74,8 +76,7 @@ final class CnpjValidator {
     private static final int VALOR_BASE = (int) '0';
     private static final int[] PESOS_DV = {6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};
 
-    private CnpjValidator() {
-    }
+    private CnpjValidator() {}
 
     static boolean isValid(String cnpj) {
         if (cnpj != null) {
@@ -127,7 +128,6 @@ final class CnpjValidator {
     }
 
     private static boolean isCnpjFormacaoValidaComDV(String cnpj) {
-        return cnpj.matches(REGEX_FORMACAO_BASE_CNPJ.concat(REGEX_FORMACAO_DV))
-                && !cnpj.matches(REGEX_VALOR_ZERADO);
+        return cnpj.matches(REGEX_FORMACAO_BASE_CNPJ.concat(REGEX_FORMACAO_DV)) && !cnpj.matches(REGEX_VALOR_ZERADO);
     }
 }

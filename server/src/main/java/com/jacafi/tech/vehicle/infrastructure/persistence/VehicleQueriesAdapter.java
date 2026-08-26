@@ -1,15 +1,16 @@
 package com.jacafi.tech.vehicle.infrastructure.persistence;
 
-import com.jacafi.tech.vehicle.application.VehiclePage;
-import com.jacafi.tech.vehicle.application.VehicleQueries;
-import com.jacafi.tech.vehicle.domain.Vehicle;
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.UUID;
+import com.jacafi.tech.vehicle.application.VehiclePage;
+import com.jacafi.tech.vehicle.application.VehicleQueries;
+import com.jacafi.tech.vehicle.domain.Vehicle;
 
 /**
  * Implements the read port. Spring Data's {@code Pageable} stops here: above this class, paging is
@@ -34,7 +35,8 @@ public class VehicleQueriesAdapter implements VehicleQueries {
         Page<VehicleJpaEntity> found = jpaRepository.findByCustomerIdAndRemovedAtIsNull(
                 customerId, PageRequest.of(page, size, BY_REGISTRATION));
 
-        List<Vehicle> content = found.getContent().stream().map(mapper::toDomain).toList();
+        List<Vehicle> content =
+                found.getContent().stream().map(mapper::toDomain).toList();
         return new VehiclePage(content, page, size, found.getTotalElements());
     }
 }

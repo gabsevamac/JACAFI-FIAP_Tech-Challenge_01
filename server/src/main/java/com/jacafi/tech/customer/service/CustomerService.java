@@ -1,17 +1,18 @@
 package com.jacafi.tech.customer.service;
 
-import com.jacafi.tech.customer.entity.Customer;
-import com.jacafi.tech.customer.entity.TaxId;
-import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
-import com.jacafi.tech.customer.exception.CustomerNotFoundException;
-import com.jacafi.tech.customer.repository.CustomerRepository;
+import java.util.Objects;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Objects;
-import java.util.UUID;
+import com.jacafi.tech.customer.entity.Customer;
+import com.jacafi.tech.customer.entity.TaxId;
+import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
+import com.jacafi.tech.customer.exception.CustomerNotFoundException;
+import com.jacafi.tech.customer.repository.CustomerRepository;
 
 @Service
 public class CustomerService {
@@ -39,14 +40,14 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public Customer findById(UUID id) {
-        return repository.findById(Objects.requireNonNull(id, "Customer id must not be null"))
+        return repository
+                .findById(Objects.requireNonNull(id, "Customer id must not be null"))
                 .orElseThrow(CustomerNotFoundException::new);
     }
 
     @Transactional(readOnly = true)
     public Customer findByTaxId(String rawTaxId) {
-        return repository.findByTaxId(TaxId.of(rawTaxId))
-                .orElseThrow(CustomerNotFoundException::new);
+        return repository.findByTaxId(TaxId.of(rawTaxId)).orElseThrow(CustomerNotFoundException::new);
     }
 
     @Transactional(readOnly = true)

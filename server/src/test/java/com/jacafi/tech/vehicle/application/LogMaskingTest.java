@@ -1,15 +1,6 @@
 package com.jacafi.tech.vehicle.application;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-import com.jacafi.tech.vehicle.domain.Vehicle;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -17,7 +8,18 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+
+import com.jacafi.tech.vehicle.domain.Vehicle;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 /**
  * Proves the requirement that no log statement writes a full license plate.
@@ -85,7 +87,9 @@ class LogMaskingTest {
         update.update(new UpdateVehicleCommand(vehicle.getId(), "Chevrolet", "Onix", 2021, "advisor@sinates"));
         remove.remove(vehicle.getId(), "advisor@sinates");
 
-        assertThat(loggedMessages()).filteredOn(message -> message.contains(MASKED_PLATE)).hasSize(3);
+        assertThat(loggedMessages())
+                .filteredOn(message -> message.contains(MASKED_PLATE))
+                .hasSize(3);
     }
 
     @Test

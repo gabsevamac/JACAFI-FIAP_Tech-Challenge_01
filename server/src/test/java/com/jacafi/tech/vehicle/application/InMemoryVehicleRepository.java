@@ -1,9 +1,5 @@
 package com.jacafi.tech.vehicle.application;
 
-import com.jacafi.tech.vehicle.domain.LicensePlate;
-import com.jacafi.tech.vehicle.domain.Vehicle;
-import com.jacafi.tech.vehicle.domain.VehicleRepository;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -11,6 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.jacafi.tech.vehicle.domain.LicensePlate;
+import com.jacafi.tech.vehicle.domain.Vehicle;
+import com.jacafi.tech.vehicle.domain.VehicleRepository;
 
 /**
  * Hand-written stand-in for the repository, implementing the same contract in a map.
@@ -42,7 +42,8 @@ class InMemoryVehicleRepository implements VehicleRepository, VehicleQueries {
     @Override
     public Optional<Vehicle> findActiveByLicensePlate(LicensePlate licensePlate) {
         return activeVehicles()
-                .filter(vehicle -> vehicle.getLicensePlate().filter(licensePlate::equals).isPresent())
+                .filter(vehicle ->
+                        vehicle.getLicensePlate().filter(licensePlate::equals).isPresent())
                 .findFirst();
     }
 

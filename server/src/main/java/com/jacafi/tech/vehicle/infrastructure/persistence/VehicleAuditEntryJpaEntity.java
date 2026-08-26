@@ -1,6 +1,8 @@
 package com.jacafi.tech.vehicle.infrastructure.persistence;
 
-import com.jacafi.tech.vehicle.domain.AuditedOperation;
+import java.time.Instant;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,8 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
-import java.util.UUID;
+import com.jacafi.tech.vehicle.domain.AuditedOperation;
 
 /**
  * Storage shape of one audit trail line (LGPD Art. 37).
@@ -44,8 +45,7 @@ public class VehicleAuditEntryJpaEntity {
     private Instant occurredAt;
 
     /** Required by JPA. */
-    protected VehicleAuditEntryJpaEntity() {
-    }
+    protected VehicleAuditEntryJpaEntity() {}
 
     VehicleAuditEntryJpaEntity(UUID vehicleId, AuditedOperation operation, String actor, Instant occurredAt) {
         this.vehicleId = vehicleId;
@@ -88,7 +88,6 @@ public class VehicleAuditEntryJpaEntity {
 
     @Override
     public String toString() {
-        return "VehicleAuditEntryJpaEntity[id=%s, vehicleId=%s, operation=%s]"
-                .formatted(id, vehicleId, operation);
+        return "VehicleAuditEntryJpaEntity[id=%s, vehicleId=%s, operation=%s]".formatted(id, vehicleId, operation);
     }
 }

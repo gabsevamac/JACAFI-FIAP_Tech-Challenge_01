@@ -1,7 +1,5 @@
 package com.jacafi.tech.vehicle.domain;
 
-import com.jacafi.tech.shared.lgpd.PersonalData;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Year;
@@ -9,6 +7,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
+
+import com.jacafi.tech.shared.lgpd.PersonalData;
 
 /**
  * A vehicle presented to the workshop for maintenance, described by make, model and model year.
@@ -250,8 +250,7 @@ public class Vehicle {
         private Instant updatedAt;
         private Instant removedAt;
 
-        private Builder() {
-        }
+        private Builder() {}
 
         public Builder id(UUID id) {
             this.id = id;

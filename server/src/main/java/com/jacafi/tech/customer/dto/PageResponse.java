@@ -1,15 +1,10 @@
 package com.jacafi.tech.customer.dto;
 
-import org.springframework.data.domain.Page;
-
 import java.util.List;
 
-public record PageResponse<T>(
-        List<T> content,
-        int page,
-        int size,
-        long totalElements,
-        int totalPages) {
+import org.springframework.data.domain.Page;
+
+public record PageResponse<T>(List<T> content, int page, int size, long totalElements, int totalPages) {
 
     public static <T> PageResponse<T> from(Page<T> result) {
         return new PageResponse<>(

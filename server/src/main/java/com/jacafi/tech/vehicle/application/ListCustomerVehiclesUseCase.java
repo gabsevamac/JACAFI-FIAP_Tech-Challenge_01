@@ -1,9 +1,9 @@
 package com.jacafi.tech.vehicle.application;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 /**
  * Lists the vehicles of one customer, a page at a time.

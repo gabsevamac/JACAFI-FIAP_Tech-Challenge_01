@@ -1,7 +1,8 @@
 package com.jacafi.tech;
 
-import com.jacafi.tech.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
+
+import com.jacafi.tech.support.AbstractIntegrationTest;
 
 /**
  * Smoke test: the application context starts against a real Postgres, which also means every
@@ -10,6 +11,5 @@ import org.junit.jupiter.api.Test;
 class TechApplicationTests extends AbstractIntegrationTest {
 
     @Test
-    void contextLoads() {
-    }
+    void contextLoads() {}
 }

@@ -1,10 +1,12 @@
 package com.jacafi.tech.customer.dto;
 
-import com.jacafi.tech.shared.lgpd.PersonalData;
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import com.jacafi.tech.shared.lgpd.PersonalData;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Body of a customer registration.
@@ -15,28 +17,16 @@ import jakarta.validation.constraints.Size;
  */
 public record CreateCustomerRequest(
         @PersonalData("LGPD Art. 5 I")
-        @Schema(description = "CPF or CNPJ; punctuation is accepted and normalized",
-                example = "529.982.247-25")
-        @NotBlank(message = "taxId is required")
-        @Size(max = 18)
-        String taxId,
+        @Schema(description = "CPF or CNPJ; punctuation is accepted and normalized", example = "529.982.247-25")
+        @NotBlank(message = "taxId is required") @Size(max = 18) String taxId,
 
-        @PersonalData("LGPD Art. 5 I")
-        @NotBlank(message = "name is required")
-        @Size(max = 150)
-        String name,
+        @PersonalData("LGPD Art. 5 I") @NotBlank(message = "name is required") @Size(max = 150) String name,
 
-        @Schema(description = "Only for a legal entity")
-        @Size(max = 150)
-        String tradeName,
+        @Schema(description = "Only for a legal entity") @Size(max = 150) String tradeName,
 
-        @PersonalData("LGPD Art. 5 I")
-        @NotBlank @Email @Size(max = 254)
-        String email,
+        @PersonalData("LGPD Art. 5 I") @NotBlank @Email @Size(max = 254) String email,
 
-        @PersonalData("LGPD Art. 5 I")
-        @NotBlank @Size(max = 20)
-        String phone) {
+        @PersonalData("LGPD Art. 5 I") @NotBlank @Size(max = 20) String phone) {
 
     /** Never prints the registration or the contact data. */
     @Override

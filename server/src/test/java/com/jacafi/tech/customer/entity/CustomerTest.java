@@ -1,11 +1,11 @@
 package com.jacafi.tech.customer.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Also covers what used to be PartyTest: with Party collapsed into this entity, the name and trade
@@ -44,8 +44,8 @@ class CustomerTest {
         @Test
         @DisplayName("a legal entity may carry a trade name")
         void acceptsATradeNameForALegalEntity() {
-            var customer = Customer.create(CNPJ, "Oficina Jacafi Ltda", "  Jacafi  ",
-                    "contato@jacafi.com", "1133333333");
+            var customer =
+                    Customer.create(CNPJ, "Oficina Jacafi Ltda", "  Jacafi  ", "contato@jacafi.com", "1133333333");
 
             assertThat(customer.getTradeName()).isEqualTo("Jacafi");
         }
@@ -53,8 +53,7 @@ class CustomerTest {
         @Test
         @DisplayName("a natural person may not, and the type of the registration is what says so")
         void rejectsATradeNameForAnIndividual() {
-            assertThatThrownBy(() -> Customer.create(CPF, "Maria", "Loja da Maria",
-                    "maria@example.com", "11999999999"))
+            assertThatThrownBy(() -> Customer.create(CPF, "Maria", "Loja da Maria", "maria@example.com", "11999999999"))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Trade name is only allowed for legal entities");
         }

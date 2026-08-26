@@ -1,8 +1,7 @@
 package com.jacafi.tech.customer.controller;
 
-import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
-import com.jacafi.tech.customer.exception.CustomerNotFoundException;
-import com.jacafi.tech.customer.exception.InvalidTaxIdException;
+import java.util.LinkedHashMap;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -10,7 +9,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.LinkedHashMap;
+import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
+import com.jacafi.tech.customer.exception.CustomerNotFoundException;
+import com.jacafi.tech.customer.exception.InvalidTaxIdException;
 
 @RestControllerAdvice(assignableTypes = CustomerController.class)
 public class CustomerExceptionHandler {
@@ -37,7 +38,9 @@ public class CustomerExceptionHandler {
     ProblemDetail validation(MethodArgumentNotValidException exception) {
         var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Invalid request");
         var errors = new LinkedHashMap<String, String>();
-        exception.getBindingResult().getFieldErrors()
+        exception
+                .getBindingResult()
+                .getFieldErrors()
                 .forEach(error -> errors.putIfAbsent(error.getField(), error.getDefaultMessage()));
         problem.setProperty("errors", errors);
         return problem;

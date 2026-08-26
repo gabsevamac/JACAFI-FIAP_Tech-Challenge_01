@@ -1,17 +1,18 @@
 package com.jacafi.tech.customer.entity;
 
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
-
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.UUID;
 
 /**
  * Whoever the workshop bills for the work: a natural person or a company, told apart by which
@@ -73,8 +74,7 @@ public class Customer {
      * Kept {@code protected} so application code has to go through {@link #create}, and its
      * invariants.
      */
-    protected Customer() {
-    }
+    protected Customer() {}
 
     public static Customer create(TaxId taxId, String name, String tradeName, String email, String phone) {
         var customer = new Customer();
@@ -165,7 +165,6 @@ public class Customer {
      */
     @Override
     public String toString() {
-        return "Customer[id=%s, taxId=%s, active=%s]"
-                .formatted(id, taxId == null ? "***" : taxId.masked(), active);
+        return "Customer[id=%s, taxId=%s, active=%s]".formatted(id, taxId == null ? "***" : taxId.masked(), active);
     }
 }

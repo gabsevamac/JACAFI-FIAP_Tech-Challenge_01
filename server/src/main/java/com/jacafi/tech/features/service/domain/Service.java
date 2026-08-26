@@ -1,16 +1,17 @@
 package com.jacafi.tech.features.service.domain;
 
-import com.jacafi.tech.features.service_order.domain.ServiceOrder;
+import java.math.BigDecimal;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
 import org.hibernate.annotations.UuidGenerator;
 
-import java.math.BigDecimal;
-import java.util.Objects;
-import java.util.UUID;
+import com.jacafi.tech.features.service_order.domain.ServiceOrder;
 
 /**
  * Domain entity representing a type of mechanical/technical service offered by the workshop.
@@ -36,8 +37,7 @@ public class Service {
      * Required by JPA, which instantiates entities reflectively. Kept {@code protected} so that
      * application code has to go through {@link #create(String, BigDecimal)} and its invariants.
      */
-    protected Service() {
-    }
+    protected Service() {}
 
     /**
      * Factory method — the only public way to create a new {@link Service}.

@@ -1,10 +1,10 @@
 package com.jacafi.tech.customer.entity;
 
-import com.jacafi.tech.customer.exception.InvalidTaxIdException;
-import com.jacafi.tech.shared.lgpd.PersonalData;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.jacafi.tech.customer.exception.InvalidTaxIdException;
+import com.jacafi.tech.shared.lgpd.PersonalData;
 
 /**
  * Registration of a natural person with the federal revenue service. Not translated, per §9: it is
@@ -16,8 +16,9 @@ import java.util.regex.Pattern;
  *
  * @param value the normalized registration, digits only
  */
-public record Cpf(@PersonalData("LGPD Art. 5 I — identifies a natural person directly")
-                  String value) implements TaxId {
+public record Cpf(
+        @PersonalData("LGPD Art. 5 I — identifies a natural person directly")
+        String value) implements TaxId {
 
     public Cpf {
         if (value == null) {
@@ -77,8 +78,7 @@ final class CpfValidator {
     private static final Pattern FORMATTED = Pattern.compile("(\\d{3})[.](\\d{3})[.](\\d{3})-(\\d{2})");
     private static final Pattern UNFORMATTED = Pattern.compile("(\\d{3})(\\d{3})(\\d{3})(\\d{2})");
 
-    private CpfValidator() {
-    }
+    private CpfValidator() {}
 
     /**
      * Returns whether the given string is a valid CPF.

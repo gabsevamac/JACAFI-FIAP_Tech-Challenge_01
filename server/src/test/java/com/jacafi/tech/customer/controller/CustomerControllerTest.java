@@ -1,9 +1,12 @@
 package com.jacafi.tech.customer.controller;
 
-import com.jacafi.tech.customer.entity.Customer;
-import com.jacafi.tech.customer.entity.TaxId;
-import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
-import com.jacafi.tech.customer.service.CustomerService;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
@@ -11,12 +14,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.jacafi.tech.customer.entity.Customer;
+import com.jacafi.tech.customer.entity.TaxId;
+import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
+import com.jacafi.tech.customer.service.CustomerService;
 
 class CustomerControllerTest {
 
@@ -53,8 +54,7 @@ class CustomerControllerTest {
 
     @Test
     void mapsDuplicateCustomersToConflict() throws Exception {
-        when(customerService.create(any(), any(), any(), any(), any()))
-                .thenThrow(new CustomerAlreadyExistsException());
+        when(customerService.create(any(), any(), any(), any(), any())).thenThrow(new CustomerAlreadyExistsException());
 
         mvc.perform(post("/api/v1/customers")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -71,7 +71,6 @@ class CustomerControllerTest {
     }
 
     private Customer customer() {
-        return Customer.create(TaxId.of("52998224725"), "Maria", null,
-                "maria@example.com", "11999999999");
+        return Customer.create(TaxId.of("52998224725"), "Maria", null, "maria@example.com", "11999999999");
     }
 }

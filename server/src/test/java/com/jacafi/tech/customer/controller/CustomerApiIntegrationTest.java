@@ -1,13 +1,5 @@
 package com.jacafi.tech.customer.controller;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -17,12 +9,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:tc:postgresql:16-alpine:///jacafi-customer-api",
-        "spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDriver",
-        "spring.datasource.username=jacafi",
-        "spring.datasource.password=jacafi"
-})
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+@SpringBootTest(
+        properties = {
+            "spring.datasource.url=jdbc:tc:postgresql:16-alpine:///jacafi-customer-api",
+            "spring.datasource.driver-class-name=org.testcontainers.jdbc.ContainerDatabaseDriver",
+            "spring.datasource.username=jacafi",
+            "spring.datasource.password=jacafi"
+        })
 @AutoConfigureMockMvc(addFilters = false)
 // Sem o perfil de teste, jwt.secret fica sem valor e o contexto nao sobe: application.yaml
 // resolve ${JWT_SECRET} na criacao do JwtService.
@@ -56,14 +57,11 @@ class CustomerApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Oficina Jacafi Ltda"));
 
-        mvc.perform(get("/api/v1/customers/lookup")
-                        .param("taxId", "00.000.000/E08G-12"))
+        mvc.perform(get("/api/v1/customers/lookup").param("taxId", "00.000.000/E08G-12"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tradeName").value("Jacafi"));
 
-        mvc.perform(patch(location)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+        mvc.perform(patch(location).contentType(MediaType.APPLICATION_JSON).content("""
                                 {
                                   "name": "Oficina Jacafi Tecnologia Ltda",
                                   "tradeName": "Jacafi Tech",
@@ -74,8 +72,7 @@ class CustomerApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Oficina Jacafi Tecnologia Ltda"));
 
-        mvc.perform(delete(location))
-                .andExpect(status().isNoContent());
+        mvc.perform(delete(location)).andExpect(status().isNoContent());
 
         mvc.perform(get(location))
                 .andExpect(status().isOk())

@@ -1,13 +1,14 @@
 package com.jacafi.tech.vehicle.infrastructure.persistence;
 
-import com.jacafi.tech.shared.lgpd.PersonalData;
+import java.time.Instant;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.Instant;
-import java.util.UUID;
+import com.jacafi.tech.shared.lgpd.PersonalData;
 
 /**
  * Storage shape of a vehicle. Deliberately separate from the aggregate: {@code domain/} may not
@@ -61,11 +62,18 @@ public class VehicleJpaEntity {
      * Required by JPA, which instantiates entities reflectively before populating their state.
      * Kept {@code protected} so only Hibernate and the mapper in this package can reach it.
      */
-    protected VehicleJpaEntity() {
-    }
+    protected VehicleJpaEntity() {}
 
-    VehicleJpaEntity(UUID id, String licensePlate, String make, String model, int modelYear,
-                     UUID customerId, Instant registeredAt, Instant updatedAt, Instant removedAt) {
+    VehicleJpaEntity(
+            UUID id,
+            String licensePlate,
+            String make,
+            String model,
+            int modelYear,
+            UUID customerId,
+            Instant registeredAt,
+            Instant updatedAt,
+            Instant removedAt) {
         this.id = id;
         this.licensePlate = licensePlate;
         this.make = make;

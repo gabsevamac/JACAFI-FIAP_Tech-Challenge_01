@@ -1,6 +1,5 @@
 package com.jacafi.tech.vehicle.application;
 
-
 import java.util.UUID;
 
 /**

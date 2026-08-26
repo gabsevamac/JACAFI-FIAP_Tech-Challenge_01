@@ -1,14 +1,15 @@
 package com.jacafi.tech.customer.entity;
 
-import com.jacafi.tech.customer.exception.InvalidTaxIdException;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import com.jacafi.tech.customer.exception.InvalidTaxIdException;
 
 class TaxIdTest {
 
@@ -62,22 +63,19 @@ class TaxIdTest {
 
         @Test
         void rejectsWrongCheckDigits() {
-            assertThatExceptionOfType(InvalidTaxIdException.class)
-                    .isThrownBy(() -> TaxId.of("52998224724"));
+            assertThatExceptionOfType(InvalidTaxIdException.class).isThrownBy(() -> TaxId.of("52998224724"));
         }
 
         @Test
         @DisplayName("a repeated digit passes the arithmetic but is never issued")
         void rejectsRepeatedDigits() {
-            assertThatExceptionOfType(InvalidTaxIdException.class)
-                    .isThrownBy(() -> TaxId.of("11111111111"));
+            assertThatExceptionOfType(InvalidTaxIdException.class).isThrownBy(() -> TaxId.of("11111111111"));
         }
 
         @Test
         @DisplayName("eleven characters that are not all digits is not a CPF")
         void rejectsLetters() {
-            assertThatExceptionOfType(InvalidTaxIdException.class)
-                    .isThrownBy(() -> TaxId.of("5299822472A"));
+            assertThatExceptionOfType(InvalidTaxIdException.class).isThrownBy(() -> TaxId.of("5299822472A"));
         }
     }
 
@@ -86,21 +84,18 @@ class TaxIdTest {
 
         @Test
         void rejectsWrongCheckDigits() {
-            assertThatExceptionOfType(InvalidTaxIdException.class)
-                    .isThrownBy(() -> TaxId.of("00.000.000/E08G-13"));
+            assertThatExceptionOfType(InvalidTaxIdException.class).isThrownBy(() -> TaxId.of("00.000.000/E08G-13"));
         }
 
         @Test
         void rejectsRepeatedCharacters() {
-            assertThatExceptionOfType(InvalidTaxIdException.class)
-                    .isThrownBy(() -> TaxId.of("00000000000000"));
+            assertThatExceptionOfType(InvalidTaxIdException.class).isThrownBy(() -> TaxId.of("00000000000000"));
         }
 
         @Test
         @DisplayName("the two check digits must be numeric, even when the root is not")
         void rejectsLettersInTheCheckDigits() {
-            assertThatExceptionOfType(InvalidTaxIdException.class)
-                    .isThrownBy(() -> TaxId.of("00000000E08G1A"));
+            assertThatExceptionOfType(InvalidTaxIdException.class).isThrownBy(() -> TaxId.of("00000000E08G1A"));
         }
     }
 
@@ -130,9 +125,11 @@ class TaxIdTest {
         @DisplayName("toString cannot leak the registration, on either type")
         void toStringIsMasked() {
             assertThat(TaxId.of("52998224725").toString())
-                    .doesNotContain("52998224725").contains("529***25");
+                    .doesNotContain("52998224725")
+                    .contains("529***25");
             assertThat(TaxId.of("11222333000181").toString())
-                    .doesNotContain("11222333000181").contains("112***81");
+                    .doesNotContain("11222333000181")
+                    .contains("112***81");
         }
     }
 

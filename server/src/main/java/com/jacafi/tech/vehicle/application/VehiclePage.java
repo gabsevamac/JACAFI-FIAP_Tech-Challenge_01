@@ -1,9 +1,9 @@
 package com.jacafi.tech.vehicle.application;
 
-import com.jacafi.tech.vehicle.domain.Vehicle;
-
 import java.util.List;
 import java.util.Objects;
+
+import com.jacafi.tech.vehicle.domain.Vehicle;
 
 /**
  * One page of vehicles, plus what a caller needs to ask for the next one.

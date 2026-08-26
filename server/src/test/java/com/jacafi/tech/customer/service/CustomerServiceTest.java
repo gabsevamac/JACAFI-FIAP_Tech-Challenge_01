@@ -1,11 +1,14 @@
 package com.jacafi.tech.customer.service;
 
-import com.jacafi.tech.customer.entity.Cpf;
-import com.jacafi.tech.customer.entity.Customer;
-import com.jacafi.tech.customer.entity.TaxId;
-import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
-import com.jacafi.tech.customer.exception.CustomerNotFoundException;
-import com.jacafi.tech.customer.repository.CustomerRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,14 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import com.jacafi.tech.customer.entity.Cpf;
+import com.jacafi.tech.customer.entity.Customer;
+import com.jacafi.tech.customer.entity.TaxId;
+import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
+import com.jacafi.tech.customer.exception.CustomerNotFoundException;
+import com.jacafi.tech.customer.repository.CustomerRepository;
 
 @ExtendWith(MockitoExtension.class)
 class CustomerServiceTest {
@@ -36,12 +37,7 @@ class CustomerServiceTest {
     void createsACustomerWithANormalizedTaxId() {
         when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var customer = service.create(
-                "529.982.247-25",
-                "Maria",
-                null,
-                "maria@example.com",
-                "11999999999");
+        var customer = service.create("529.982.247-25", "Maria", null, "maria@example.com", "11999999999");
 
         assertThat(customer.getTaxId().value()).isEqualTo("52998224725");
         assertThat(customer.isActive()).isTrue();
@@ -52,12 +48,7 @@ class CustomerServiceTest {
     void rejectsAnExistingTaxId() {
         when(repository.existsByTaxId(new Cpf("52998224725"))).thenReturn(true);
 
-        assertThatThrownBy(() -> service.create(
-                "52998224725",
-                "Maria",
-                null,
-                "maria@example.com",
-                "11999999999"))
+        assertThatThrownBy(() -> service.create("52998224725", "Maria", null, "maria@example.com", "11999999999"))
                 .isInstanceOf(CustomerAlreadyExistsException.class);
     }
 
@@ -83,8 +74,7 @@ class CustomerServiceTest {
         var id = UUID.randomUUID();
         when(repository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.findById(id))
-                .isInstanceOf(CustomerNotFoundException.class);
+        assertThatThrownBy(() -> service.findById(id)).isInstanceOf(CustomerNotFoundException.class);
     }
 
     @Test
@@ -135,7 +125,6 @@ class CustomerServiceTest {
     }
 
     private Customer customer() {
-        return Customer.create(TaxId.of("52998224725"), "Maria", null,
-                "maria@example.com", "11999999999");
+        return Customer.create(TaxId.of("52998224725"), "Maria", null, "maria@example.com", "11999999999");
     }
 }

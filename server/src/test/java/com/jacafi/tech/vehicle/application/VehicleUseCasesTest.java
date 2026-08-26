@@ -1,23 +1,24 @@
 package com.jacafi.tech.vehicle.application;
 
-import com.jacafi.tech.vehicle.domain.AuditedOperation;
-import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
-import com.jacafi.tech.vehicle.domain.InvalidLicensePlateException;
-import com.jacafi.tech.vehicle.domain.LicensePlate;
-import com.jacafi.tech.vehicle.domain.Vehicle;
-import com.jacafi.tech.vehicle.domain.VehicleNotFoundException;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import com.jacafi.tech.vehicle.domain.AuditedOperation;
+import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
+import com.jacafi.tech.vehicle.domain.InvalidLicensePlateException;
+import com.jacafi.tech.vehicle.domain.LicensePlate;
+import com.jacafi.tech.vehicle.domain.Vehicle;
+import com.jacafi.tech.vehicle.domain.VehicleNotFoundException;
 
 class VehicleUseCasesTest {
 
@@ -72,8 +73,7 @@ class VehicleUseCasesTest {
         void rejectsADuplicatePlate() {
             registerGol("ABC1234");
 
-            assertThatExceptionOfType(DuplicateLicensePlateException.class)
-                    .isThrownBy(() -> registerGol("ABC1234"));
+            assertThatExceptionOfType(DuplicateLicensePlateException.class).isThrownBy(() -> registerGol("ABC1234"));
         }
 
         @Test
@@ -81,8 +81,7 @@ class VehicleUseCasesTest {
         void rejectsADuplicateWrittenDifferently() {
             registerGol("ABC1234");
 
-            assertThatExceptionOfType(DuplicateLicensePlateException.class)
-                    .isThrownBy(() -> registerGol("abc 1234"));
+            assertThatExceptionOfType(DuplicateLicensePlateException.class).isThrownBy(() -> registerGol("abc 1234"));
         }
 
         @Test
@@ -97,8 +96,7 @@ class VehicleUseCasesTest {
 
         @Test
         void rejectsAnInvalidPlateBeforeTouchingTheRepository() {
-            assertThatExceptionOfType(InvalidLicensePlateException.class)
-                    .isThrownBy(() -> registerGol("ABCD123"));
+            assertThatExceptionOfType(InvalidLicensePlateException.class).isThrownBy(() -> registerGol("ABCD123"));
 
             assertThat(repository.saveCount()).isZero();
         }
@@ -119,8 +117,7 @@ class VehicleUseCasesTest {
         @Test
         void nothingIsAuditedWhenTheRuleRejectsTheRegistration() {
             registerGol("ABC1234");
-            assertThatExceptionOfType(DuplicateLicensePlateException.class)
-                    .isThrownBy(() -> registerGol("ABC1234"));
+            assertThatExceptionOfType(DuplicateLicensePlateException.class).isThrownBy(() -> registerGol("ABC1234"));
 
             assertThat(auditTrail.entries()).hasSize(1);
         }
@@ -133,8 +130,8 @@ class VehicleUseCasesTest {
         void updatesAndAudits() {
             Vehicle vehicle = registerGol("ABC1234");
 
-            Vehicle updated = update.update(
-                    new UpdateVehicleCommand(vehicle.getId(), "Chevrolet", "Onix", 2021, ACTOR));
+            Vehicle updated =
+                    update.update(new UpdateVehicleCommand(vehicle.getId(), "Chevrolet", "Onix", 2021, ACTOR));
 
             assertThat(updated.getMake()).isEqualTo("Chevrolet");
             assertThat(updated.getModel()).isEqualTo("Onix");
@@ -145,8 +142,9 @@ class VehicleUseCasesTest {
 
         @Test
         void unknownVehicleIsNotFound() {
-            assertThatExceptionOfType(VehicleNotFoundException.class).isThrownBy(() ->
-                    update.update(new UpdateVehicleCommand(UUID.randomUUID(), "Fiat", "Uno", 2010, ACTOR)));
+            assertThatExceptionOfType(VehicleNotFoundException.class)
+                    .isThrownBy(() ->
+                            update.update(new UpdateVehicleCommand(UUID.randomUUID(), "Fiat", "Uno", 2010, ACTOR)));
         }
 
         @Test
@@ -155,8 +153,9 @@ class VehicleUseCasesTest {
             Vehicle vehicle = registerGol("ABC1234");
             remove.remove(vehicle.getId(), ACTOR);
 
-            assertThatExceptionOfType(VehicleNotFoundException.class).isThrownBy(() ->
-                    update.update(new UpdateVehicleCommand(vehicle.getId(), "Fiat", "Uno", 2010, ACTOR)));
+            assertThatExceptionOfType(VehicleNotFoundException.class)
+                    .isThrownBy(
+                            () -> update.update(new UpdateVehicleCommand(vehicle.getId(), "Fiat", "Uno", 2010, ACTOR)));
         }
     }
 
@@ -182,10 +181,8 @@ class VehicleUseCasesTest {
             Vehicle vehicle = registerGol("ABC1234");
             remove.remove(vehicle.getId(), ACTOR);
 
-            assertThatExceptionOfType(VehicleNotFoundException.class)
-                    .isThrownBy(() -> find.byId(vehicle.getId()));
-            assertThatExceptionOfType(VehicleNotFoundException.class)
-                    .isThrownBy(() -> find.byLicensePlate("ABC1234"));
+            assertThatExceptionOfType(VehicleNotFoundException.class).isThrownBy(() -> find.byId(vehicle.getId()));
+            assertThatExceptionOfType(VehicleNotFoundException.class).isThrownBy(() -> find.byLicensePlate("ABC1234"));
             assertThat(list.list(CUSTOMER, 0, 20).content()).isEmpty();
         }
 
@@ -224,10 +221,8 @@ class VehicleUseCasesTest {
 
         @Test
         void unknownIdAndUnknownPlateAreNotFound() {
-            assertThatExceptionOfType(VehicleNotFoundException.class)
-                    .isThrownBy(() -> find.byId(UUID.randomUUID()));
-            assertThatExceptionOfType(VehicleNotFoundException.class)
-                    .isThrownBy(() -> find.byLicensePlate("ZZZ9999"));
+            assertThatExceptionOfType(VehicleNotFoundException.class).isThrownBy(() -> find.byId(UUID.randomUUID()));
+            assertThatExceptionOfType(VehicleNotFoundException.class).isThrownBy(() -> find.byLicensePlate("ZZZ9999"));
         }
 
         @Test

@@ -1,9 +1,9 @@
 package com.jacafi.tech.vehicle.domain;
 
-import com.jacafi.tech.shared.lgpd.PersonalData;
-
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import com.jacafi.tech.shared.lgpd.PersonalData;
 
 /**
  * A vehicle's official identification code: immutable, validated on construction, normalized to
@@ -18,8 +18,9 @@ import java.util.regex.Pattern;
  *
  * @param value the normalized plate, seven characters, no separator
  */
-public record LicensePlate(@PersonalData("LGPD Art. 5 I — identifies a vehicle and, through it, its owner")
-                           String value) {
+public record LicensePlate(
+        @PersonalData("LGPD Art. 5 I — identifies a vehicle and, through it, its owner")
+        String value) {
 
     /**
      * Both Brazilian formats in one expression: the pre-Mercosur {@code ABC1234} and the Mercosur

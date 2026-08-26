@@ -1,7 +1,7 @@
 package com.jacafi.tech.features.service_order.add_service_to_order;
 
-import com.jacafi.tech.features.service.domain.Service;
-import com.jacafi.tech.features.service_order.domain.ServiceOrder;
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -11,7 +11,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
 
-import java.math.BigDecimal;
+import com.jacafi.tech.features.service.domain.Service;
+import com.jacafi.tech.features.service_order.domain.ServiceOrder;
 
 @Entity
 @Table(name = "service_orders_service")
@@ -40,12 +41,10 @@ public class ServiceOrderService {
      * Required by JPA. Kept {@code protected} so the invariants in
      * {@link #create(ServiceOrder, Service, BigDecimal, int)} cannot be bypassed.
      */
-    protected ServiceOrderService() {
-    }
+    protected ServiceOrderService() {}
 
-    public static ServiceOrderService create(ServiceOrder serviceOrder, Service service,
-                                             BigDecimal priceAtSale,
-                                             int quantity) {
+    public static ServiceOrderService create(
+            ServiceOrder serviceOrder, Service service, BigDecimal priceAtSale, int quantity) {
 
         if (priceAtSale == null || priceAtSale.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("priceAtSale must be zero or positive");

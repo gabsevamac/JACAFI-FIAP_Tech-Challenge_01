@@ -1,14 +1,15 @@
 package com.jacafi.tech.vehicle.infrastructure.persistence;
 
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Repository;
+
 import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
 import com.jacafi.tech.vehicle.domain.LicensePlate;
 import com.jacafi.tech.vehicle.domain.Vehicle;
 import com.jacafi.tech.vehicle.domain.VehicleRepository;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Implements the domain port over Spring Data.
@@ -39,8 +40,7 @@ public class VehicleRepositoryAdapter implements VehicleRepository {
             jpaRepository.save(mapper.toEntity(vehicle));
             jpaRepository.flush();
         } catch (DataIntegrityViolationException e) {
-            throw new DuplicateLicensePlateException(
-                    "A vehicle with this license plate is already registered.");
+            throw new DuplicateLicensePlateException("A vehicle with this license plate is already registered.");
         }
     }
 
@@ -51,7 +51,9 @@ public class VehicleRepositoryAdapter implements VehicleRepository {
 
     @Override
     public Optional<Vehicle> findActiveByLicensePlate(LicensePlate licensePlate) {
-        return jpaRepository.findByLicensePlateAndRemovedAtIsNull(licensePlate.value()).map(mapper::toDomain);
+        return jpaRepository
+                .findByLicensePlateAndRemovedAtIsNull(licensePlate.value())
+                .map(mapper::toDomain);
     }
 
     @Override

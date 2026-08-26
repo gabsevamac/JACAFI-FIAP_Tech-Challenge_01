@@ -1,8 +1,8 @@
 package com.jacafi.tech.customer.entity;
 
-import com.jacafi.tech.customer.exception.InvalidTaxIdException;
-
 import java.util.Locale;
+
+import com.jacafi.tech.customer.exception.InvalidTaxIdException;
 
 /**
  * Fiscal identification of a customer: a {@link Cpf} for a natural person, a {@link Cnpj} for a

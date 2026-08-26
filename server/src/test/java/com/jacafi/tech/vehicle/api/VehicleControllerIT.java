@@ -1,20 +1,5 @@
 package com.jacafi.tech.vehicle.api;
 
-import com.jacafi.tech.auth.JwtService;
-import com.jacafi.tech.support.AbstractIntegrationTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,6 +9,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.jacafi.tech.auth.JwtService;
+import com.jacafi.tech.support.AbstractIntegrationTest;
 
 /**
  * End-to-end over the real stack: HTTP, security filter, use case, Hibernate, Postgres.
@@ -67,7 +68,9 @@ class VehicleControllerIT extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(registrationBody(plate)))
                 .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return UUID.fromString(body.replaceAll(".*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1"));
     }
 
@@ -87,8 +90,7 @@ class VehicleControllerIT extends AbstractIntegrationTest {
         List<Map<String, Object>> trail =
                 jdbcTemplate.queryForList("SELECT operation, actor FROM vehicle_audit_entries");
         assertThat(trail).hasSize(1);
-        assertThat(trail.getFirst()).containsEntry("operation", "REGISTERED")
-                .containsEntry("actor", "admin");
+        assertThat(trail.getFirst()).containsEntry("operation", "REGISTERED").containsEntry("actor", "admin");
     }
 
     @Test
@@ -113,7 +115,9 @@ class VehicleControllerIT extends AbstractIntegrationTest {
                         .content(registrationBody(PLATE)))
                 .andExpect(status().isConflict())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
         assertThat(body).doesNotContain(PLATE);
     }
@@ -127,7 +131,9 @@ class VehicleControllerIT extends AbstractIntegrationTest {
                         .content(registrationBody("ABCD123")))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
         assertThat(body).doesNotContain("ABCD123");
     }
@@ -162,7 +168,8 @@ class VehicleControllerIT extends AbstractIntegrationTest {
     void findsByLicensePlate() throws Exception {
         UUID id = registerVehicle(PLATE);
 
-        mockMvc.perform(get("/api/v1/vehicles").param("licensePlate", "abc 1d23")
+        mockMvc.perform(get("/api/v1/vehicles")
+                        .param("licensePlate", "abc 1d23")
                         .header("Authorization", bearerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()));
@@ -176,7 +183,8 @@ class VehicleControllerIT extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/api/v1/vehicles")
                         .param("customerId", customerId.toString())
-                        .param("page", "0").param("size", "2")
+                        .param("page", "0")
+                        .param("size", "2")
                         .header("Authorization", bearerToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
@@ -223,20 +231,17 @@ class VehicleControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isNoContent());
 
         // The row survives, for the service history required by Art. 16 I...
-        Map<String, Object> row = jdbcTemplate.queryForMap(
-                "SELECT license_plate, make, removed_at FROM vehicles WHERE id = ?", id);
+        Map<String, Object> row =
+                jdbcTemplate.queryForMap("SELECT license_plate, make, removed_at FROM vehicles WHERE id = ?", id);
         assertThat(row.get("make")).isEqualTo("Volkswagen");
         assertThat(row.get("removed_at")).isNotNull();
         // ...but the plate is gone from it, satisfying Art. 18 VI.
-        assertThat(row.get("license_plate").toString())
-                .doesNotContain(PLATE)
-                .startsWith("ANON-");
+        assertThat(row.get("license_plate").toString()).doesNotContain(PLATE).startsWith("ANON-");
 
         // Removed vehicles answer no query.
         mockMvc.perform(get("/api/v1/vehicles/{id}", id).header("Authorization", bearerToken))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get("/api/v1/vehicles").param("licensePlate", PLATE)
-                        .header("Authorization", bearerToken))
+        mockMvc.perform(get("/api/v1/vehicles").param("licensePlate", PLATE).header("Authorization", bearerToken))
                 .andExpect(status().isNotFound());
 
         // And the plate is available again, which the partial unique index is what allows.
@@ -262,14 +267,15 @@ class VehicleControllerIT extends AbstractIntegrationTest {
     void rejectsRequestsWithoutAJwt() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(post("/api/v1/vehicles").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/vehicles")
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(registrationBody(PLATE)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
         mockMvc.perform(get("/api/v1/vehicles/{id}", id)).andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/v1/vehicles").param("licensePlate", PLATE))
-                .andExpect(status().isUnauthorized());
-        mockMvc.perform(put("/api/v1/vehicles/{id}", id).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(get("/api/v1/vehicles").param("licensePlate", PLATE)).andExpect(status().isUnauthorized());
+        mockMvc.perform(put("/api/v1/vehicles/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"make":"Chevrolet","model":"Onix","modelYear":2021}
                                 """))
@@ -280,8 +286,7 @@ class VehicleControllerIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("a malformed token is rejected as well, not treated as anonymous")
     void rejectsAMalformedToken() throws Exception {
-        mockMvc.perform(get("/api/v1/vehicles/{id}", UUID.randomUUID())
-                        .header("Authorization", "Bearer not-a-token"))
+        mockMvc.perform(get("/api/v1/vehicles/{id}", UUID.randomUUID()).header("Authorization", "Bearer not-a-token"))
                 .andExpect(status().isUnauthorized());
     }
 }
