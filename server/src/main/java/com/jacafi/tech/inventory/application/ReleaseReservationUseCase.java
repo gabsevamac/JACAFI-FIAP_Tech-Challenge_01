@@ -1,5 +1,13 @@
 package com.jacafi.tech.inventory.application;
 
+import java.time.Clock;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.inventory.domain.AuditedOperation;
 import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
@@ -7,13 +15,6 @@ import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
 import com.jacafi.tech.inventory.domain.InventoryItemRepository;
 import com.jacafi.tech.inventory.domain.Reservation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.util.UUID;
 
 /**
  * Gives held units back — the {@code ReleaseReservation} command, driven by
@@ -37,9 +38,7 @@ public class ReleaseReservationUseCase {
     private final InventoryAuditTrail auditTrail;
     private final Clock clock;
 
-    public ReleaseReservationUseCase(InventoryItemRepository repository,
-                                     InventoryAuditTrail auditTrail,
-                                     Clock clock) {
+    public ReleaseReservationUseCase(InventoryItemRepository repository, InventoryAuditTrail auditTrail, Clock clock) {
         this.repository = repository;
         this.auditTrail = auditTrail;
         this.clock = clock;
@@ -47,17 +46,22 @@ public class ReleaseReservationUseCase {
 
     @Transactional
     public Reservation release(UUID inventoryItemId, UUID serviceOrderId, String actor) {
-        InventoryItem item = repository.findActiveByIdForUpdate(inventoryItemId)
+        InventoryItem item = repository
+                .findActiveByIdForUpdate(inventoryItemId)
                 .orElseThrow(() -> new InventoryItemNotFoundException(inventoryItemId));
 
         Reservation released = item.releaseReservation(serviceOrderId, clock);
 
         repository.save(item);
-        auditTrail.append(InventoryAuditEntry.movement(item.getId(), AuditedOperation.RELEASED,
-                serviceOrderId, released.quantity(), actor, clock.instant()));
+        auditTrail.append(InventoryAuditEntry.movement(
+                item.getId(), AuditedOperation.RELEASED, serviceOrderId, released.quantity(), actor, clock.instant()));
 
-        log.info("Reservation released: id={} name={} serviceOrderId={} released={} available={}",
-                item.getId(), item.getName(), serviceOrderId, released.quantity(),
+        log.info(
+                "Reservation released: id={} name={} serviceOrderId={} released={} available={}",
+                item.getId(),
+                item.getName(),
+                serviceOrderId,
+                released.quantity(),
                 item.stockAvailable());
         return released;
     }

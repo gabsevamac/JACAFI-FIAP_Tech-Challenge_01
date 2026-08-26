@@ -1,8 +1,8 @@
 package com.jacafi.tech.inventory.application;
 
-import com.jacafi.tech.inventory.domain.MaterialType;
-
 import java.math.BigDecimal;
+
+import com.jacafi.tech.inventory.domain.MaterialType;
 
 /**
  * Input for registering a part or a supply.
@@ -15,9 +15,5 @@ import java.math.BigDecimal;
  *                        first written down; zero for a material the workshop has yet to buy
  * @param actor           who is performing the operation, taken from the JWT subject by the api layer
  */
-public record RegisterMaterialCommand(String name,
-                                      MaterialType type,
-                                      BigDecimal unitPrice,
-                                      int initialStock,
-                                      String actor) {
-}
+public record RegisterMaterialCommand(
+        String name, MaterialType type, BigDecimal unitPrice, int initialStock, String actor) {}

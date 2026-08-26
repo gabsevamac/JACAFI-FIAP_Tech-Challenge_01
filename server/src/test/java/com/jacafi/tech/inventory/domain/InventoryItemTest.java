@@ -1,8 +1,7 @@
 package com.jacafi.tech.inventory.domain;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -12,8 +11,9 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 /**
  * The rules of the aggregate, without Spring, without a database and without a clock that moves on
@@ -72,11 +72,11 @@ class InventoryItemTest {
         @DisplayName("a price with more decimals than money has is refused, not rounded")
         void rejectsUnchargeablePrice() {
             assertThatThrownBy(() -> InventoryItem.builder()
-                    .id(UUID.randomUUID())
-                    .name("Óleo 5W30")
-                    .type(MaterialType.SUPPLY)
-                    .unitPrice(new BigDecimal("39.999"))
-                    .register(CLOCK))
+                            .id(UUID.randomUUID())
+                            .name("Óleo 5W30")
+                            .type(MaterialType.SUPPLY)
+                            .unitPrice(new BigDecimal("39.999"))
+                            .register(CLOCK))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("two decimal places");
         }
@@ -84,14 +84,20 @@ class InventoryItemTest {
         @Test
         void rejectsBlankNameAndNegativePrice() {
             assertThatThrownBy(() -> InventoryItem.builder()
-                    .id(UUID.randomUUID()).name("   ").type(MaterialType.PART)
-                    .unitPrice(BigDecimal.ONE).register(CLOCK))
+                            .id(UUID.randomUUID())
+                            .name("   ")
+                            .type(MaterialType.PART)
+                            .unitPrice(BigDecimal.ONE)
+                            .register(CLOCK))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("blank");
 
             assertThatThrownBy(() -> InventoryItem.builder()
-                    .id(UUID.randomUUID()).name("Correia").type(MaterialType.PART)
-                    .unitPrice(new BigDecimal("-0.01")).register(CLOCK))
+                            .id(UUID.randomUUID())
+                            .name("Correia")
+                            .type(MaterialType.PART)
+                            .unitPrice(new BigDecimal("-0.01"))
+                            .register(CLOCK))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("zero or positive");
         }
@@ -100,8 +106,12 @@ class InventoryItemTest {
         @DisplayName("timestamps belong to restore: registering with one is a programming error")
         void rejectsTimestampsOnRegistration() {
             assertThatThrownBy(() -> InventoryItem.builder()
-                    .id(UUID.randomUUID()).name("Correia").type(MaterialType.PART)
-                    .unitPrice(BigDecimal.ONE).registeredAt(NOW).register(CLOCK))
+                            .id(UUID.randomUUID())
+                            .name("Correia")
+                            .type(MaterialType.PART)
+                            .unitPrice(BigDecimal.ONE)
+                            .registeredAt(NOW)
+                            .register(CLOCK))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("restore only");
         }
@@ -208,8 +218,7 @@ class InventoryItemTest {
         void refusesToWithdrawWithoutAReservation() {
             InventoryItem item = item(10);
 
-            assertThatThrownBy(() -> item.withdraw(ORDER, CLOCK))
-                    .isInstanceOf(ReservationNotFoundException.class);
+            assertThatThrownBy(() -> item.withdraw(ORDER, CLOCK)).isInstanceOf(ReservationNotFoundException.class);
             assertThat(item.getStockOnHand()).isEqualTo(Stock.of(10));
         }
 
@@ -226,8 +235,7 @@ class InventoryItemTest {
             item.reserve(ORDER, Stock.of(3), CLOCK);
             item.withdraw(ORDER, CLOCK);
 
-            assertThatThrownBy(() -> item.withdraw(ORDER, CLOCK))
-                    .isInstanceOf(ReservationNotFoundException.class);
+            assertThatThrownBy(() -> item.withdraw(ORDER, CLOCK)).isInstanceOf(ReservationNotFoundException.class);
             assertThat(item.getStockOnHand()).isEqualTo(Stock.of(7));
         }
     }
@@ -269,14 +277,11 @@ class InventoryItemTest {
 
             assertThat(item.isRemoved()).isTrue();
             assertThat(item.getRemovedAt()).contains(NOW);
-            assertThatThrownBy(() -> item.replenish(Stock.of(1), CLOCK))
-                    .isInstanceOf(IllegalStateException.class);
-            assertThatThrownBy(() -> item.reserve(ORDER, Stock.of(1), CLOCK))
-                    .isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> item.replenish(Stock.of(1), CLOCK)).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> item.reserve(ORDER, Stock.of(1), CLOCK)).isInstanceOf(IllegalStateException.class);
             assertThatThrownBy(() -> item.update("Correia", BigDecimal.ONE, CLOCK))
                     .isInstanceOf(IllegalStateException.class);
-            assertThatThrownBy(() -> item.remove(CLOCK))
-                    .isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(() -> item.remove(CLOCK)).isInstanceOf(IllegalStateException.class);
         }
     }
 
@@ -309,17 +314,17 @@ class InventoryItemTest {
         @DisplayName("two open claims by one order on one item is a state the aggregate refuses to load")
         void rejectsTwoReservationsForTheSameOrder() {
             assertThatThrownBy(() -> InventoryItem.builder()
-                    .id(UUID.randomUUID())
-                    .name("Correia dentada")
-                    .type(MaterialType.PART)
-                    .unitPrice(BigDecimal.ONE)
-                    .stockOnHand(Stock.of(8))
-                    .reservations(List.of(
-                            new Reservation(UUID.randomUUID(), ORDER, Stock.of(1), NOW),
-                            new Reservation(UUID.randomUUID(), ORDER, Stock.of(2), NOW)))
-                    .registeredAt(NOW)
-                    .updatedAt(NOW)
-                    .restore())
+                            .id(UUID.randomUUID())
+                            .name("Correia dentada")
+                            .type(MaterialType.PART)
+                            .unitPrice(BigDecimal.ONE)
+                            .stockOnHand(Stock.of(8))
+                            .reservations(List.of(
+                                    new Reservation(UUID.randomUUID(), ORDER, Stock.of(1), NOW),
+                                    new Reservation(UUID.randomUUID(), ORDER, Stock.of(2), NOW)))
+                            .registeredAt(NOW)
+                            .updatedAt(NOW)
+                            .restore())
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Two open reservations");
         }

@@ -1,10 +1,10 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
  * Rows of the open reservations belonging to the aggregates in this package.

@@ -1,12 +1,13 @@
 package com.jacafi.tech.inventory.application;
 
-import com.jacafi.tech.inventory.domain.InventoryItem;
-import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
-import com.jacafi.tech.inventory.domain.InventoryItemRepository;
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import com.jacafi.tech.inventory.domain.InventoryItem;
+import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
+import com.jacafi.tech.inventory.domain.InventoryItemRepository;
 
 /**
  * Reads one stock item, with its balance and its open reservations.
@@ -28,7 +29,8 @@ public class FindInventoryItemUseCase {
 
     @Transactional(readOnly = true)
     public InventoryItem byId(UUID inventoryItemId) {
-        return repository.findActiveById(inventoryItemId)
+        return repository
+                .findActiveById(inventoryItemId)
                 .orElseThrow(() -> new InventoryItemNotFoundException(inventoryItemId));
     }
 }

@@ -12,8 +12,4 @@ import java.util.UUID;
  *
  * @param actor who is performing the operation, taken from the JWT subject by the api layer
  */
-public record ReserveMaterialCommand(UUID inventoryItemId,
-                                     UUID serviceOrderId,
-                                     int quantity,
-                                     String actor) {
-}
+public record ReserveMaterialCommand(UUID inventoryItemId, UUID serviceOrderId, int quantity, String actor) {}

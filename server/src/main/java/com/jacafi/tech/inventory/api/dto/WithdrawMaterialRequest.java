@@ -1,9 +1,10 @@
 package com.jacafi.tech.inventory.api.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.UUID;
+
 import jakarta.validation.constraints.NotNull;
 
-import java.util.UUID;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Body of a withdrawal: which order is taking the material it reserved.
@@ -14,6 +15,4 @@ import java.util.UUID;
  */
 public record WithdrawMaterialRequest(
         @Schema(description = "Service order taking the material it reserved")
-        @NotNull(message = "serviceOrderId is required")
-        UUID serviceOrderId) {
-}
+        @NotNull(message = "serviceOrderId is required") UUID serviceOrderId) {}

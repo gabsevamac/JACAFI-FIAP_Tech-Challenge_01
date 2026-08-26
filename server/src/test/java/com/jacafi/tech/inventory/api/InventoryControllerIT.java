@@ -1,20 +1,5 @@
 package com.jacafi.tech.inventory.api;
 
-import com.jacafi.tech.auth.JwtService;
-import com.jacafi.tech.support.AbstractIntegrationTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,6 +9,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.jacafi.tech.auth.JwtService;
+import com.jacafi.tech.support.AbstractIntegrationTest;
 
 /**
  * End-to-end over the real stack: HTTP, security filter, use case, Hibernate, Postgres.
@@ -50,8 +51,7 @@ class InventoryControllerIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.execute(
-                "TRUNCATE TABLE inventory_reservations, inventory_audit_entries, inventory_items");
+        jdbcTemplate.execute("TRUNCATE TABLE inventory_reservations, inventory_audit_entries, inventory_items");
         bearerToken = "Bearer " + jwtService.generateToken("admin");
         serviceOrderId = UUID.randomUUID();
     }
@@ -68,7 +68,9 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(registrationBody(name, "PART", initialStock)))
                 .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         return UUID.fromString(body.replaceAll(".*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1"));
     }
 
@@ -100,7 +102,8 @@ class InventoryControllerIT extends AbstractIntegrationTest {
         List<Map<String, Object>> trail = jdbcTemplate.queryForList(
                 "SELECT operation, actor, service_order_id, quantity FROM inventory_audit_entries");
         assertThat(trail).hasSize(1);
-        assertThat(trail.getFirst()).containsEntry("operation", "REGISTERED")
+        assertThat(trail.getFirst())
+                .containsEntry("operation", "REGISTERED")
                 .containsEntry("actor", "admin")
                 .containsEntry("service_order_id", null)
                 .containsEntry("quantity", null);
@@ -181,7 +184,7 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.stockOnHand").value(4));
 
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM inventory_audit_entries WHERE operation = 'UPDATED'", Long.class))
+                        "SELECT count(*) FROM inventory_audit_entries WHERE operation = 'UPDATED'", Long.class))
                 .isEqualTo(1);
     }
 
@@ -210,8 +213,7 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isNotFound());
 
         // The row survives, so the ledger still points at something.
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM inventory_items WHERE id = ?", Long.class, itemId))
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM inventory_items WHERE id = ?", Long.class, itemId))
                 .isEqualTo(1);
     }
 
@@ -263,10 +265,9 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.stockReserved").value(4))
                 .andExpect(jsonPath("$.stockAvailable").value(6));
 
-        Map<String, Object> row = jdbcTemplate.queryForMap(
-                "SELECT service_order_id, quantity FROM inventory_reservations");
-        assertThat(row).containsEntry("service_order_id", serviceOrderId)
-                .containsEntry("quantity", 4);
+        Map<String, Object> row =
+                jdbcTemplate.queryForMap("SELECT service_order_id, quantity FROM inventory_reservations");
+        assertThat(row).containsEntry("service_order_id", serviceOrderId).containsEntry("quantity", 4);
     }
 
     @Test
@@ -282,8 +283,8 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.reservations[0].quantity").value(5))
                 .andExpect(jsonPath("$.stockAvailable").value(5));
 
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM inventory_reservations", Long.class)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM inventory_reservations", Long.class))
+                .isEqualTo(1);
     }
 
     @Test
@@ -319,8 +320,8 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.stockAvailable").value(10))
                 .andExpect(jsonPath("$.reservations.length()").value(0));
 
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM inventory_reservations", Long.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM inventory_reservations", Long.class))
+                .isZero();
     }
 
     @Test
@@ -346,8 +347,7 @@ class InventoryControllerIT extends AbstractIntegrationTest {
 
         Map<String, Object> entry = jdbcTemplate.queryForMap(
                 "SELECT service_order_id, quantity FROM inventory_audit_entries WHERE operation = 'WITHDRAWN'");
-        assertThat(entry).containsEntry("service_order_id", serviceOrderId)
-                .containsEntry("quantity", 4);
+        assertThat(entry).containsEntry("service_order_id", serviceOrderId).containsEntry("quantity", 4);
     }
 
     @Test

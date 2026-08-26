@@ -1,8 +1,9 @@
 package com.jacafi.tech.inventory.application;
 
-import com.jacafi.tech.inventory.domain.MaterialType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.jacafi.tech.inventory.domain.MaterialType;
 
 /**
  * Lists the catalogue a page at a time, optionally narrowed to parts or to supplies.

@@ -1,12 +1,12 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
+import java.time.Instant;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
-import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Storage shape of one open reservation.
@@ -41,11 +41,10 @@ public class InventoryReservationJpaEntity {
     private Instant reservedAt;
 
     /** Required by JPA. */
-    protected InventoryReservationJpaEntity() {
-    }
+    protected InventoryReservationJpaEntity() {}
 
-    InventoryReservationJpaEntity(UUID id, UUID inventoryItemId, UUID serviceOrderId,
-                                  int quantity, Instant reservedAt) {
+    InventoryReservationJpaEntity(
+            UUID id, UUID inventoryItemId, UUID serviceOrderId, int quantity, Instant reservedAt) {
         this.id = id;
         this.inventoryItemId = inventoryItemId;
         this.serviceOrderId = serviceOrderId;
