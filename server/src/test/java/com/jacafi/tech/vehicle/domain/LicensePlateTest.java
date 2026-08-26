@@ -1,14 +1,14 @@
 package com.jacafi.tech.vehicle.domain;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class LicensePlateTest {
 
@@ -33,25 +33,24 @@ class LicensePlateTest {
 
     @ParameterizedTest
     @DisplayName("rejects anything that is not one of the two accepted layouts")
-    @ValueSource(strings = {
-            "ABC123",    // one character short
-            "ABC12345",  // one character too long
-            "AB12345",   // only two letters in the prefix
-            "ABCD123",   // fourth character must be a digit
-            "ABC12E3",   // last two characters must be digits
-            "1234ABC",   // digits and letters swapped
-            "",          // empty
-            "   "        // whitespace only
-    })
+    @ValueSource(
+            strings = {
+                "ABC123", // one character short
+                "ABC12345", // one character too long
+                "AB12345", // only two letters in the prefix
+                "ABCD123", // fourth character must be a digit
+                "ABC12E3", // last two characters must be digits
+                "1234ABC", // digits and letters swapped
+                "", // empty
+                "   " // whitespace only
+            })
     void rejectsInvalidFormats(String input) {
-        assertThatExceptionOfType(InvalidLicensePlateException.class)
-                .isThrownBy(() -> new LicensePlate(input));
+        assertThatExceptionOfType(InvalidLicensePlateException.class).isThrownBy(() -> new LicensePlate(input));
     }
 
     @Test
     void rejectsNull() {
-        assertThatExceptionOfType(InvalidLicensePlateException.class)
-                .isThrownBy(() -> new LicensePlate(null));
+        assertThatExceptionOfType(InvalidLicensePlateException.class).isThrownBy(() -> new LicensePlate(null));
     }
 
     @Test
@@ -68,9 +67,7 @@ class LicensePlateTest {
         LicensePlate typedByHand = new LicensePlate("abc-1234");
         LicensePlate fromStorage = new LicensePlate("ABC1234");
 
-        assertThat(typedByHand)
-                .isEqualTo(fromStorage)
-                .hasSameHashCodeAs(fromStorage);
+        assertThat(typedByHand).isEqualTo(fromStorage).hasSameHashCodeAs(fromStorage);
     }
 
     @Test
@@ -83,9 +80,7 @@ class LicensePlateTest {
     void toStringIsMasked() {
         LicensePlate plate = new LicensePlate("ABC1234");
 
-        assertThat(plate.toString())
-                .doesNotContain("ABC1234")
-                .contains("ABC***4");
+        assertThat(plate.toString()).doesNotContain("ABC1234").contains("ABC****");
     }
 
     @Nested
@@ -93,12 +88,8 @@ class LicensePlateTest {
     class Masking {
 
         @ParameterizedTest
-        @DisplayName("keeps the first three characters and the last one")
-        @CsvSource({
-                "ABC1234, ABC***4",
-                "ABC1D23, ABC***3",
-                "XYZ9876, XYZ***6"
-        })
+        @DisplayName("keeps the first three characters and masks the rest")
+        @CsvSource({"ABC1234, ABC****", "ABC1D23, ABC****", "XYZ9876, XYZ****"})
         void masksTheMiddleOfAPlate(String plate, String expected) {
             assertThat(new LicensePlate(plate).masked()).isEqualTo(expected);
             assertThat(LicensePlate.mask(plate)).isEqualTo(expected);
@@ -106,7 +97,7 @@ class LicensePlateTest {
 
         @ParameterizedTest
         @DisplayName("masks short values entirely, where partial masking would reveal too much")
-        @ValueSource(strings = {"", "A", "AB", "ABC", "ABCD"})
+        @ValueSource(strings = {"", "A", "AB", "ABC", "ABCD", "ABCDE"})
         void masksShortValuesEntirely(String value) {
             assertThat(LicensePlate.mask(value)).isEqualTo("***");
         }
@@ -120,13 +111,13 @@ class LicensePlateTest {
         @DisplayName("masks an anonymization token, which can never be a valid plate")
         void masksTheAnonymizationToken() {
             assertThat(LicensePlate.mask("ANON-0f7c9a1e-3b2d-4c5f-8a9b-1d2e3f4a5b6c"))
-                    .isEqualTo("ANO***c");
+                    .isEqualTo("ANO***********");
         }
 
         @Test
         @DisplayName("masks input the format check has already rejected")
         void masksRejectedInput() {
-            assertThat(LicensePlate.mask("XYZ98765")).isEqualTo("XYZ***5");
+            assertThat(LicensePlate.mask("XYZ98765")).isEqualTo("XYZ*****");
         }
     }
 }

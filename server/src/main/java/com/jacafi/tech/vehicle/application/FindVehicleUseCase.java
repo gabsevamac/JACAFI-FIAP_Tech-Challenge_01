@@ -1,13 +1,14 @@
 package com.jacafi.tech.vehicle.application;
 
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.vehicle.domain.LicensePlate;
 import com.jacafi.tech.vehicle.domain.Vehicle;
 import com.jacafi.tech.vehicle.domain.VehicleNotFoundException;
 import com.jacafi.tech.vehicle.domain.VehicleRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 /**
  * Reads a vehicle — the {@code FindVehicle} command of the Event Storming board.
@@ -34,8 +35,7 @@ public class FindVehicleUseCase {
 
     @Transactional(readOnly = true)
     public Vehicle byId(UUID vehicleId) {
-        return repository.findActiveById(vehicleId)
-                .orElseThrow(() -> new VehicleNotFoundException(vehicleId));
+        return repository.findActiveById(vehicleId).orElseThrow(() -> new VehicleNotFoundException(vehicleId));
     }
 
     /**
@@ -44,7 +44,8 @@ public class FindVehicleUseCase {
      */
     @Transactional(readOnly = true)
     public Vehicle byLicensePlate(String licensePlate) {
-        return repository.findActiveByLicensePlate(new LicensePlate(licensePlate))
+        return repository
+                .findActiveByLicensePlate(new LicensePlate(licensePlate))
                 .orElseThrow(VehicleNotFoundException::new);
     }
 }

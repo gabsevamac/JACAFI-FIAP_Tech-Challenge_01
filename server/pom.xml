@@ -21,6 +21,19 @@
         <!-- springdoc 3.x e a linha para Spring Boot 4 / Spring Framework 7. A 2.x e para Boot 3.x. -->
         <springdoc.version>3.0.3</springdoc.version>
         <jjwt.version>0.13.0</jjwt.version>
+
+        <!-- Guarda-corpos de build. Versoes fixadas explicitamente: um plugin de
+             qualidade que muda de versao sozinho transforma "o build quebrou" em
+             investigacao, e o parent do Boot nao gerencia nenhum destes. -->
+        <spotless.version>3.10.0</spotless.version>
+        <palantir-java-format.version>2.97.0</palantir-java-format.version>
+        <enforcer-plugin.version>3.6.3</enforcer-plugin.version>
+        <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
+        <checkstyle.version>14.0.0</checkstyle.version>
+        <jacoco.version>0.8.15</jacoco.version>
+        <spotbugs-plugin.version>4.10.4.0</spotbugs-plugin.version>
+        <findsecbugs.version>1.14.0</findsecbugs.version>
+        <dependency-check.version>13.0.0</dependency-check.version>
     </properties>
 
     <dependencies>
@@ -134,6 +147,142 @@
 
     <build>
         <plugins>
+            <!-- Formatacao. O Spotless reescreve o arquivo; ele nao negocia estilo, ele
+                 decide. Isso encerra a discussao de formatacao no code review, que com
+                 quatro pessoas em fatias paralelas estava gerando diff de ruido puro.
+
+                 Formatador escolhido: palantir-java-format, medido, nao presumido.
+                 O google-java-format em AOSP tambem roda no JDK 25 com o Spotless 3.x —
+                 nenhum dos dois precisou das flags add-exports, ao contrario do que a
+                 documentacao mais antiga sugere. O criterio de desempate foi o tamanho
+                 da reformatacao inicial sobre o codigo que ja existe: palantir deixa 16
+                 dos 89 arquivos intactos, google-AOSP deixa 9. Menos churn no commit de
+                 reformatacao, menos historico de autoria perdido.
+
+                 Atencao a versao do Spotless: a 2.44.5 estoura NoSuchMethodError em
+                 Log$DeferredDiagnosticHandler.getDiagnostics() no JDK 25, porque o javac
+                 mudou a assinatura interna. A 3.10.0 acompanha. Nao faca downgrade. -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <java>
+                        <palantirJavaFormat>
+                            <version>${palantir-java-format.version}</version>
+                        </palantirJavaFormat>
+                        <removeUnusedImports/>
+                        <!-- Blocos separados por origem: primeiro a plataforma, depois o
+                             ecossistema, por ultimo o nosso codigo. A virgula final nao e
+                             engano — o grupo vazio e o coringa do Spotless, e o que sobra
+                             cai nele. Sem ele, import de io.jsonwebtoken e de outros
+                             prefixos nao teria lugar definido e oscilaria entre execucoes. -->
+                        <importOrder>
+                            <order>java,javax,jakarta,org,com,</order>
+                        </importOrder>
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                        <formatAnnotations/>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotless-check</id>
+                        <!-- validate, nao verify: falha antes de compilar, que e o feedback
+                             mais barato possivel. `check` e nao `apply` de proposito — um
+                             build que reescreve o codigo-fonte por conta propria muda o que
+                             o desenvolvedor esta editando no meio da edicao. Formatar e
+                             `mvn spotless:apply`, explicito, quando a pessoa quiser. -->
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Impede que o Jackson 2 vire dependencia direta.
+
+                 Ele esta e vai continuar no classpath por transitividade do springdoc e do
+                 jjwt — nao da para bani-lo de vez sem perder o Swagger, que e entregavel
+                 obrigatorio. Por isso searchTransitive=false: o alvo nao e a presenca do
+                 jar, e a declaracao deliberada. Se `com.fasterxml.jackson.core` aparecer
+                 como dependencia nossa em escopo compile, alguem precisou dele para
+                 compilar, o que significa que importou a classe da linha errada. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${enforcer-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>ban-jackson2-as-direct-dependency</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <searchTransitive>false</searchTransitive>
+                                    <excludes>
+                                        <exclude>com.fasterxml.jackson.core:*:*:*:compile</exclude>
+                                    </excludes>
+                                    <message>
+Dependencia direta de com.fasterxml.jackson.core (Jackson 2) em escopo compile.
+
+O Spring Boot 4 serializa com Jackson 3, no pacote tools.jackson. O Jackson 2 segue no
+classpath apenas por transitividade do springdoc e do jjwt, e nao deve ser declarado por nos.
+
+Se voce adicionou esta dependencia para fazer um import compilar, o import e que esta errado:
+troque com.fasterxml.jackson.databind por tools.jackson.databind. As anotacoes de
+com.fasterxml.jackson.annotation sao compartilhadas pelas duas linhas e nao exigem
+dependencia nova.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Tres regras de import, e so isso. O racional de cada uma esta no proprio
+                 checkstyle.xml, junto da regra, que e onde quem tomar o erro vai olhar. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${checkstyle-plugin.version}</version>
+                <dependencies>
+                    <!-- O plugin embarca uma versao antiga do Checkstyle, que nao entende a
+                         sintaxe do Java 25 e falha ao parsear os arquivos. Sobrescrever a
+                         dependencia e o mecanismo suportado para isso. -->
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>config/checkstyle/checkstyle.xml</configLocation>
+                    <suppressionsLocation>config/checkstyle/suppressions.xml</suppressionsLocation>
+                    <!-- Teste tambem importa: um teste que monta JSON com o ObjectMapper da
+                         linha errada passa e nao prova nada sobre a serializacao real. -->
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <violationSeverity>error</violationSeverity>
+                    <failOnViolation>true</failOnViolation>
+                    <consoleOutput>true</consoleOutput>
+                    <logViolationsToConsole>true</logViolationsToConsole>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle-illegal-imports</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -176,6 +325,16 @@
                 </executions>
             </plugin>
 
+            <!-- Declarado apenas para receber o argLine do agente do JaCoCo. Sem isto o agente
+                 nao e anexado a JVM do Surefire e os testes unitarios nao instrumentam nada. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>${surefireArgLine}</argLine>
+                </configuration>
+            </plugin>
+
             <!-- Failsafe roda os testes de integracao (*IT) na fase integration-test, separados
                  dos unitarios do Surefire (*Test). A separacao importa: os *IT sobem contexto
                  Spring e container Postgres, levam dezenas de segundos e nao devem atrasar o
@@ -184,6 +343,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <argLine>${failsafeArgLine}</argLine>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -193,7 +355,208 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Cobertura.
+                 
+                 Declarado por ultimo de proposito: dentro de uma mesma fase o Maven executa os
+                 plugins na ordem em que aparecem, e merge/report/check precisam rodar depois de
+                 o Failsafe ter encerrado a JVM que grava o arquivo de execucao.
+
+                 Duas execucoes de preparacao, e nao uma. `prepare-agent` instrumenta a JVM do
+                 Surefire e `prepare-agent-integration` a do Failsafe; com apenas a primeira, os
+                 testes *IT nao contam para a cobertura — e neste projeto eles sao 47 dos 222,
+                 concentrados justamente na infraestrutura que os unitarios nao alcancam.
+
+                 Cada uma escreve o seu proprio arquivo e exporta o argLine sob nome proprio.
+                 Deixar as duas no `argLine` default faria a segunda sobrescrever a primeira. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent-unit</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco-unit.exec</destFile>
+                            <propertyName>surefireArgLine</propertyName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>prepare-agent-integration</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/jacoco-integration.exec</destFile>
+                            <propertyName>failsafeArgLine</propertyName>
+                        </configuration>
+                    </execution>
+
+                    <!-- Um relatorio so, dos dois conjuntos somados. Relatorios separados
+                         responderiam "quanto cada suite cobre", que nao e a pergunta: uma linha
+                         coberta so por teste de integracao esta coberta. -->
+                    <execution>
+                        <id>merge-executions</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <fileSets>
+                                <fileSet>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>jacoco-unit.exec</include>
+                                        <include>jacoco-integration.exec</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                            <destFile>${project.build.directory}/jacoco-merged.exec</destFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
+                        </configuration>
+                    </execution>
+
+                    <!-- A meta de 80% vale para dominio e aplicacao, e nao para o projeto todo.
+                         E onde estao as regras de negocio; controller, entidade JPA e mapper sao
+                         codigo de ligacao, e perseguir cobertura neles produz teste que confirma
+                         que o framework funciona. -->
+                    <execution>
+                        <id>check-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.jacafi.tech.*.domain</include>
+                                        <include>com.jacafi.tech.*.application</include>
+                                    </includes>
+                                    <excludes>
+                                        <!-- EXCLUSAO TEMPORARIA, E O MOTIVO PRECISA SER LIDO.
+                                             
+                                             A fatia `features` (service e service_order) tem ZERO
+                                             arquivos de teste: 4,8% e 15,2% de cobertura. Nao ha
+                                             API, nem repositorio, nem caso de uso — so o agregado.
+                                             
+                                             Ela nao esta excluida por a meta ser inatingivel, e sim
+                                             porque reprovar o build de quatro pessoas por causa de
+                                             uma fatia que ainda nao comecou pararia o grupo inteiro.
+                                             O numero real continua visivel no relatorio do JaCoCo,
+                                             que e onde ele deve incomodar.
+                                             
+                                             REMOVER esta exclusao quando aquela fatia tiver testes.
+                                             Ela e divida registrada, nao dispensa. -->
+                                        <exclude>com.jacafi.tech.features.*</exclude>
+                                    </excludes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Analise estatica de seguranca sobre o bytecode do nosso codigo.
+                 
+                 O SpotBugs sozinho procura defeito; o FindSecBugs acrescenta os detectores de
+                 seguranca — injecao, criptografia fraca, path traversal, XXE, hard-coded secret.
+                 E complementar ao Dependency-Check, que olha as dependencias: um encontra o que
+                 escrevemos, o outro o que importamos, e nenhum ve o campo do outro. -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>${spotbugs-plugin.version}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <!-- Codigo de teste fica de fora: um segredo embutido num teste e um valor
+                         fixo de teste, e o ruido afogaria os achados do codigo de producao. -->
+                    <includeTests>false</includeTests>
+                    <plugins>
+                        <plugin>
+                            <groupId>com.h3xstream.findsecbugs</groupId>
+                            <artifactId>findsecbugs-plugin</artifactId>
+                            <version>${findsecbugs.version}</version>
+                        </plugin>
+                    </plugins>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Varredura de vulnerabilidade conhecida nas DEPENDENCIAS.
+             
+             Fora do build padrao de proposito. O plugin baixa e mantem uma copia local da base do
+             NVD: a primeira execucao leva dezenas de minutos, e desde 2023 o NVD exige chave de
+             API para nao aplicar limite de taxa severo. Colocar isso no `mvn verify` de todo dia
+             tornaria o feedback inutilizavel e faria o build depender de um servico externo.
+             
+             Rode antes de entregar, e para gerar o relatorio que o enunciado pede:
+             
+                 mvn -Psecurity-scan verify -Dnvd.api.key=SUA_CHAVE
+             
+             Chave gratuita em https://nvd.nist.gov/developers/request-an-api-key
+             
+             failBuildOnCVSS=7 reprova em vulnerabilidade alta ou critica. O limiar nao e 0 porque
+             uma base de CVE tem falso positivo e transitividade que nao da para remover — um
+             portao que reprova sempre e um portao que alguem desliga. -->
+        <profile>
+            <id>security-scan</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>${dependency-check.version}</version>
+                        <configuration>
+                            <nvdApiKey>${nvd.api.key}</nvdApiKey>
+                            <failBuildOnCVSS>7</failBuildOnCVSS>
+                            <formats>
+                                <format>HTML</format>
+                                <format>JSON</format>
+                            </formats>
+                            <!-- Dependencia de teste nao vai para producao; um CVE em container
+                                 de teste nao e superficie de ataque da aplicacao entregue. -->
+                            <skipTestScope>true</skipTestScope>
+                            <suppressionFiles>
+                                <suppressionFile>config/dependency-check-suppressions.xml</suppressionFile>
+                            </suppressionFiles>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

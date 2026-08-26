@@ -10,17 +10,12 @@ import java.util.UUID;
  *
  * @param actor who is performing the operation, taken from the JWT subject by the api layer
  */
-public record RegisterVehicleCommand(String licensePlate,
-                                     String make,
-                                     String model,
-                                     int modelYear,
-                                     UUID customerId,
-                                     String actor) {
+public record RegisterVehicleCommand(
+        String licensePlate, String make, String model, int modelYear, UUID customerId, String actor) {
 
     /** Never prints the plate: a command is as loggable as anything else, so it must be safe. */
     @Override
     public String toString() {
-        return "RegisterVehicleCommand[customerId=%s, modelYear=%d, actor=%s]"
-                .formatted(customerId, modelYear, actor);
+        return "RegisterVehicleCommand[customerId=%s, modelYear=%d, actor=%s]".formatted(customerId, modelYear, actor);
     }
 }

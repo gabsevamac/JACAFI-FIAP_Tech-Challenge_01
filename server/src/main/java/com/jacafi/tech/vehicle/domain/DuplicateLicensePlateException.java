@@ -1,5 +1,8 @@
 package com.jacafi.tech.vehicle.domain;
 
+import com.jacafi.tech.shared.web.BusinessException;
+import com.jacafi.tech.shared.web.ErrorCode;
+
 /**
  * A vehicle was registered with a plate that already belongs to another active vehicle.
  *
@@ -10,9 +13,9 @@ package com.jacafi.tech.vehicle.domain;
  *
  * <p>Carries no plate, by design — not even the one that caused the conflict.
  */
-public class DuplicateLicensePlateException extends RuntimeException {
+public class DuplicateLicensePlateException extends BusinessException {
 
     public DuplicateLicensePlateException(String message) {
-        super(message);
+        super(ErrorCode.DUPLICATE_LICENSE_PLATE);
     }
 }

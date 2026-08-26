@@ -1,23 +1,25 @@
 package com.jacafi.tech.vehicle.infrastructure.persistence;
 
-import com.jacafi.tech.support.AbstractIntegrationTest;
-import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
-import com.jacafi.tech.vehicle.domain.LicensePlate;
-import com.jacafi.tech.vehicle.domain.Vehicle;
-import com.jacafi.tech.vehicle.domain.VehicleRepository;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
+import java.time.Clock;
+import java.time.ZoneOffset;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import com.jacafi.tech.support.AbstractIntegrationTest;
+import com.jacafi.tech.support.FixedClockConfiguration;
+import com.jacafi.tech.vehicle.domain.DuplicateLicensePlateException;
+import com.jacafi.tech.vehicle.domain.LicensePlate;
+import com.jacafi.tech.vehicle.domain.Vehicle;
+import com.jacafi.tech.vehicle.domain.VehicleRepository;
 
 /**
  * Exercises the partial unique index directly, bypassing the application layer's check.
@@ -27,9 +29,13 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
  * would pass while proving nothing — or a plain unique index would exist and the plate-reuse test
  * would fail for the wrong reason.
  */
+@Import(FixedClockConfiguration.class)
 class VehicleRepositoryAdapterIT extends AbstractIntegrationTest {
 
-    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-25T12:00:00Z"), ZoneOffset.UTC);
+    // O mesmo instante que FixedClockConfiguration injeta na aplicacao. Precisa ser o mesmo: os
+    // campos de auditoria sao escritos pelo AuditingEntityListener a partir do Clock da aplicacao,
+    // entao um relogio local diferente faria o round-trip comparar dois instantes sem relacao.
+    private static final Clock CLOCK = Clock.fixed(FixedClockConfiguration.FIXED_INSTANT, ZoneOffset.UTC);
     private static final LicensePlate PLATE = new LicensePlate("ABC1D23");
 
     @Autowired
@@ -92,8 +98,8 @@ class VehicleRepositoryAdapterIT extends AbstractIntegrationTest {
                 "SELECT license_plate FROM vehicles WHERE id = ?", String.class, vehicle.getId());
 
         assertThat(storedPlate).doesNotContain(PLATE.value()).isEqualTo("ANON-" + vehicle.getId());
-        assertThat(jdbcTemplate.queryForObject("SELECT make FROM vehicles WHERE id = ?",
-                String.class, vehicle.getId())).isEqualTo("Volkswagen");
+        assertThat(jdbcTemplate.queryForObject("SELECT make FROM vehicles WHERE id = ?", String.class, vehicle.getId()))
+                .isEqualTo("Volkswagen");
     }
 
     @Test

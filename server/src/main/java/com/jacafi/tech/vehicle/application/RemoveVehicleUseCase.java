@@ -1,5 +1,13 @@
 package com.jacafi.tech.vehicle.application;
 
+import java.time.Clock;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.jacafi.tech.vehicle.domain.AuditedOperation;
 import com.jacafi.tech.vehicle.domain.LicensePlate;
 import com.jacafi.tech.vehicle.domain.Vehicle;
@@ -7,13 +15,6 @@ import com.jacafi.tech.vehicle.domain.VehicleAuditEntry;
 import com.jacafi.tech.vehicle.domain.VehicleAuditTrail;
 import com.jacafi.tech.vehicle.domain.VehicleNotFoundException;
 import com.jacafi.tech.vehicle.domain.VehicleRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Clock;
-import java.util.UUID;
 
 /**
  * Removes a vehicle from the active registry — the {@code RemoveVehicle} command.
@@ -47,8 +48,8 @@ public class RemoveVehicleUseCase {
 
     @Transactional
     public void remove(UUID vehicleId, String actor) {
-        Vehicle vehicle = repository.findActiveById(vehicleId)
-                .orElseThrow(() -> new VehicleNotFoundException(vehicleId));
+        Vehicle vehicle =
+                repository.findActiveById(vehicleId).orElseThrow(() -> new VehicleNotFoundException(vehicleId));
 
         // Read the masked plate before the aggregate erases it, so the log line can still be
         // correlated with the registration that created the vehicle.
@@ -57,10 +58,11 @@ public class RemoveVehicleUseCase {
         vehicle.remove(clock);
 
         repository.save(vehicle);
-        auditTrail.append(new VehicleAuditEntry(vehicle.getId(), AuditedOperation.REMOVED,
-                actor, clock.instant()));
+        auditTrail.append(new VehicleAuditEntry(vehicle.getId(), AuditedOperation.REMOVED, actor, clock.instant()));
 
-        log.info("Vehicle removed and license plate erased: id={} previousLicensePlate={}",
-                vehicle.getId(), maskedPlate);
+        log.info(
+                "Vehicle removed and license plate erased: id={} previousLicensePlate={}",
+                vehicle.getId(),
+                maskedPlate);
     }
 }

@@ -1,13 +1,13 @@
 package com.jacafi.tech.auth;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/employee")
@@ -21,14 +21,12 @@ public class EmployeeController {
 
     @PostMapping
     public ResponseEntity<EmployeeResponseDTO> createEmployee(@RequestBody EmployeeRequestDTO request) {
-        User user = User.create(
-                request.username(),
-                passwordEncoder.encode(request.password()),
-                "USER");
+        User user = User.create(request.username(), passwordEncoder.encode(request.password()), "USER");
 
         User userOpt = userRepository.save(user);
 
-        return new ResponseEntity<>(new EmployeeResponseDTO(userOpt.getId(), userOpt.getUsername(), userOpt.getRole()), HttpStatus.CREATED);
+        return new ResponseEntity<>(
+                new EmployeeResponseDTO(userOpt.getId(), userOpt.getUsername(), userOpt.getRole()), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -41,10 +39,12 @@ public class EmployeeController {
 
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponseDTO> getById(@PathVariable Long id) {
-        User user = userRepository.findById(id)
+        User user = userRepository
+                .findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Funcionário não encontrado"));
 
-        return new ResponseEntity<>( new EmployeeResponseDTO(user.getId(), user.getUsername(), user.getRole()), HttpStatus.OK);
+        return new ResponseEntity<>(
+                new EmployeeResponseDTO(user.getId(), user.getUsername(), user.getRole()), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")

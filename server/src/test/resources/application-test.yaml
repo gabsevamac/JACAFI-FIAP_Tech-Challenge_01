@@ -9,12 +9,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-  flyway:
-    # Um unico local, o de producao. O remendo de teste que criava as tabelas da fatia
-    # service_order saiu: V20260824_01 passou a cria-las de verdade, e manter os dois fazia o
-    # Flyway falhar com "relation services already exists" antes de qualquer teste rodar.
-    locations:
-      - classpath:db/migration
 
 jwt:
   # Chave de teste, sem valor em producao. HS256 exige no minimo 32 bytes.

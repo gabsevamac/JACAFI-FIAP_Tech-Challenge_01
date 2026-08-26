@@ -1,8 +1,9 @@
 package com.jacafi.tech.vehicle.infrastructure.persistence;
 
+import org.springframework.stereotype.Component;
+
 import com.jacafi.tech.vehicle.domain.VehicleAuditEntry;
 import com.jacafi.tech.vehicle.domain.VehicleAuditTrail;
-import org.springframework.stereotype.Component;
 
 /**
  * Writes the audit trail to its own table, inside the transaction of the operation being audited.
@@ -21,7 +22,7 @@ public class JpaVehicleAuditTrail implements VehicleAuditTrail {
 
     @Override
     public void append(VehicleAuditEntry entry) {
-        repository.save(new VehicleAuditEntryJpaEntity(entry.vehicleId(), entry.operation(),
-                entry.actor(), entry.occurredAt()));
+        repository.save(new VehicleAuditEntryJpaEntity(
+                entry.vehicleId(), entry.operation(), entry.actor(), entry.occurredAt()));
     }
 }

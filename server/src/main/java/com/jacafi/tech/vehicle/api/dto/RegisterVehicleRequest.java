@@ -1,12 +1,14 @@
 package com.jacafi.tech.vehicle.api.dto;
 
-import com.jacafi.tech.shared.lgpd.PersonalData;
-import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.UUID;
+
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.util.UUID;
+import com.jacafi.tech.shared.lgpd.PersonalData;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * Body of a registration request. A record, which Jackson deserializes natively and on which
@@ -18,26 +20,21 @@ import java.util.UUID;
  */
 public record RegisterVehicleRequest(
         @PersonalData("LGPD Art. 5 I")
-        @Schema(description = "Brazilian license plate, old or Mercosur layout. Separators and "
-                + "lower case are accepted and normalized.", example = "ABC1D23")
-        @NotBlank(message = "licensePlate is required")
-        String licensePlate,
+        @Schema(
+                description = "Brazilian license plate, old or Mercosur layout. Separators and "
+                        + "lower case are accepted and normalized.",
+                example = "ABC1D23")
+        @NotBlank(message = "licensePlate is required") String licensePlate,
 
-        @Schema(description = "Manufacturer", example = "Volkswagen")
-        @NotBlank(message = "make is required")
-        String make,
+        @Schema(description = "Manufacturer", example = "Volkswagen") @NotBlank(message = "make is required") String make,
 
-        @Schema(example = "Gol")
-        @NotBlank(message = "model is required")
-        String model,
+        @Schema(example = "Gol") @NotBlank(message = "model is required") String model,
 
         @Schema(description = "Model year, from 1900 up to next year", example = "2020")
-        @Min(value = 1900, message = "modelYear must not be earlier than 1900")
-        int modelYear,
+        @Min(value = 1900, message = "modelYear must not be earlier than 1900") int modelYear,
 
         @Schema(description = "Identifier of the customer responsible for the vehicle")
-        @NotNull(message = "customerId is required")
-        UUID customerId) {
+        @NotNull(message = "customerId is required") UUID customerId) {
 
     /** Never prints the plate: a request body is as loggable as anything else. */
     @Override

@@ -1,15 +1,6 @@
 package com.jacafi.tech.vehicle.application;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-import com.jacafi.tech.vehicle.domain.Vehicle;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -17,7 +8,18 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+
+import com.jacafi.tech.vehicle.domain.Vehicle;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 /**
  * Proves the requirement that no log statement writes a full license plate.
@@ -32,7 +34,7 @@ class LogMaskingTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-25T12:00:00Z"), ZoneOffset.UTC);
     private static final UUID CUSTOMER = UUID.fromString("5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e");
     private static final String PLATE = "ABC1234";
-    private static final String MASKED_PLATE = "ABC***4";
+    private static final String MASKED_PLATE = "ABC****";
 
     private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
     private Logger rootLogger;
@@ -51,8 +53,9 @@ class LogMaskingTest {
 
         repository = new InMemoryVehicleRepository();
         RecordingAuditTrail auditTrail = new RecordingAuditTrail();
+        RecordingFieldTrail fieldTrail = new RecordingFieldTrail();
         register = new RegisterVehicleUseCase(repository, auditTrail, CLOCK);
-        update = new UpdateVehicleUseCase(repository, auditTrail, CLOCK);
+        update = new UpdateVehicleUseCase(repository, auditTrail, fieldTrail, CLOCK);
         remove = new RemoveVehicleUseCase(repository, auditTrail, CLOCK);
     }
 
@@ -85,7 +88,9 @@ class LogMaskingTest {
         update.update(new UpdateVehicleCommand(vehicle.getId(), "Chevrolet", "Onix", 2021, "advisor@sinates"));
         remove.remove(vehicle.getId(), "advisor@sinates");
 
-        assertThat(loggedMessages()).filteredOn(message -> message.contains(MASKED_PLATE)).hasSize(3);
+        assertThat(loggedMessages())
+                .filteredOn(message -> message.contains(MASKED_PLATE))
+                .hasSize(3);
     }
 
     @Test

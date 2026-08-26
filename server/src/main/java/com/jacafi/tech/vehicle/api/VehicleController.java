@@ -1,18 +1,10 @@
 package com.jacafi.tech.vehicle.api;
 
-import com.jacafi.tech.vehicle.api.dto.RegisterVehicleRequest;
-import com.jacafi.tech.vehicle.api.dto.UpdateVehicleRequest;
-import com.jacafi.tech.vehicle.api.dto.VehiclePageResponse;
-import com.jacafi.tech.vehicle.api.dto.VehicleResponse;
-import com.jacafi.tech.vehicle.application.FindVehicleUseCase;
-import com.jacafi.tech.vehicle.application.ListCustomerVehiclesUseCase;
-import com.jacafi.tech.vehicle.application.RegisterVehicleCommand;
-import com.jacafi.tech.vehicle.application.RegisterVehicleUseCase;
-import com.jacafi.tech.vehicle.application.RemoveVehicleUseCase;
-import com.jacafi.tech.vehicle.application.UpdateVehicleCommand;
-import com.jacafi.tech.vehicle.application.UpdateVehicleUseCase;
-import com.jacafi.tech.vehicle.domain.Vehicle;
+import java.net.URI;
+import java.util.UUID;
+
 import jakarta.validation.Valid;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,8 +18,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URI;
-import java.util.UUID;
+import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.web.PageParameters;
+import com.jacafi.tech.shared.web.SortableFields;
+import com.jacafi.tech.vehicle.api.dto.RegisterVehicleRequest;
+import com.jacafi.tech.vehicle.api.dto.UpdateVehicleRequest;
+import com.jacafi.tech.vehicle.api.dto.VehicleResponse;
+import com.jacafi.tech.vehicle.application.FindVehicleUseCase;
+import com.jacafi.tech.vehicle.application.ListCustomerVehiclesUseCase;
+import com.jacafi.tech.vehicle.application.RegisterVehicleCommand;
+import com.jacafi.tech.vehicle.application.RegisterVehicleUseCase;
+import com.jacafi.tech.vehicle.application.RemoveVehicleUseCase;
+import com.jacafi.tech.vehicle.application.UpdateVehicleCommand;
+import com.jacafi.tech.vehicle.application.UpdateVehicleUseCase;
+import com.jacafi.tech.vehicle.domain.AmbiguousVehicleQueryException;
+import com.jacafi.tech.vehicle.domain.Vehicle;
 
 /**
  * REST surface of the vehicle slice. Every endpoint requires a JWT.
@@ -44,7 +49,15 @@ import java.util.UUID;
 public class VehicleController implements VehicleApi {
 
     /** Cap on page size, so a caller cannot ask for the whole table in one request. */
-    private static final int MAX_PAGE_SIZE = 100;
+    /**
+     * What a client may sort this collection by, plus the tie-breaker.
+     *
+     * <p>Short on purpose. Every name here is a promise the API keeps, and a field added because
+     * it happened to exist on the entity is a promise nobody decided to make. The ceiling on page
+     * size lives in {@code PageParameters}, shared by every collection.
+     */
+    private static final SortableFields SORTABLE =
+            SortableFields.of("id", "registeredAt", "make", "model", "modelYear");
 
     private final RegisterVehicleUseCase registerVehicle;
     private final UpdateVehicleUseCase updateVehicle;
@@ -52,11 +65,12 @@ public class VehicleController implements VehicleApi {
     private final FindVehicleUseCase findVehicle;
     private final ListCustomerVehiclesUseCase listCustomerVehicles;
 
-    public VehicleController(RegisterVehicleUseCase registerVehicle,
-                             UpdateVehicleUseCase updateVehicle,
-                             RemoveVehicleUseCase removeVehicle,
-                             FindVehicleUseCase findVehicle,
-                             ListCustomerVehiclesUseCase listCustomerVehicles) {
+    public VehicleController(
+            RegisterVehicleUseCase registerVehicle,
+            UpdateVehicleUseCase updateVehicle,
+            RemoveVehicleUseCase removeVehicle,
+            FindVehicleUseCase findVehicle,
+            ListCustomerVehiclesUseCase listCustomerVehicles) {
         this.registerVehicle = registerVehicle;
         this.updateVehicle = updateVehicle;
         this.removeVehicle = removeVehicle;
@@ -66,9 +80,10 @@ public class VehicleController implements VehicleApi {
 
     @Override
     @PostMapping
-    public ResponseEntity<VehicleResponse> register(@Valid @RequestBody RegisterVehicleRequest request,
-                                                    Authentication authentication) {
-        Vehicle vehicle = registerVehicle.register(new RegisterVehicleCommand(request.licensePlate(),
+    public ResponseEntity<VehicleResponse> register(
+            @Valid @RequestBody RegisterVehicleRequest request, Authentication authentication) {
+        Vehicle vehicle = registerVehicle.register(new RegisterVehicleCommand(
+                request.licensePlate(),
                 request.make(),
                 request.model(),
                 request.modelYear(),
@@ -94,38 +109,29 @@ public class VehicleController implements VehicleApi {
      */
     @Override
     @GetMapping
-    public ResponseEntity<?> findByQuery(@RequestParam(required = false) String licensePlate,
-                                         @RequestParam(required = false) UUID customerId,
-                                         @RequestParam(defaultValue = "0") int page,
-                                         @RequestParam(defaultValue = "20") int size) {
+    public ResponseEntity<?> findByQuery(
+            @RequestParam(required = false) String licensePlate,
+            @RequestParam(required = false) UUID customerId,
+            PageParameters paging) {
         if ((licensePlate == null) == (customerId == null)) {
-            throw new IllegalArgumentException(
-                    "Exactly one of licensePlate or customerId must be provided");
+            throw new AmbiguousVehicleQueryException();
         }
 
         if (licensePlate != null) {
             return ResponseEntity.ok(VehicleResponse.from(findVehicle.byLicensePlate(licensePlate)));
         }
 
-        if (page < 0) {
-            throw new IllegalArgumentException("page must not be negative");
-        }
-        if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException("size must be between 1 and " + MAX_PAGE_SIZE);
-        }
-        return ResponseEntity.ok(VehiclePageResponse.from(listCustomerVehicles.list(customerId, page, size)));
+        PageResult<VehicleResponse> page =
+                listCustomerVehicles.list(customerId, paging.toQuery(SORTABLE)).map(VehicleResponse::from);
+        return ResponseEntity.ok(page);
     }
 
     @Override
     @PutMapping("/{id}")
-    public VehicleResponse update(@PathVariable UUID id,
-                                  @Valid @RequestBody UpdateVehicleRequest request,
-                                  Authentication authentication) {
-        return VehicleResponse.from(updateVehicle.update(new UpdateVehicleCommand(id,
-                request.make(),
-                request.model(),
-                request.modelYear(),
-                authentication.getName())));
+    public VehicleResponse update(
+            @PathVariable UUID id, @Valid @RequestBody UpdateVehicleRequest request, Authentication authentication) {
+        return VehicleResponse.from(updateVehicle.update(new UpdateVehicleCommand(
+                id, request.make(), request.model(), request.modelYear(), authentication.getName())));
     }
 
     @Override

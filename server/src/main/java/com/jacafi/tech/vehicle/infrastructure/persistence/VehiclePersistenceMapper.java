@@ -1,8 +1,9 @@
 package com.jacafi.tech.vehicle.infrastructure.persistence;
 
+import org.springframework.stereotype.Component;
+
 import com.jacafi.tech.vehicle.domain.LicensePlate;
 import com.jacafi.tech.vehicle.domain.Vehicle;
-import org.springframework.stereotype.Component;
 
 /**
  * Moves state between the aggregate and its storage shape.
@@ -17,14 +18,27 @@ public class VehiclePersistenceMapper {
     static final String ANONYMIZED_PREFIX = "ANON-";
 
     public VehicleJpaEntity toEntity(Vehicle vehicle) {
-        return new VehicleJpaEntity(vehicle.getId(),
+        return new VehicleJpaEntity(
+                vehicle.getId(),
                 storedLicensePlate(vehicle),
                 vehicle.getMake(),
                 vehicle.getModel(),
                 vehicle.getModelYear(),
                 vehicle.getCustomerId(),
-                vehicle.getRegisteredAt(),
-                vehicle.getUpdatedAt(),
+                vehicle.getRemovedAt().orElse(null),
+                // O autor da remocao ainda nao chega ate aqui: RemoveVehicleUseCase o conhece, mas
+                // a porta do repositorio recebe apenas o agregado, e o agregado nao carrega ator.
+                // Deixar null e admitir isso; inventar "system" afirmaria que ninguem removeu.
+                null);
+    }
+
+    /** Overwrites a managed row with the aggregate's current state. See {@code applyState}. */
+    public void copyInto(VehicleJpaEntity target, Vehicle vehicle) {
+        target.applyState(
+                storedLicensePlate(vehicle),
+                vehicle.getMake(),
+                vehicle.getModel(),
+                vehicle.getModelYear(),
                 vehicle.getRemovedAt().orElse(null));
     }
 
@@ -33,9 +47,7 @@ public class VehiclePersistenceMapper {
                 .id(entity.getId())
                 // A removed row holds a token, not a plate: parsing it would throw, and there is
                 // nothing to recover — erasure is the point.
-                .licensePlate(entity.getRemovedAt() == null
-                        ? new LicensePlate(entity.getLicensePlate())
-                        : null)
+                .licensePlate(entity.getRemovedAt() == null ? new LicensePlate(entity.getLicensePlate()) : null)
                 .make(entity.getMake())
                 .model(entity.getModel())
                 .modelYear(entity.getModelYear())
@@ -55,8 +67,6 @@ public class VehiclePersistenceMapper {
      * by construction, and therefore cannot collide with a live registration either.
      */
     private static String storedLicensePlate(Vehicle vehicle) {
-        return vehicle.getLicensePlate()
-                .map(LicensePlate::value)
-                .orElseGet(() -> ANONYMIZED_PREFIX + vehicle.getId());
+        return vehicle.getLicensePlate().map(LicensePlate::value).orElseGet(() -> ANONYMIZED_PREFIX + vehicle.getId());
     }
 }
