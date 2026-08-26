@@ -21,6 +21,15 @@
         <!-- springdoc 3.x e a linha para Spring Boot 4 / Spring Framework 7. A 2.x e para Boot 3.x. -->
         <springdoc.version>3.0.3</springdoc.version>
         <jjwt.version>0.13.0</jjwt.version>
+
+        <!-- Guarda-corpos de build. Versoes fixadas explicitamente: um plugin de
+             qualidade que muda de versao sozinho transforma "o build quebrou" em
+             investigacao, e o parent do Boot nao gerencia nenhum destes. -->
+        <spotless.version>3.10.0</spotless.version>
+        <palantir-java-format.version>2.97.0</palantir-java-format.version>
+        <enforcer-plugin.version>3.6.3</enforcer-plugin.version>
+        <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
+        <checkstyle.version>14.0.0</checkstyle.version>
     </properties>
 
     <dependencies>
@@ -134,6 +143,142 @@
 
     <build>
         <plugins>
+            <!-- Formatacao. O Spotless reescreve o arquivo; ele nao negocia estilo, ele
+                 decide. Isso encerra a discussao de formatacao no code review, que com
+                 quatro pessoas em fatias paralelas estava gerando diff de ruido puro.
+
+                 Formatador escolhido: palantir-java-format, medido, nao presumido.
+                 O google-java-format em AOSP tambem roda no JDK 25 com o Spotless 3.x —
+                 nenhum dos dois precisou das flags add-exports, ao contrario do que a
+                 documentacao mais antiga sugere. O criterio de desempate foi o tamanho
+                 da reformatacao inicial sobre o codigo que ja existe: palantir deixa 16
+                 dos 89 arquivos intactos, google-AOSP deixa 9. Menos churn no commit de
+                 reformatacao, menos historico de autoria perdido.
+
+                 Atencao a versao do Spotless: a 2.44.5 estoura NoSuchMethodError em
+                 Log$DeferredDiagnosticHandler.getDiagnostics() no JDK 25, porque o javac
+                 mudou a assinatura interna. A 3.10.0 acompanha. Nao faca downgrade. -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <java>
+                        <palantirJavaFormat>
+                            <version>${palantir-java-format.version}</version>
+                        </palantirJavaFormat>
+                        <removeUnusedImports/>
+                        <!-- Blocos separados por origem: primeiro a plataforma, depois o
+                             ecossistema, por ultimo o nosso codigo. A virgula final nao e
+                             engano — o grupo vazio e o coringa do Spotless, e o que sobra
+                             cai nele. Sem ele, import de io.jsonwebtoken e de outros
+                             prefixos nao teria lugar definido e oscilaria entre execucoes. -->
+                        <importOrder>
+                            <order>java,javax,jakarta,org,com,</order>
+                        </importOrder>
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                        <formatAnnotations/>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotless-check</id>
+                        <!-- validate, nao verify: falha antes de compilar, que e o feedback
+                             mais barato possivel. `check` e nao `apply` de proposito — um
+                             build que reescreve o codigo-fonte por conta propria muda o que
+                             o desenvolvedor esta editando no meio da edicao. Formatar e
+                             `mvn spotless:apply`, explicito, quando a pessoa quiser. -->
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Impede que o Jackson 2 vire dependencia direta.
+
+                 Ele esta e vai continuar no classpath por transitividade do springdoc e do
+                 jjwt — nao da para bani-lo de vez sem perder o Swagger, que e entregavel
+                 obrigatorio. Por isso searchTransitive=false: o alvo nao e a presenca do
+                 jar, e a declaracao deliberada. Se `com.fasterxml.jackson.core` aparecer
+                 como dependencia nossa em escopo compile, alguem precisou dele para
+                 compilar, o que significa que importou a classe da linha errada. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${enforcer-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>ban-jackson2-as-direct-dependency</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <searchTransitive>false</searchTransitive>
+                                    <excludes>
+                                        <exclude>com.fasterxml.jackson.core:*:*:*:compile</exclude>
+                                    </excludes>
+                                    <message>
+Dependencia direta de com.fasterxml.jackson.core (Jackson 2) em escopo compile.
+
+O Spring Boot 4 serializa com Jackson 3, no pacote tools.jackson. O Jackson 2 segue no
+classpath apenas por transitividade do springdoc e do jjwt, e nao deve ser declarado por nos.
+
+Se voce adicionou esta dependencia para fazer um import compilar, o import e que esta errado:
+troque com.fasterxml.jackson.databind por tools.jackson.databind. As anotacoes de
+com.fasterxml.jackson.annotation sao compartilhadas pelas duas linhas e nao exigem
+dependencia nova.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Tres regras de import, e so isso. O racional de cada uma esta no proprio
+                 checkstyle.xml, junto da regra, que e onde quem tomar o erro vai olhar. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${checkstyle-plugin.version}</version>
+                <dependencies>
+                    <!-- O plugin embarca uma versao antiga do Checkstyle, que nao entende a
+                         sintaxe do Java 25 e falha ao parsear os arquivos. Sobrescrever a
+                         dependencia e o mecanismo suportado para isso. -->
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>config/checkstyle/checkstyle.xml</configLocation>
+                    <suppressionsLocation>config/checkstyle/suppressions.xml</suppressionsLocation>
+                    <!-- Teste tambem importa: um teste que monta JSON com o ObjectMapper da
+                         linha errada passa e nao prova nada sobre a serializacao real. -->
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <violationSeverity>error</violationSeverity>
+                    <failOnViolation>true</failOnViolation>
+                    <consoleOutput>true</consoleOutput>
+                    <logViolationsToConsole>true</logViolationsToConsole>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle-illegal-imports</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

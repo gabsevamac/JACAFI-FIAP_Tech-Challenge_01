@@ -119,6 +119,77 @@ Placas e documentos aparecem mascarados em qualquer saída de log.
 
 ---
 
+## Padrão de código e guarda-corpos de build
+
+Com quatro pessoas editando fatias paralelas, formatação divergente vira ruído de diff:
+o *code review* passa a discutir indentação em vez de decisão de modelagem. A resposta
+não é combinar um estilo, é remover a escolha do caminho.
+
+### Formatação
+
+O [Spotless](https://github.com/diffplug/spotless) reescreve todo arquivo Java com o
+**palantir-java-format**, e roda como `spotless:check` na fase `validate` — código fora
+do padrão reprova o build antes mesmo de compilar.
+
+```bash
+mvn spotless:apply    # formata
+mvn spotless:check    # só verifica (é o que o build faz)
+```
+
+O `check` e não o `apply` no build é deliberado: um build que reescreve o código-fonte
+sozinho altera o arquivo que a pessoa está editando no meio da edição.
+
+**Escolha do formatador.** Foi medida, não presumida. Ambos os candidatos rodam no JDK
+25 com Spotless 3.x, e nenhum precisou das flags `add-exports` que a documentação mais
+antiga menciona. O desempate foi o tamanho da reformatação inicial: o palantir preserva
+16 dos 89 arquivos existentes, o google-java-format em AOSP preserva 9.
+
+Uma armadilha de versão vale registro: o Spotless **2.44.5 não funciona no JDK 25** —
+estoura `NoSuchMethodError` em `Log$DeferredDiagnosticHandler.getDiagnostics()`, porque
+o javac mudou a assinatura interna. A partir da 3.x acompanha. Não faça downgrade.
+
+### Regras de import
+
+O `maven-checkstyle-plugin` carrega exatamente **três** regras, em
+`server/config/checkstyle/checkstyle.xml`. Ele não opina sobre nome de variável nem
+comprimento de método — isso é trabalho do Spotless.
+
+| Import barrado | Use no lugar | Por quê |
+|---|---|---|
+| `com.fasterxml.jackson.databind` | `tools.jackson.databind` | O Boot 4 serializa com Jackson 3. O Jackson 2 está no classpath só por transitividade, então importar a classe errada compila e passa nos testes — e falha em produção |
+| `java.util.Date`, `java.sql.Timestamp` | `java.time.Instant` | Carregam o fuso da máquina, e a aplicação mede tempo médio de execução |
+| `lombok.*` | código escrito à mão | O `@ToString` gerado imprimia a placa íntegra em log, contra o requisito de mascaramento |
+
+O subpacote `com.fasterxml.jackson.annotation` **continua liberado**: as anotações são
+compartilhadas pelas duas linhas do Jackson por decisão do próprio projeto.
+
+Exceções ficam em `server/config/checkstyle/suppressions.xml`, cada uma com motivo e
+critério de saída registrados. Hoje há uma: a jjwt exige `java.util.Date` na assinatura
+da própria API.
+
+### Dependências banidas
+
+O `maven-enforcer-plugin` reprova `com.fasterxml.jackson.core` como dependência
+**direta** em escopo `compile`. A busca é não-transitiva de propósito — o Jackson 2 vai
+continuar no classpath vindo do springdoc e do jjwt, e bani-lo de vez custaria o Swagger,
+que é entregável obrigatório. O alvo é a declaração deliberada: se alguém precisou
+adicioná-lo para compilar, o `import` é que está errado.
+
+### Histórico de autoria
+
+O commit que aplicou a formatação ao repositório inteiro tocou quase todas as linhas.
+Sem tratamento, o `git blame` atribuiria o código de todo mundo a quem rodou o
+formatador. Ative o arquivo de exclusão **uma vez por clone**:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+A configuração é local e não se propaga sozinha — cada integrante precisa rodar o
+comando. A interface web do GitHub respeita o arquivo automaticamente.
+
+---
+
 ## Execução local
 
 *A preencher conforme a stack for definida — pré-requisitos, variáveis de ambiente, subida via `docker compose up`, URL do Swagger e comando de testes.*
