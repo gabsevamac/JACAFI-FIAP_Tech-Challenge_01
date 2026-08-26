@@ -1,6 +1,7 @@
 package com.jacafi.tech.customer.entity;
 
 import com.jacafi.tech.customer.exception.InvalidTaxIdException;
+import com.jacafi.tech.shared.lgpd.Masker;
 import com.jacafi.tech.shared.lgpd.PersonalData;
 
 /**
@@ -30,7 +31,7 @@ public record Cnpj(
 
     @Override
     public String masked() {
-        return value.substring(0, 3) + "***" + value.substring(12);
+        return Masker.document(value);
     }
 
     @Override

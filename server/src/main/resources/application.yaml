@@ -14,6 +14,17 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          # Fuso que o Hibernate usa ao passar e ao ler timestamp pelo JDBC.
+          #
+          # Sem esta linha o driver usa o fuso default da JVM, e o valor gravado passa a
+          # depender da maquina que rodou a aplicacao. Nao e teorico: a mesma linha lida por
+          # um container em UTC e por um desenvolvedor em America/Sao_Paulo daria dois
+          # instantes diferentes, e nenhum erro seria levantado.
+          #
+          # Fixar aqui torna o comportamento independente do ambiente, que e o que permite
+          # ao teste de integracao provar o round-trip do Instant.
+          time_zone: UTC
 
   flyway:
     enabled: true

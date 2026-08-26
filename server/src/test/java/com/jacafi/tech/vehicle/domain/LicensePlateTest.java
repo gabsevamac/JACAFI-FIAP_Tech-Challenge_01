@@ -80,7 +80,7 @@ class LicensePlateTest {
     void toStringIsMasked() {
         LicensePlate plate = new LicensePlate("ABC1234");
 
-        assertThat(plate.toString()).doesNotContain("ABC1234").contains("ABC***4");
+        assertThat(plate.toString()).doesNotContain("ABC1234").contains("ABC****");
     }
 
     @Nested
@@ -88,8 +88,8 @@ class LicensePlateTest {
     class Masking {
 
         @ParameterizedTest
-        @DisplayName("keeps the first three characters and the last one")
-        @CsvSource({"ABC1234, ABC***4", "ABC1D23, ABC***3", "XYZ9876, XYZ***6"})
+        @DisplayName("keeps the first three characters and masks the rest")
+        @CsvSource({"ABC1234, ABC****", "ABC1D23, ABC****", "XYZ9876, XYZ****"})
         void masksTheMiddleOfAPlate(String plate, String expected) {
             assertThat(new LicensePlate(plate).masked()).isEqualTo(expected);
             assertThat(LicensePlate.mask(plate)).isEqualTo(expected);
@@ -97,7 +97,7 @@ class LicensePlateTest {
 
         @ParameterizedTest
         @DisplayName("masks short values entirely, where partial masking would reveal too much")
-        @ValueSource(strings = {"", "A", "AB", "ABC", "ABCD"})
+        @ValueSource(strings = {"", "A", "AB", "ABC", "ABCD", "ABCDE"})
         void masksShortValuesEntirely(String value) {
             assertThat(LicensePlate.mask(value)).isEqualTo("***");
         }
@@ -111,13 +111,13 @@ class LicensePlateTest {
         @DisplayName("masks an anonymization token, which can never be a valid plate")
         void masksTheAnonymizationToken() {
             assertThat(LicensePlate.mask("ANON-0f7c9a1e-3b2d-4c5f-8a9b-1d2e3f4a5b6c"))
-                    .isEqualTo("ANO***c");
+                    .isEqualTo("ANO***********");
         }
 
         @Test
         @DisplayName("masks input the format check has already rejected")
         void masksRejectedInput() {
-            assertThat(LicensePlate.mask("XYZ98765")).isEqualTo("XYZ***5");
+            assertThat(LicensePlate.mask("XYZ98765")).isEqualTo("XYZ*****");
         }
     }
 }

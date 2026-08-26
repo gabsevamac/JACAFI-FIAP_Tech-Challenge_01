@@ -113,12 +113,12 @@ class TaxIdTest {
 
         @Test
         void masksACpf() {
-            assertThat(TaxId.of("52998224725").masked()).isEqualTo("529***25");
+            assertThat(TaxId.of("52998224725").masked()).isEqualTo("********725");
         }
 
         @Test
         void masksACnpj() {
-            assertThat(TaxId.of("11222333000181").masked()).isEqualTo("112***81");
+            assertThat(TaxId.of("11222333000181").masked()).isEqualTo("***********181");
         }
 
         @Test
@@ -126,10 +126,10 @@ class TaxIdTest {
         void toStringIsMasked() {
             assertThat(TaxId.of("52998224725").toString())
                     .doesNotContain("52998224725")
-                    .contains("529***25");
+                    .contains("********725");
             assertThat(TaxId.of("11222333000181").toString())
                     .doesNotContain("11222333000181")
-                    .contains("112***81");
+                    .contains("***********181");
         }
     }
 

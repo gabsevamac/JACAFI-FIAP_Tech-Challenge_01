@@ -4,6 +4,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.jacafi.tech.customer.exception.InvalidTaxIdException;
+import com.jacafi.tech.shared.lgpd.Masker;
 import com.jacafi.tech.shared.lgpd.PersonalData;
 
 /**
@@ -35,7 +36,7 @@ public record Cpf(
     /** First three and last two characters — enough to correlate log lines, not to identify. */
     @Override
     public String masked() {
-        return value.substring(0, 3) + "***" + value.substring(9);
+        return Masker.document(value);
     }
 
     /**

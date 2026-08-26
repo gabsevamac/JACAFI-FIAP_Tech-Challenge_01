@@ -34,7 +34,7 @@ class LogMaskingTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-25T12:00:00Z"), ZoneOffset.UTC);
     private static final UUID CUSTOMER = UUID.fromString("5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e");
     private static final String PLATE = "ABC1234";
-    private static final String MASKED_PLATE = "ABC***4";
+    private static final String MASKED_PLATE = "ABC****";
 
     private final ListAppender<ILoggingEvent> appender = new ListAppender<>();
     private Logger rootLogger;

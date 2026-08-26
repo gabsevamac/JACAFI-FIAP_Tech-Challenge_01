@@ -12,6 +12,16 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # As duas variaveis existem porque atendem coisas diferentes, e so as duas juntas
+      # fecham o cerco: TZ e o fuso do sistema operacional do container (o que `date` e o
+      # log do Postgres usam), PGTZ e o fuso que o cliente libpq assume na sessao.
+      #
+      # A aplicacao mede tempo medio de execucao de servico, que e subtracao entre
+      # timestamps. Se o banco resolver "agora" num fuso e a JVM em outro, a conta erra por
+      # um numero inteiro de horas — e erra silenciosamente, porque o resultado continua
+      # sendo um numero plausivel.
+      TZ: UTC
+      PGTZ: UTC
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 15s

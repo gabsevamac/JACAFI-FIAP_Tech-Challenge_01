@@ -334,7 +334,7 @@ class VehicleTest {
     void toStringIsMasked() {
         Vehicle vehicle = register();
 
-        assertThat(vehicle.toString()).doesNotContain("ABC1234").contains("ABC***4");
+        assertThat(vehicle.toString()).doesNotContain("ABC1234").contains("ABC****");
     }
 
     @Test

@@ -135,6 +135,6 @@ class CustomerTest {
                 .doesNotContain("Maria")
                 .doesNotContain("maria@example.com")
                 .doesNotContain("11999999999")
-                .contains("529***25");
+                .contains("********725");
     }
 }

@@ -119,6 +119,97 @@ Placas e documentos aparecem mascarados em qualquer saída de log.
 
 ---
 
+## Tempo: UTC e o relógio injetado
+
+Um dos requisitos do desafio é monitorar o tempo médio de execução dos serviços. Isso
+é subtração entre timestamps, e subtração entre timestamps só é confiável se todas as
+camadas concordarem sobre o que "agora" significa.
+
+### UTC em toda camada
+
+| Camada | Onde | O quê |
+|---|---|---|
+| Container da aplicação | `server/Dockerfile` | `ENV TZ=UTC` |
+| Container do banco | `docker-compose.yaml` | `TZ=UTC` (SO) e `PGTZ=UTC` (sessão libpq) |
+| JDBC / Hibernate | `application.yaml` | `spring.jpa.properties.hibernate.jdbc.time_zone=UTC` |
+| JVM | `ApplicationTimeZone.enforceUtc()`, chamado no `main` | cobre quem roda pela IDE, fora do Docker |
+
+O domínio fala `Instant`. `LocalDateTime`, `java.util.Date` e `java.sql.Timestamp` são
+barrados pelo Checkstyle — o primeiro por convenção do projeto, os outros dois por
+regra de build.
+
+### O relógio é injetado, nunca lido
+
+Nenhuma classe chama `Instant.now()`. Todas recebem o bean `Clock` de
+`shared/time/TimeConfiguration` e chamam `Instant.now(clock)`.
+
+Isso não é purismo: é o que torna o teste de tempo uma igualdade em vez de uma
+tolerância. Um teste que afirma "`createdAt` é aproximadamente agora" passa na máquina
+rápida e falha na CI carregada. Com `FixedClockConfiguration`, a asserção é `isEqualTo`.
+
+```java
+@Import(FixedClockConfiguration.class)   // congela em 2026-01-15T10:30:00Z
+class AlgumaCoisaIT extends AbstractIntegrationTest { ... }
+```
+
+### Precisão: microssegundos, não nanossegundos
+
+O bean `Clock` é `Clock.tick(Clock.systemUTC(), Duration.ofNanos(1_000))`, e não
+`Clock.systemUTC()`. O motivo foi medido no endpoint de veículos — o mesmo campo do
+mesmo recurso voltava de duas formas:
+
+```
+POST  →  "registeredAt":"2026-08-26T14:20:48.492948227Z"
+GET   →  "registeredAt":"2026-08-26T14:20:48.492948Z"
+```
+
+`Clock.systemUTC()` resolve em nanossegundos, `TIMESTAMPTZ` do Postgres guarda
+microssegundos, e os três dígitos excedentes sumiam na escrita sem aviso. Um cliente
+que guardasse a resposta da criação e comparasse com uma leitura posterior veria
+divergência num recurso que ninguém alterou. Arredondar na origem elimina a
+discrepância: a aplicação passa a produzir exatamente o que o banco consegue guardar.
+
+`InstantRoundTripIT` guarda essa decisão — reverter para `Clock.systemUTC()` faz os
+dois testes falharem.
+
+### Serialização JSON
+
+ISO-8601 com sufixo `Z`, que é o comportamento **default** do Jackson 3 no Boot 4.
+Verificado num teste de controller antes de configurar qualquer coisa; nenhuma
+configuração foi necessária.
+
+---
+
+## Mascaramento de dados pessoais
+
+`shared/lgpd/Masker` é a única fonte do formato. Placa, CPF/CNPJ e e-mail são dados
+pessoais sob o Art. 5º, I da LGPD, e o Art. 6º, VII os mantém fora de log, mensagem de
+erro e stack trace.
+
+| Método | Entrada | Saída | Por que essa ponta |
+|---|---|---|---|
+| `licensePlate` | `ABC1D23` | `ABC****` | As três primeiras letras são comuns aos dois layouts brasileiros, então a máscara não revela se a placa é Mercosul ou antiga |
+| `document` | `52998224725` | `********725` | Os dígitos iniciais do CPF correlacionam com a região emissora; os finais são dígitos verificadores, derivados do resto |
+| `email` | `mariana@example.com` | `m***@example.com` | O domínio identifica a organização, não a pessoa. A parte local usa máscara de tamanho fixo, para não revelar o comprimento |
+
+Regras que o `Masker` aplica e que valem conhecer:
+
+- **Nada lança exceção.** Um utilitário de mascaramento que pode falhar acaba embrulhado
+  em `try/catch` e eventualmente pulado — e o modo de falha do "pulado" é o valor íntegro
+  no log.
+- **Valor curto demais é mascarado por inteiro.** Abaixo de seis caracteres, manter três
+  esconderia menos do que revela.
+- **O run de asteriscos é limitado a 11.** A máscara é proporcional, o que preserva o
+  comprimento — inofensivo para CPF e CNPJ, que já se distinguem por ele. Mas o token que
+  substitui a placa na remoção tem 41 caracteres, e reproduzir esse comprimento gerava uma
+  linha de log com 38 asteriscos.
+
+As fatias `vehicle` e `customer` delegam a ele: `LicensePlate.mask`, `Cpf.masked` e
+`Cnpj.masked` são invólucros de uma linha. Antes desta tarefa cada uma tinha o seu
+formato, o que produzia um log onde a mesma pessoa aparecia de duas maneiras.
+
+---
+
 ## Padrão de código e guarda-corpos de build
 
 Com quatro pessoas editando fatias paralelas, formatação divergente vira ruído de diff:
