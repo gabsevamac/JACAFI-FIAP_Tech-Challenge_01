@@ -28,7 +28,7 @@ import java.util.UUID;
 public record InventoryAuditEntry(UUID inventoryItemId,
                                   AuditedOperation operation,
                                   UUID serviceOrderId,
-                                  Quantity quantity,
+                                  Stock quantity,
                                   String actor,
                                   Instant occurredAt) {
 
@@ -49,7 +49,7 @@ public record InventoryAuditEntry(UUID inventoryItemId,
 
     /** A stock movement tied to a service order: reserved, released, withdrawn. */
     public static InventoryAuditEntry movement(UUID inventoryItemId, AuditedOperation operation,
-                                               UUID serviceOrderId, Quantity quantity,
+                                               UUID serviceOrderId, Stock quantity,
                                                String actor, Instant occurredAt) {
         Objects.requireNonNull(serviceOrderId, "serviceOrderId must not be null for a movement");
         Objects.requireNonNull(quantity, "quantity must not be null for a movement");
@@ -57,7 +57,7 @@ public record InventoryAuditEntry(UUID inventoryItemId,
     }
 
     /** A replenishment moves stock without an order behind it: the shelf is filled, not promised. */
-    public static InventoryAuditEntry replenishment(UUID inventoryItemId, Quantity quantity,
+    public static InventoryAuditEntry replenishment(UUID inventoryItemId, Stock quantity,
                                                     String actor, Instant occurredAt) {
         Objects.requireNonNull(quantity, "quantity must not be null for a replenishment");
         return new InventoryAuditEntry(inventoryItemId, AuditedOperation.REPLENISHED, null, quantity,
@@ -68,7 +68,7 @@ public record InventoryAuditEntry(UUID inventoryItemId,
         return Optional.ofNullable(serviceOrderId);
     }
 
-    public Optional<Quantity> optionalQuantity() {
+    public Optional<Stock> optionalQuantity() {
         return Optional.ofNullable(quantity);
     }
 }

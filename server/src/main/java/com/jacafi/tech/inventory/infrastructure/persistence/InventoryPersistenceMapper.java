@@ -1,7 +1,7 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
 import com.jacafi.tech.inventory.domain.InventoryItem;
-import com.jacafi.tech.inventory.domain.Quantity;
+import com.jacafi.tech.inventory.domain.Stock;
 import com.jacafi.tech.inventory.domain.Reservation;
 import org.springframework.stereotype.Component;
 
@@ -43,7 +43,7 @@ public class InventoryPersistenceMapper {
                 .name(entity.getName())
                 .type(entity.getType())
                 .unitPrice(entity.getUnitPrice())
-                .stockOnHand(Quantity.of(entity.getStockOnHand()))
+                .stockOnHand(Stock.of(entity.getStockOnHand()))
                 .reservations(restored)
                 .registeredAt(entity.getRegisteredAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -54,7 +54,7 @@ public class InventoryPersistenceMapper {
     private static Reservation toDomain(InventoryReservationJpaEntity entity) {
         return new Reservation(entity.getId(),
                 entity.getServiceOrderId(),
-                Quantity.of(entity.getQuantity()),
+                Stock.of(entity.getQuantity()),
                 entity.getReservedAt());
     }
 }

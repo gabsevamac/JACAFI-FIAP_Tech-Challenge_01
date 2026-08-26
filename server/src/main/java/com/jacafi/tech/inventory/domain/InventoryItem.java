@@ -69,7 +69,7 @@ public class InventoryItem {
     private BigDecimal unitPrice;
 
     /** Everything physically on the shelf, including the units reserved for open orders. */
-    private Quantity stockOnHand;
+    private Stock stockOnHand;
 
     /**
      * Open reservations, keyed by the service order that holds them.
@@ -136,7 +136,7 @@ public class InventoryItem {
      * <p>Reservations are untouched: replenishing raises what is on hand, so what is available
      * rises with it, and what other orders already hold stays theirs.
      */
-    public void replenish(Quantity quantity, Clock clock) {
+    public void replenish(Stock quantity, Clock clock) {
         Objects.requireNonNull(quantity, "quantity must not be null");
         Objects.requireNonNull(clock, "clock must not be null");
         requireActive();
@@ -164,7 +164,7 @@ public class InventoryItem {
      * @return the reservation as it now stands, enlarged if one was already open
      * @throws InsufficientStockException when fewer units are available than were asked for
      */
-    public Reservation reserve(UUID serviceOrderId, Quantity quantity, Clock clock) {
+    public Reservation reserve(UUID serviceOrderId, Stock quantity, Clock clock) {
         Objects.requireNonNull(serviceOrderId, "serviceOrderId must not be null");
         Objects.requireNonNull(quantity, "quantity must not be null");
         Objects.requireNonNull(clock, "clock must not be null");
@@ -297,19 +297,19 @@ public class InventoryItem {
     }
 
     /** Everything on the shelf, reserved units included. */
-    public Quantity getStockOnHand() {
+    public Stock getStockOnHand() {
         return stockOnHand;
     }
 
     /** What every open reservation holds, added up. */
-    public Quantity stockReserved() {
+    public Stock stockReserved() {
         return reservations.values().stream()
                 .map(Reservation::quantity)
-                .reduce(Quantity.ZERO, Quantity::plus);
+                .reduce(Stock.ZERO, Stock::plus);
     }
 
     /** What a new order could still be promised. Never negative, by the reservation rule. */
-    public Quantity stockAvailable() {
+    public Stock stockAvailable() {
         return stockOnHand.minus(stockReserved());
     }
 
@@ -409,7 +409,7 @@ public class InventoryItem {
         private String name;
         private MaterialType type;
         private BigDecimal unitPrice;
-        private Quantity stockOnHand = Quantity.ZERO;
+        private Stock stockOnHand = Stock.ZERO;
         private Map<UUID, Reservation> reservations = Map.of();
         private Instant registeredAt;
         private Instant updatedAt;
@@ -439,7 +439,7 @@ public class InventoryItem {
         }
 
         /** The opening balance on registration; whatever storage holds on rehydration. */
-        public Builder stockOnHand(Quantity stockOnHand) {
+        public Builder stockOnHand(Stock stockOnHand) {
             this.stockOnHand = stockOnHand;
             return this;
         }

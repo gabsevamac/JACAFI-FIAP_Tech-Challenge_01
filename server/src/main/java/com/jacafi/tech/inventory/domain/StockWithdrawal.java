@@ -21,7 +21,7 @@ import java.util.UUID;
  * @param quantity        units withdrawn, always at least one
  * @param withdrawnAt     when it happened
  */
-public record StockWithdrawal(UUID inventoryItemId, UUID serviceOrderId, Quantity quantity, Instant withdrawnAt) {
+public record StockWithdrawal(UUID inventoryItemId, UUID serviceOrderId, Stock quantity, Instant withdrawnAt) {
 
     public StockWithdrawal {
         Objects.requireNonNull(inventoryItemId, "inventoryItemId must not be null");

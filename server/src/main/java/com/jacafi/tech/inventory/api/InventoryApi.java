@@ -114,7 +114,7 @@ public interface InventoryApi {
                     + "already held are untouched.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Replenished"),
-            @ApiResponse(responseCode = "400", description = "Quantity out of range", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Stock out of range", content = @Content),
             @ApiResponse(responseCode = "401", description = "Missing or invalid JWT", content = @Content),
             @ApiResponse(responseCode = "404", description = "No active item with this identifier",
                     content = @Content)
@@ -130,7 +130,7 @@ public interface InventoryApi {
                     + "available is rejected with 409.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Reserved"),
-            @ApiResponse(responseCode = "400", description = "Quantity out of range or order missing",
+            @ApiResponse(responseCode = "400", description = "Stock out of range or order missing",
                     content = @Content),
             @ApiResponse(responseCode = "401", description = "Missing or invalid JWT", content = @Content),
             @ApiResponse(responseCode = "404", description = "No active item with this identifier",

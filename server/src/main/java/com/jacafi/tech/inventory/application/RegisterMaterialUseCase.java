@@ -6,7 +6,7 @@ import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
 import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.InventoryItemRepository;
-import com.jacafi.tech.inventory.domain.Quantity;
+import com.jacafi.tech.inventory.domain.Stock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -52,7 +52,7 @@ public class RegisterMaterialUseCase {
                 .name(command.name())
                 .type(command.type())
                 .unitPrice(command.unitPrice())
-                .stockOnHand(Quantity.of(command.initialStock()))
+                .stockOnHand(Stock.of(command.initialStock()))
                 .register(clock);
 
         // Checked against the normalized name the aggregate produced, not the raw input: "Filtro

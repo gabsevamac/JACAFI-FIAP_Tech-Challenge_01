@@ -16,7 +16,7 @@ import java.util.UUID;
  * authorized this material to leave. A withdrawal with no reservation behind it is a part leaving
  * the shelf without an approved order, which is precisely what the domain vision forbids.
  *
- * <p>Immutable, like every value the aggregate holds. {@link #increasedBy(Quantity)} returns a new
+ * <p>Immutable, like every value the aggregate holds. {@link #increasedBy(Stock)} returns a new
  * instance keeping the same identity and the original instant on purpose: an additional repair
  * enlarges a reservation that already exists rather than replacing it, and preserving the identity
  * is what lets storage update the row instead of deleting one and inserting another.
@@ -27,7 +27,7 @@ import java.util.UUID;
  * @param quantity       units held, always at least one
  * @param reservedAt     when the reservation was first created
  */
-public record Reservation(UUID id, UUID serviceOrderId, Quantity quantity, Instant reservedAt) {
+public record Reservation(UUID id, UUID serviceOrderId, Stock quantity, Instant reservedAt) {
 
     public Reservation {
         Objects.requireNonNull(id, "id must not be null");
@@ -39,12 +39,12 @@ public record Reservation(UUID id, UUID serviceOrderId, Quantity quantity, Insta
         }
     }
 
-    static Reservation open(UUID serviceOrderId, Quantity quantity, Instant reservedAt) {
+    static Reservation open(UUID serviceOrderId, Stock quantity, Instant reservedAt) {
         return new Reservation(UUID.randomUUID(), serviceOrderId, quantity, reservedAt);
     }
 
     /** Same identity, same instant, more units — an additional repair on the same order. */
-    Reservation increasedBy(Quantity extra) {
+    Reservation increasedBy(Stock extra) {
         return new Reservation(id, serviceOrderId, quantity.plus(extra), reservedAt);
     }
 }

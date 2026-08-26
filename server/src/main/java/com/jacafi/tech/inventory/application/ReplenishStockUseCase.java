@@ -5,7 +5,7 @@ import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
 import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
 import com.jacafi.tech.inventory.domain.InventoryItemRepository;
-import com.jacafi.tech.inventory.domain.Quantity;
+import com.jacafi.tech.inventory.domain.Stock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -43,7 +43,7 @@ public class ReplenishStockUseCase {
         InventoryItem item = repository.findActiveByIdForUpdate(command.inventoryItemId())
                 .orElseThrow(() -> new InventoryItemNotFoundException(command.inventoryItemId()));
 
-        Quantity added = Quantity.of(command.quantity());
+        Stock added = Stock.of(command.quantity());
         item.replenish(added, clock);
 
         repository.save(item);

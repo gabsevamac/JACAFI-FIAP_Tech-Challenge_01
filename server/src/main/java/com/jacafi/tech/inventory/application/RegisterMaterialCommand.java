@@ -8,7 +8,7 @@ import java.math.BigDecimal;
  * Input for registering a part or a supply.
  *
  * <p>Carries primitives, not value objects: it crosses the boundary inward from a caller that has
- * only strings and numbers, and turning those into a {@code Quantity} is the use case's job —
+ * only strings and numbers, and turning those into a {@code Stock} is the use case's job —
  * which is also where the resulting validation failure belongs.
  *
  * @param initialStock the opening balance, what is already on the shelf when the material is

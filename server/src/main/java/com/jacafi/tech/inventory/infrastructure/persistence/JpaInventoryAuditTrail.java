@@ -2,7 +2,7 @@ package com.jacafi.tech.inventory.infrastructure.persistence;
 
 import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
-import com.jacafi.tech.inventory.domain.Quantity;
+import com.jacafi.tech.inventory.domain.Stock;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,7 +27,7 @@ public class JpaInventoryAuditTrail implements InventoryAuditTrail {
         repository.save(new InventoryAuditEntryJpaEntity(entry.inventoryItemId(),
                 entry.operation(),
                 entry.serviceOrderId(),
-                entry.optionalQuantity().map(Quantity::value).orElse(null),
+                entry.optionalQuantity().map(Stock::value).orElse(null),
                 entry.actor(),
                 entry.occurredAt()));
     }

@@ -11,39 +11,43 @@ package com.jacafi.tech.inventory.domain;
  * <p>Addition is checked rather than wrapping. Overflow is unreachable with real quantities, and
  * an unreachable case that silently produces a negative number is worse than one that throws.
  *
- * <p>The type stays {@code Quantity} while the stock level it holds is named {@code stock},
- * which is what §9 of the dictionary fixes: "{@code stock} para a quantidade". The two are not
- * the same thing. A stock level is a quantity, but so is the amount a reservation holds and the
- * amount a withdrawal moves, and neither of those is stock — a baixa does not have a stock of
- * four. The dictionary settles the vocabulary of the domain, not the names of measurement types,
- * which is why {@code Instant} and {@code BigDecimal} are absent from it as well.
+ * <p>Named after what it counts rather than after the act of counting. §9 of the dictionary
+ * settles the word in the Estoque entry — "{@code stock} para a quantidade" — and the slice
+ * follows it into the type itself: everything measured here is stock, whether it is sitting on
+ * the shelf, held by a reservation or leaving in a withdrawal.
+ *
+ * <p>The alternative considered and rejected on review was {@code Quantity}. It answers "a
+ * quantity of what?" with nothing, and would fit a codebase about anything at all; a name that
+ * carries the domain is worth more than one that is merely accurate. The component names stay
+ * with the role each amount plays — a reservation holds a {@code quantity} of type {@code Stock}
+ * — so the type says what is being counted and the field says why.
  *
  * @param value the number of units, zero or more
  */
-public record Quantity(int value) {
+public record Stock(int value) {
 
-    public static final Quantity ZERO = new Quantity(0);
+    public static final Stock ZERO = new Stock(0);
 
-    public Quantity {
+    public Stock {
         if (value < 0) {
             throw new IllegalArgumentException("quantity must not be negative");
         }
     }
 
-    public static Quantity of(int value) {
-        return value == 0 ? ZERO : new Quantity(value);
+    public static Stock of(int value) {
+        return value == 0 ? ZERO : new Stock(value);
     }
 
-    public Quantity plus(Quantity other) {
-        return new Quantity(Math.addExact(value, other.value));
+    public Stock plus(Stock other) {
+        return new Stock(Math.addExact(value, other.value));
     }
 
     /**
      * @throws IllegalArgumentException when the result would be negative, which every caller here
      *                                  guards against beforehand with a message of its own
      */
-    public Quantity minus(Quantity other) {
-        return new Quantity(value - other.value);
+    public Stock minus(Stock other) {
+        return new Stock(value - other.value);
     }
 
     public boolean isZero() {
@@ -54,7 +58,7 @@ public record Quantity(int value) {
         return value > 0;
     }
 
-    public boolean isLessThan(Quantity other) {
+    public boolean isLessThan(Stock other) {
         return value < other.value;
     }
 

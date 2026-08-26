@@ -33,7 +33,7 @@ class InventoryItemTest {
                 .name("Filtro de óleo")
                 .type(MaterialType.PART)
                 .unitPrice(new BigDecimal("49.90"))
-                .stockOnHand(Quantity.of(onHand))
+                .stockOnHand(Stock.of(onHand))
                 .register(CLOCK);
     }
 
@@ -48,9 +48,9 @@ class InventoryItemTest {
 
             assertThat(item.getRegisteredAt()).isEqualTo(NOW);
             assertThat(item.getUpdatedAt()).isEqualTo(NOW);
-            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.stockReserved()).isEqualTo(Quantity.ZERO);
-            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(10));
+            assertThat(item.getStockOnHand()).isEqualTo(Stock.of(10));
+            assertThat(item.stockReserved()).isEqualTo(Stock.ZERO);
+            assertThat(item.stockAvailable()).isEqualTo(Stock.of(10));
             assertThat(item.getReservations()).isEmpty();
             assertThat(item.isRemoved()).isFalse();
         }
@@ -115,15 +115,15 @@ class InventoryItemTest {
         @DisplayName("replenishing raises what is on hand and what is available alike")
         void replenishes() {
             InventoryItem item = item(4);
-            item.replenish(Quantity.of(6), CLOCK);
+            item.replenish(Stock.of(6), CLOCK);
 
-            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(10));
+            assertThat(item.getStockOnHand()).isEqualTo(Stock.of(10));
+            assertThat(item.stockAvailable()).isEqualTo(Stock.of(10));
         }
 
         @Test
         void rejectsAReplenishmentOfNothing() {
-            assertThatThrownBy(() -> item(4).replenish(Quantity.ZERO, CLOCK))
+            assertThatThrownBy(() -> item(4).replenish(Stock.ZERO, CLOCK))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("at least one unit");
         }
@@ -132,11 +132,11 @@ class InventoryItemTest {
         @DisplayName("reserving holds units without taking anything off the shelf")
         void reservesWithoutMovingStock() {
             InventoryItem item = item(10);
-            Reservation reservation = item.reserve(ORDER, Quantity.of(3), CLOCK);
+            Reservation reservation = item.reserve(ORDER, Stock.of(3), CLOCK);
 
-            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.stockReserved()).isEqualTo(Quantity.of(3));
-            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(7));
+            assertThat(item.getStockOnHand()).isEqualTo(Stock.of(10));
+            assertThat(item.stockReserved()).isEqualTo(Stock.of(3));
+            assertThat(item.stockAvailable()).isEqualTo(Stock.of(7));
             assertThat(reservation.serviceOrderId()).isEqualTo(ORDER);
             assertThat(reservation.reservedAt()).isEqualTo(NOW);
         }
@@ -145,9 +145,9 @@ class InventoryItemTest {
         @DisplayName("what another order already holds is not available to this one")
         void refusesToPromiseUnitsAnotherOrderHolds() {
             InventoryItem item = item(5);
-            item.reserve(OTHER_ORDER, Quantity.of(4), CLOCK);
+            item.reserve(OTHER_ORDER, Stock.of(4), CLOCK);
 
-            assertThatThrownBy(() -> item.reserve(ORDER, Quantity.of(2), CLOCK))
+            assertThatThrownBy(() -> item.reserve(ORDER, Stock.of(2), CLOCK))
                     .isInstanceOf(InsufficientStockException.class)
                     .satisfies(thrown -> {
                         InsufficientStockException e = (InsufficientStockException) thrown;
@@ -160,30 +160,30 @@ class InventoryItemTest {
         @DisplayName("an additional repair enlarges the order's reservation instead of opening a second")
         void mergesASecondReservationForTheSameOrder() {
             InventoryItem item = item(10);
-            Reservation first = item.reserve(ORDER, Quantity.of(2), CLOCK);
+            Reservation first = item.reserve(ORDER, Stock.of(2), CLOCK);
 
             Clock later = Clock.fixed(NOW.plus(Duration.ofHours(3)), ZoneOffset.UTC);
-            Reservation enlarged = item.reserve(ORDER, Quantity.of(3), later);
+            Reservation enlarged = item.reserve(ORDER, Stock.of(3), later);
 
             assertThat(item.getReservations()).hasSize(1);
             assertThat(enlarged.id()).isEqualTo(first.id());
-            assertThat(enlarged.quantity()).isEqualTo(Quantity.of(5));
+            assertThat(enlarged.quantity()).isEqualTo(Stock.of(5));
             // The instant of the original claim survives: it is one reservation that grew.
             assertThat(enlarged.reservedAt()).isEqualTo(NOW);
-            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(5));
+            assertThat(item.stockAvailable()).isEqualTo(Stock.of(5));
         }
 
         @Test
         @DisplayName("releasing frees the units and leaves the shelf untouched")
         void releases() {
             InventoryItem item = item(10);
-            item.reserve(ORDER, Quantity.of(3), CLOCK);
+            item.reserve(ORDER, Stock.of(3), CLOCK);
 
             Reservation released = item.releaseReservation(ORDER, CLOCK);
 
-            assertThat(released.quantity()).isEqualTo(Quantity.of(3));
-            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(10));
+            assertThat(released.quantity()).isEqualTo(Stock.of(3));
+            assertThat(item.getStockOnHand()).isEqualTo(Stock.of(10));
+            assertThat(item.stockAvailable()).isEqualTo(Stock.of(10));
             assertThat(item.getReservations()).isEmpty();
         }
 
@@ -191,15 +191,15 @@ class InventoryItemTest {
         @DisplayName("withdrawing takes exactly what the order reserved off the shelf")
         void withdraws() {
             InventoryItem item = item(10);
-            item.reserve(ORDER, Quantity.of(3), CLOCK);
+            item.reserve(ORDER, Stock.of(3), CLOCK);
 
             StockWithdrawal withdrawal = item.withdraw(ORDER, CLOCK);
 
             assertThat(withdrawal.serviceOrderId()).isEqualTo(ORDER);
-            assertThat(withdrawal.quantity()).isEqualTo(Quantity.of(3));
+            assertThat(withdrawal.quantity()).isEqualTo(Stock.of(3));
             assertThat(withdrawal.inventoryItemId()).isEqualTo(item.getId());
-            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(7));
-            assertThat(item.stockReserved()).isEqualTo(Quantity.ZERO);
+            assertThat(item.getStockOnHand()).isEqualTo(Stock.of(7));
+            assertThat(item.stockReserved()).isEqualTo(Stock.ZERO);
             assertThat(item.getReservations()).isEmpty();
         }
 
@@ -210,7 +210,7 @@ class InventoryItemTest {
 
             assertThatThrownBy(() -> item.withdraw(ORDER, CLOCK))
                     .isInstanceOf(ReservationNotFoundException.class);
-            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(item.getStockOnHand()).isEqualTo(Stock.of(10));
         }
 
         @Test
@@ -223,12 +223,12 @@ class InventoryItemTest {
         @DisplayName("a reservation withdrawn twice is refused: the second time there is nothing left")
         void refusesToWithdrawTwice() {
             InventoryItem item = item(10);
-            item.reserve(ORDER, Quantity.of(3), CLOCK);
+            item.reserve(ORDER, Stock.of(3), CLOCK);
             item.withdraw(ORDER, CLOCK);
 
             assertThatThrownBy(() -> item.withdraw(ORDER, CLOCK))
                     .isInstanceOf(ReservationNotFoundException.class);
-            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(7));
+            assertThat(item.getStockOnHand()).isEqualTo(Stock.of(7));
         }
     }
 
@@ -253,7 +253,7 @@ class InventoryItemTest {
         @DisplayName("removing strands nothing: an item with open reservations is refused")
         void refusesToRemoveWithOpenReservations() {
             InventoryItem item = item(10);
-            item.reserve(ORDER, Quantity.of(1), CLOCK);
+            item.reserve(ORDER, Stock.of(1), CLOCK);
 
             assertThatThrownBy(() -> item.remove(CLOCK))
                     .isInstanceOf(IllegalStateException.class)
@@ -269,9 +269,9 @@ class InventoryItemTest {
 
             assertThat(item.isRemoved()).isTrue();
             assertThat(item.getRemovedAt()).contains(NOW);
-            assertThatThrownBy(() -> item.replenish(Quantity.of(1), CLOCK))
+            assertThatThrownBy(() -> item.replenish(Stock.of(1), CLOCK))
                     .isInstanceOf(IllegalStateException.class);
-            assertThatThrownBy(() -> item.reserve(ORDER, Quantity.of(1), CLOCK))
+            assertThatThrownBy(() -> item.reserve(ORDER, Stock.of(1), CLOCK))
                     .isInstanceOf(IllegalStateException.class);
             assertThatThrownBy(() -> item.update("Correia", BigDecimal.ONE, CLOCK))
                     .isInstanceOf(IllegalStateException.class);
@@ -293,15 +293,15 @@ class InventoryItemTest {
                     .name("Correia dentada")
                     .type(MaterialType.PART)
                     .unitPrice(new BigDecimal("120.00"))
-                    .stockOnHand(Quantity.of(8))
-                    .reservations(List.of(new Reservation(UUID.randomUUID(), ORDER, Quantity.of(3), NOW)))
+                    .stockOnHand(Stock.of(8))
+                    .reservations(List.of(new Reservation(UUID.randomUUID(), ORDER, Stock.of(3), NOW)))
                     .registeredAt(NOW)
                     .updatedAt(NOW)
                     .restore();
 
             assertThat(item.getId()).isEqualTo(id);
-            assertThat(item.stockReserved()).isEqualTo(Quantity.of(3));
-            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(5));
+            assertThat(item.stockReserved()).isEqualTo(Stock.of(3));
+            assertThat(item.stockAvailable()).isEqualTo(Stock.of(5));
             assertThat(item.reservationFor(ORDER)).isPresent();
         }
 
@@ -313,10 +313,10 @@ class InventoryItemTest {
                     .name("Correia dentada")
                     .type(MaterialType.PART)
                     .unitPrice(BigDecimal.ONE)
-                    .stockOnHand(Quantity.of(8))
+                    .stockOnHand(Stock.of(8))
                     .reservations(List.of(
-                            new Reservation(UUID.randomUUID(), ORDER, Quantity.of(1), NOW),
-                            new Reservation(UUID.randomUUID(), ORDER, Quantity.of(2), NOW)))
+                            new Reservation(UUID.randomUUID(), ORDER, Stock.of(1), NOW),
+                            new Reservation(UUID.randomUUID(), ORDER, Stock.of(2), NOW)))
                     .registeredAt(NOW)
                     .updatedAt(NOW)
                     .restore())

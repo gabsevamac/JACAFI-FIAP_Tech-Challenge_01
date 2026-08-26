@@ -4,7 +4,7 @@ import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
 import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.InventoryItemRepository;
 import com.jacafi.tech.inventory.domain.MaterialType;
-import com.jacafi.tech.inventory.domain.Quantity;
+import com.jacafi.tech.inventory.domain.Stock;
 import com.jacafi.tech.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -65,7 +65,7 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
                 .name(name)
                 .type(MaterialType.PART)
                 .unitPrice(new BigDecimal("49.90"))
-                .stockOnHand(Quantity.of(onHand))
+                .stockOnHand(Stock.of(onHand))
                 .register(CLOCK);
     }
 
@@ -104,8 +104,8 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
         UUID orderB = UUID.randomUUID();
 
         InventoryItem saved = itemNamed("Filtro de óleo", 10);
-        saved.reserve(orderA, Quantity.of(3), CLOCK);
-        saved.reserve(orderB, Quantity.of(2), CLOCK);
+        saved.reserve(orderA, Stock.of(3), CLOCK);
+        saved.reserve(orderB, Stock.of(2), CLOCK);
         repository.save(saved);
 
         InventoryItem loaded = repository.findActiveById(saved.getId()).orElseThrow();
@@ -113,9 +113,9 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
         assertThat(loaded.getName()).isEqualTo("Filtro de óleo");
         assertThat(loaded.getType()).isEqualTo(MaterialType.PART);
         assertThat(loaded.getUnitPrice()).isEqualByComparingTo("49.90");
-        assertThat(loaded.getStockOnHand()).isEqualTo(Quantity.of(10));
-        assertThat(loaded.stockReserved()).isEqualTo(Quantity.of(5));
-        assertThat(loaded.stockAvailable()).isEqualTo(Quantity.of(5));
+        assertThat(loaded.getStockOnHand()).isEqualTo(Stock.of(10));
+        assertThat(loaded.stockReserved()).isEqualTo(Stock.of(5));
+        assertThat(loaded.stockAvailable()).isEqualTo(Stock.of(5));
         assertThat(loaded.reservationFor(orderA)).isPresent();
         assertThat(loaded.reservationFor(orderB)).isPresent();
         assertThat(loaded.getRegisteredAt()).isEqualTo(saved.getRegisteredAt());
@@ -128,15 +128,15 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
         UUID orderB = UUID.randomUUID();
 
         InventoryItem item = itemNamed("Filtro de óleo", 10);
-        item.reserve(orderA, Quantity.of(3), CLOCK);
-        item.reserve(orderB, Quantity.of(2), CLOCK);
+        item.reserve(orderA, Stock.of(3), CLOCK);
+        item.reserve(orderB, Stock.of(2), CLOCK);
         repository.save(item);
 
         assertThat(countReservations(item)).isEqualTo(2);
 
         transactionTemplate.executeWithoutResult(status -> {
             InventoryItem loaded = repository.findActiveByIdForUpdate(item.getId()).orElseThrow();
-            loaded.reserve(orderA, Quantity.of(1), CLOCK);
+            loaded.reserve(orderA, Stock.of(1), CLOCK);
             loaded.withdraw(orderB, CLOCK);
             repository.save(loaded);
         });
@@ -156,7 +156,7 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
         UUID order = UUID.randomUUID();
 
         InventoryItem item = itemNamed("Filtro de óleo", 10);
-        item.reserve(order, Quantity.of(3), CLOCK);
+        item.reserve(order, Stock.of(3), CLOCK);
         repository.save(item);
 
         transactionTemplate.executeWithoutResult(status -> {
@@ -167,7 +167,7 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
 
         assertThat(countReservations(item)).isZero();
         assertThat(repository.findActiveById(item.getId()).orElseThrow().stockAvailable())
-                .isEqualTo(Quantity.of(10));
+                .isEqualTo(Stock.of(10));
     }
 
     @Test
