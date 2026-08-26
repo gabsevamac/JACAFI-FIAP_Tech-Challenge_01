@@ -36,9 +36,9 @@ public class ServiceOrder {
     @Column(name = "vehicle_id", nullable = false, updatable = false)
     private UUID vehicleId;
 
-    //TODO: Alterar campo quando entidade Client estiver feita
-    @Column(name = "client_id", nullable = false, updatable = false)
-    private UUID clientId;
+    //TODO: Alterar campo quando entidade Customer estiver feita
+    @Column(name = "customer_id", nullable = false, updatable = false)
+    private UUID customerId;
 
     @OneToMany(
             mappedBy = "serviceOrder",
@@ -64,13 +64,13 @@ public class ServiceOrder {
     }
 
     //TODO: Alterar parâmetros quando as entidades Vehicle e User estiverem feitas.
-    public static ServiceOrder open(UUID vehicleId, UUID clientId) {
+    public static ServiceOrder open(UUID vehicleId, UUID customerId) {
         if (vehicleId == null) throw new IllegalArgumentException("vehicleId must not be null");
-        if (clientId == null) throw new IllegalArgumentException("clientId must not be null");
+        if (customerId == null) throw new IllegalArgumentException("customerId must not be null");
 
         var order = new ServiceOrder();
         order.vehicleId = vehicleId;
-        order.clientId = clientId;
+        order.customerId = customerId;
         order.status = ServiceOrderStatus.RECEIVED;
         order.total = BigDecimal.ZERO;
         return order;
@@ -143,8 +143,8 @@ public class ServiceOrder {
         return vehicleId;
     }
 
-    public UUID getClientId() {
-        return clientId;
+    public UUID getCustomerId() {
+        return customerId;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -173,7 +173,7 @@ public class ServiceOrder {
     }
 
     /**
-     * Prints the identifier and the status only. {@code vehicleId} and {@code clientId} point at
+     * Prints the identifier and the status only. {@code vehicleId} and {@code customerId} point at
      * a natural person and at a vehicle, so they stay out of logs and error messages
      * (LGPD Art. 6 VII).
      */

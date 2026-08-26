@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,13 +14,16 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.datasource.username=jacafi",
         "spring.datasource.password=jacafi"
 })
+// Sem o perfil de teste, jwt.secret fica sem valor e o contexto nao sobe: application.yaml
+// resolve ${JWT_SECRET} na criacao do JwtService.
+@ActiveProfiles("test")
 class DatabaseMigrationTest {
 
     @Autowired
     private JdbcClient jdbcClient;
 
     @Test
-    void appliesTheInitialSchemaAndClientIndexes() {
+    void appliesTheInitialSchemaAndCustomerIndexes() {
         var tables = jdbcClient.sql("""
                         SELECT table_name
                         FROM information_schema.tables
@@ -38,11 +42,12 @@ class DatabaseMigrationTest {
 
         assertThat(tables).contains(
                 "flyway_schema_history",
-                "parties",
-                "clients",
+                "customers",
                 "services",
                 "service_orders",
                 "service_orders_service");
-        assertThat(indexes).contains("uk_parties_tax_identifier");
+        assertThat(indexes).contains("uk_customers_tax_id");
+        // Party foi colapsado dentro de Customer: a tabela nao existe mais.
+        assertThat(tables).doesNotContain("parties");
     }
 }
