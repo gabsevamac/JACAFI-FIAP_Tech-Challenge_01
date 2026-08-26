@@ -13,8 +13,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-server:
-  port: ${SERVER_PORT:8082}
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
@@ -24,6 +22,9 @@ server:
     # normal com quatro fatias em paralelo. Sem out-of-order o Flyway falha quando isso ocorre.
     # E inofensivo aqui porque o banco e descartavel e sobe do zero a cada `docker compose up`.
     out-of-order: true
+
+server:
+  port: ${SERVER_PORT:8082}
 
 logging:
   level:

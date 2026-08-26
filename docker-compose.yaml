@@ -25,9 +25,9 @@ services:
     container_name: server
     build: ./server
     ports:
-      # A aplicacao escuta na 8080 dentro do container (ver EXPOSE no Dockerfile);
-      # 8082 e apenas a porta publicada no host.
-      - "8082:8080"
+      # application.yaml define server.port com default 8082, entao a aplicacao escuta na 8082
+      # dentro do container. Mantido igual no host para nao haver dois numeros em jogo.
+      - "8082:8082"
     networks:
       - tech-network
     environment:
