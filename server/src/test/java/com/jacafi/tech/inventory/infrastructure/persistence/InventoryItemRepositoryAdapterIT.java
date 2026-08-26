@@ -65,7 +65,7 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
                 .name(name)
                 .type(MaterialType.PART)
                 .unitPrice(new BigDecimal("49.90"))
-                .quantityOnHand(Quantity.of(onHand))
+                .stockOnHand(Quantity.of(onHand))
                 .register(CLOCK);
     }
 
@@ -113,9 +113,9 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
         assertThat(loaded.getName()).isEqualTo("Filtro de óleo");
         assertThat(loaded.getType()).isEqualTo(MaterialType.PART);
         assertThat(loaded.getUnitPrice()).isEqualByComparingTo("49.90");
-        assertThat(loaded.getQuantityOnHand()).isEqualTo(Quantity.of(10));
-        assertThat(loaded.quantityReserved()).isEqualTo(Quantity.of(5));
-        assertThat(loaded.quantityAvailable()).isEqualTo(Quantity.of(5));
+        assertThat(loaded.getStockOnHand()).isEqualTo(Quantity.of(10));
+        assertThat(loaded.stockReserved()).isEqualTo(Quantity.of(5));
+        assertThat(loaded.stockAvailable()).isEqualTo(Quantity.of(5));
         assertThat(loaded.reservationFor(orderA)).isPresent();
         assertThat(loaded.reservationFor(orderB)).isPresent();
         assertThat(loaded.getRegisteredAt()).isEqualTo(saved.getRegisteredAt());
@@ -146,7 +146,7 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
                 "SELECT quantity FROM inventory_reservations WHERE service_order_id = ?",
                 Integer.class, orderA)).isEqualTo(4);
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT quantity_on_hand FROM inventory_items WHERE id = ?",
+                "SELECT stock_on_hand FROM inventory_items WHERE id = ?",
                 Integer.class, item.getId())).isEqualTo(8);
     }
 
@@ -166,7 +166,7 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
         });
 
         assertThat(countReservations(item)).isZero();
-        assertThat(repository.findActiveById(item.getId()).orElseThrow().quantityAvailable())
+        assertThat(repository.findActiveById(item.getId()).orElseThrow().stockAvailable())
                 .isEqualTo(Quantity.of(10));
     }
 

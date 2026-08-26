@@ -52,7 +52,7 @@ public class RegisterMaterialUseCase {
                 .name(command.name())
                 .type(command.type())
                 .unitPrice(command.unitPrice())
-                .quantityOnHand(Quantity.of(command.initialQuantity()))
+                .stockOnHand(Quantity.of(command.initialStock()))
                 .register(clock);
 
         // Checked against the normalized name the aggregate produced, not the raw input: "Filtro
@@ -66,8 +66,8 @@ public class RegisterMaterialUseCase {
         auditTrail.append(InventoryAuditEntry.of(item.getId(), AuditedOperation.REGISTERED,
                 command.actor(), clock.instant()));
 
-        log.info("Material registered: id={} name={} type={} initialQuantity={}",
-                item.getId(), item.getName(), item.getType(), item.getQuantityOnHand());
+        log.info("Material registered: id={} name={} type={} initialStock={}",
+                item.getId(), item.getName(), item.getType(), item.getStockOnHand());
         return item;
     }
 }

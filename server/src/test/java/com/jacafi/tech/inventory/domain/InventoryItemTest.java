@@ -33,7 +33,7 @@ class InventoryItemTest {
                 .name("Filtro de óleo")
                 .type(MaterialType.PART)
                 .unitPrice(new BigDecimal("49.90"))
-                .quantityOnHand(Quantity.of(onHand))
+                .stockOnHand(Quantity.of(onHand))
                 .register(CLOCK);
     }
 
@@ -48,9 +48,9 @@ class InventoryItemTest {
 
             assertThat(item.getRegisteredAt()).isEqualTo(NOW);
             assertThat(item.getUpdatedAt()).isEqualTo(NOW);
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.quantityReserved()).isEqualTo(Quantity.ZERO);
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(10));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(item.stockReserved()).isEqualTo(Quantity.ZERO);
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(10));
             assertThat(item.getReservations()).isEmpty();
             assertThat(item.isRemoved()).isFalse();
         }
@@ -117,8 +117,8 @@ class InventoryItemTest {
             InventoryItem item = item(4);
             item.replenish(Quantity.of(6), CLOCK);
 
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(10));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(10));
         }
 
         @Test
@@ -134,9 +134,9 @@ class InventoryItemTest {
             InventoryItem item = item(10);
             Reservation reservation = item.reserve(ORDER, Quantity.of(3), CLOCK);
 
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.quantityReserved()).isEqualTo(Quantity.of(3));
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(7));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(item.stockReserved()).isEqualTo(Quantity.of(3));
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(7));
             assertThat(reservation.serviceOrderId()).isEqualTo(ORDER);
             assertThat(reservation.reservedAt()).isEqualTo(NOW);
         }
@@ -170,7 +170,7 @@ class InventoryItemTest {
             assertThat(enlarged.quantity()).isEqualTo(Quantity.of(5));
             // The instant of the original claim survives: it is one reservation that grew.
             assertThat(enlarged.reservedAt()).isEqualTo(NOW);
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(5));
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(5));
         }
 
         @Test
@@ -182,8 +182,8 @@ class InventoryItemTest {
             Reservation released = item.releaseReservation(ORDER, CLOCK);
 
             assertThat(released.quantity()).isEqualTo(Quantity.of(3));
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(10));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(10));
             assertThat(item.getReservations()).isEmpty();
         }
 
@@ -198,8 +198,8 @@ class InventoryItemTest {
             assertThat(withdrawal.serviceOrderId()).isEqualTo(ORDER);
             assertThat(withdrawal.quantity()).isEqualTo(Quantity.of(3));
             assertThat(withdrawal.inventoryItemId()).isEqualTo(item.getId());
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(7));
-            assertThat(item.quantityReserved()).isEqualTo(Quantity.ZERO);
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(7));
+            assertThat(item.stockReserved()).isEqualTo(Quantity.ZERO);
             assertThat(item.getReservations()).isEmpty();
         }
 
@@ -210,7 +210,7 @@ class InventoryItemTest {
 
             assertThatThrownBy(() -> item.withdraw(ORDER, CLOCK))
                     .isInstanceOf(ReservationNotFoundException.class);
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
         }
 
         @Test
@@ -228,7 +228,7 @@ class InventoryItemTest {
 
             assertThatThrownBy(() -> item.withdraw(ORDER, CLOCK))
                     .isInstanceOf(ReservationNotFoundException.class);
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(7));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(7));
         }
     }
 
@@ -293,15 +293,15 @@ class InventoryItemTest {
                     .name("Correia dentada")
                     .type(MaterialType.PART)
                     .unitPrice(new BigDecimal("120.00"))
-                    .quantityOnHand(Quantity.of(8))
+                    .stockOnHand(Quantity.of(8))
                     .reservations(List.of(new Reservation(UUID.randomUUID(), ORDER, Quantity.of(3), NOW)))
                     .registeredAt(NOW)
                     .updatedAt(NOW)
                     .restore();
 
             assertThat(item.getId()).isEqualTo(id);
-            assertThat(item.quantityReserved()).isEqualTo(Quantity.of(3));
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(5));
+            assertThat(item.stockReserved()).isEqualTo(Quantity.of(3));
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(5));
             assertThat(item.reservationFor(ORDER)).isPresent();
         }
 
@@ -313,7 +313,7 @@ class InventoryItemTest {
                     .name("Correia dentada")
                     .type(MaterialType.PART)
                     .unitPrice(BigDecimal.ONE)
-                    .quantityOnHand(Quantity.of(8))
+                    .stockOnHand(Quantity.of(8))
                     .reservations(List.of(
                             new Reservation(UUID.randomUUID(), ORDER, Quantity.of(1), NOW),
                             new Reservation(UUID.randomUUID(), ORDER, Quantity.of(2), NOW)))

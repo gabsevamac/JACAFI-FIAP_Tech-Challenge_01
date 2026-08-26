@@ -3,13 +3,13 @@ CREATE TABLE inventory_items (
     name             VARCHAR(120)  NOT NULL,
     type             VARCHAR(10)   NOT NULL,
     unit_price       NUMERIC(12,2) NOT NULL,
-    quantity_on_hand INTEGER       NOT NULL,
+    stock_on_hand    INTEGER       NOT NULL,
     registered_at    TIMESTAMP(6)  WITH TIME ZONE NOT NULL,
     updated_at       TIMESTAMP(6)  WITH TIME ZONE NOT NULL,
     removed_at       TIMESTAMP(6)  WITH TIME ZONE,
     CONSTRAINT ck_inventory_items_type CHECK (type IN ('PART', 'SUPPLY')),
     CONSTRAINT ck_inventory_items_unit_price CHECK (unit_price >= 0),
-    CONSTRAINT ck_inventory_items_quantity CHECK (quantity_on_hand >= 0)
+    CONSTRAINT ck_inventory_items_stock CHECK (stock_on_hand >= 0)
 );
 
 -- Unicidade de nome ENTRE ITENS ATIVOS, nao na tabela inteira.

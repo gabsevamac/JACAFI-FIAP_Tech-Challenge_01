@@ -18,7 +18,7 @@ public class InventoryPersistenceMapper {
                 item.getName(),
                 item.getType(),
                 item.getUnitPrice(),
-                item.getQuantityOnHand().value(),
+                item.getStockOnHand().value(),
                 item.getRegisteredAt(),
                 item.getUpdatedAt(),
                 item.getRemovedAt().orElse(null));
@@ -43,7 +43,7 @@ public class InventoryPersistenceMapper {
                 .name(entity.getName())
                 .type(entity.getType())
                 .unitPrice(entity.getUnitPrice())
-                .quantityOnHand(Quantity.of(entity.getQuantityOnHand()))
+                .stockOnHand(Quantity.of(entity.getStockOnHand()))
                 .reservations(restored)
                 .registeredAt(entity.getRegisteredAt())
                 .updatedAt(entity.getUpdatedAt())

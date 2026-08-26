@@ -56,17 +56,17 @@ class InventoryControllerIT extends AbstractIntegrationTest {
         serviceOrderId = UUID.randomUUID();
     }
 
-    private String registrationBody(String name, String type, int initialQuantity) {
+    private String registrationBody(String name, String type, int initialStock) {
         return """
-                {"name":"%s","type":"%s","unitPrice":49.90,"initialQuantity":%d}
-                """.formatted(name, type, initialQuantity);
+                {"name":"%s","type":"%s","unitPrice":49.90,"initialStock":%d}
+                """.formatted(name, type, initialStock);
     }
 
-    private UUID registerItem(String name, int initialQuantity) throws Exception {
+    private UUID registerItem(String name, int initialStock) throws Exception {
         String body = mockMvc.perform(post(ITEMS)
                         .header("Authorization", bearerToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(registrationBody(name, "PART", initialQuantity)))
+                        .content(registrationBody(name, "PART", initialStock)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return UUID.fromString(body.replaceAll(".*\"id\"\\s*:\\s*\"([^\"]+)\".*", "$1"));
@@ -93,9 +93,9 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.name").value("Filtro de óleo"))
                 .andExpect(jsonPath("$.type").value("PART"))
-                .andExpect(jsonPath("$.quantityOnHand").value(12))
-                .andExpect(jsonPath("$.quantityReserved").value(0))
-                .andExpect(jsonPath("$.quantityAvailable").value(12));
+                .andExpect(jsonPath("$.stockOnHand").value(12))
+                .andExpect(jsonPath("$.stockReserved").value(0))
+                .andExpect(jsonPath("$.stockAvailable").value(12));
 
         List<Map<String, Object>> trail = jdbcTemplate.queryForList(
                 "SELECT operation, actor, service_order_id, quantity FROM inventory_audit_entries");
@@ -127,9 +127,9 @@ class InventoryControllerIT extends AbstractIntegrationTest {
 
         mockMvc.perform(get(ITEMS + "/" + itemId).header("Authorization", bearerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantityOnHand").value(10))
-                .andExpect(jsonPath("$.quantityReserved").value(3))
-                .andExpect(jsonPath("$.quantityAvailable").value(7))
+                .andExpect(jsonPath("$.stockOnHand").value(10))
+                .andExpect(jsonPath("$.stockReserved").value(3))
+                .andExpect(jsonPath("$.stockAvailable").value(7))
                 .andExpect(jsonPath("$.reservations[0].serviceOrderId").value(serviceOrderId.toString()))
                 .andExpect(jsonPath("$.reservations[0].quantity").value(3));
     }
@@ -178,7 +178,7 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Filtro de óleo sintético"))
                 .andExpect(jsonPath("$.unitPrice").value(54.90))
                 // The balance is untouched: a correction is not a stock movement.
-                .andExpect(jsonPath("$.quantityOnHand").value(4));
+                .andExpect(jsonPath("$.stockOnHand").value(4));
 
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM inventory_audit_entries WHERE operation = 'UPDATED'", Long.class))
@@ -192,7 +192,7 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                         .header("Authorization", bearerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Óleo 5W30","type":"SUPPLY","unitPrice":39.999,"initialQuantity":1}
+                                {"name":"Óleo 5W30","type":"SUPPLY","unitPrice":39.999,"initialStock":1}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
@@ -239,8 +239,8 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                                 {"quantity":6}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantityOnHand").value(10))
-                .andExpect(jsonPath("$.quantityAvailable").value(10));
+                .andExpect(jsonPath("$.stockOnHand").value(10))
+                .andExpect(jsonPath("$.stockAvailable").value(10));
 
         Map<String, Object> entry = jdbcTemplate.queryForMap(
                 "SELECT quantity, service_order_id FROM inventory_audit_entries WHERE operation = 'REPLENISHED'");
@@ -259,9 +259,9 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                                 {"serviceOrderId":"%s","quantity":4}
                                 """.formatted(serviceOrderId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantityOnHand").value(10))
-                .andExpect(jsonPath("$.quantityReserved").value(4))
-                .andExpect(jsonPath("$.quantityAvailable").value(6));
+                .andExpect(jsonPath("$.stockOnHand").value(10))
+                .andExpect(jsonPath("$.stockReserved").value(4))
+                .andExpect(jsonPath("$.stockAvailable").value(6));
 
         Map<String, Object> row = jdbcTemplate.queryForMap(
                 "SELECT service_order_id, quantity FROM inventory_reservations");
@@ -280,7 +280,7 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reservations.length()").value(1))
                 .andExpect(jsonPath("$.reservations[0].quantity").value(5))
-                .andExpect(jsonPath("$.quantityAvailable").value(5));
+                .andExpect(jsonPath("$.stockAvailable").value(5));
 
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM inventory_reservations", Long.class)).isEqualTo(1);
@@ -315,8 +315,8 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get(ITEMS + "/" + itemId).header("Authorization", bearerToken))
-                .andExpect(jsonPath("$.quantityOnHand").value(10))
-                .andExpect(jsonPath("$.quantityAvailable").value(10))
+                .andExpect(jsonPath("$.stockOnHand").value(10))
+                .andExpect(jsonPath("$.stockAvailable").value(10))
                 .andExpect(jsonPath("$.reservations.length()").value(0));
 
         assertThat(jdbcTemplate.queryForObject(
@@ -340,8 +340,8 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.serviceOrderId").value(serviceOrderId.toString()));
 
         mockMvc.perform(get(ITEMS + "/" + itemId).header("Authorization", bearerToken))
-                .andExpect(jsonPath("$.quantityOnHand").value(6))
-                .andExpect(jsonPath("$.quantityAvailable").value(6))
+                .andExpect(jsonPath("$.stockOnHand").value(6))
+                .andExpect(jsonPath("$.stockAvailable").value(6))
                 .andExpect(jsonPath("$.reservations.length()").value(0));
 
         Map<String, Object> entry = jdbcTemplate.queryForMap(
@@ -364,7 +364,7 @@ class InventoryControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isNotFound());
 
         mockMvc.perform(get(ITEMS + "/" + itemId).header("Authorization", bearerToken))
-                .andExpect(jsonPath("$.quantityOnHand").value(10));
+                .andExpect(jsonPath("$.stockOnHand").value(10));
     }
 
     @Test

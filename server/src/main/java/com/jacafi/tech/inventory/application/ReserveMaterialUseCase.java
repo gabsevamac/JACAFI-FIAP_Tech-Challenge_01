@@ -66,7 +66,7 @@ public class ReserveMaterialUseCase {
 
         log.info("Material reserved: id={} name={} serviceOrderId={} reserved={} available={}",
                 item.getId(), item.getName(), command.serviceOrderId(), requested,
-                item.quantityAvailable());
+                item.stockAvailable());
         return item;
     }
 }

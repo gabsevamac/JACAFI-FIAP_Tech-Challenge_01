@@ -57,7 +57,7 @@ public class WithdrawMaterialUseCase {
 
         log.info("Material withdrawn: id={} name={} serviceOrderId={} withdrawn={} onHand={}",
                 item.getId(), item.getName(), serviceOrderId, withdrawal.quantity(),
-                item.getQuantityOnHand());
+                item.getStockOnHand());
         return withdrawal;
     }
 }

@@ -36,6 +36,6 @@ public record RegisterMaterialRequest(
 
         @Schema(description = "Opening balance: units already on the shelf. Omit for a material "
                 + "the workshop has yet to buy.", example = "12")
-        @PositiveOrZero(message = "initialQuantity must be zero or positive")
-        int initialQuantity) {
+        @PositiveOrZero(message = "initialStock must be zero or positive")
+        int initialStock) {
 }

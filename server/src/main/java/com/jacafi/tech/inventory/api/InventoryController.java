@@ -107,7 +107,7 @@ public class InventoryController implements InventoryApi {
         InventoryItem item = registerMaterial.register(new RegisterMaterialCommand(request.name(),
                 request.type(),
                 request.unitPrice(),
-                request.initialQuantity(),
+                request.initialStock(),
                 authentication.getName()));
 
         URI location = UriComponentsBuilder.fromPath("/api/v1/inventory/items/{id}")

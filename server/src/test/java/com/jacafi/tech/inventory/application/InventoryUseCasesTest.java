@@ -65,9 +65,9 @@ class InventoryUseCasesTest {
         listInventory = new ListInventoryUseCase(repository);
     }
 
-    private InventoryItem register(String name, MaterialType type, int initialQuantity) {
+    private InventoryItem register(String name, MaterialType type, int initialStock) {
         return registerMaterial.register(
-                new RegisterMaterialCommand(name, type, new BigDecimal("49.90"), initialQuantity, ACTOR));
+                new RegisterMaterialCommand(name, type, new BigDecimal("49.90"), initialStock, ACTOR));
     }
 
     @Nested
@@ -186,7 +186,7 @@ class InventoryUseCasesTest {
             assertThat(entry.operation()).isEqualTo(AuditedOperation.REPLENISHED);
             assertThat(entry.optionalQuantity()).contains(Quantity.of(5));
             assertThat(entry.optionalServiceOrderId()).isEmpty();
-            assertThat(findInventoryItem.byId(itemId).getQuantityOnHand()).isEqualTo(Quantity.of(15));
+            assertThat(findInventoryItem.byId(itemId).getStockOnHand()).isEqualTo(Quantity.of(15));
         }
 
         @Test
@@ -200,8 +200,8 @@ class InventoryUseCasesTest {
             assertThat(entry.optionalQuantity()).contains(Quantity.of(4));
 
             InventoryItem item = findInventoryItem.byId(itemId);
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(6));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(6));
         }
 
         @Test
@@ -211,7 +211,7 @@ class InventoryUseCasesTest {
             reserveMaterial.reserve(new ReserveMaterialCommand(itemId, serviceOrderId, 3, ACTOR));
 
             assertThat(auditTrail.last().optionalQuantity()).contains(Quantity.of(3));
-            assertThat(findInventoryItem.byId(itemId).quantityReserved()).isEqualTo(Quantity.of(5));
+            assertThat(findInventoryItem.byId(itemId).stockReserved()).isEqualTo(Quantity.of(5));
         }
 
         @Test
@@ -240,8 +240,8 @@ class InventoryUseCasesTest {
             assertThat(entry.optionalQuantity()).contains(Quantity.of(4));
 
             InventoryItem item = findInventoryItem.byId(itemId);
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(10));
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(10));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(10));
         }
 
         @Test
@@ -257,8 +257,8 @@ class InventoryUseCasesTest {
             assertThat(entry.optionalServiceOrderId()).contains(serviceOrderId);
 
             InventoryItem item = findInventoryItem.byId(itemId);
-            assertThat(item.getQuantityOnHand()).isEqualTo(Quantity.of(6));
-            assertThat(item.quantityAvailable()).isEqualTo(Quantity.of(6));
+            assertThat(item.getStockOnHand()).isEqualTo(Quantity.of(6));
+            assertThat(item.stockAvailable()).isEqualTo(Quantity.of(6));
         }
 
         @Test
@@ -266,7 +266,7 @@ class InventoryUseCasesTest {
         void refusesToWithdrawWithoutReservation() {
             assertThatThrownBy(() -> withdrawMaterial.withdraw(itemId, serviceOrderId, ACTOR))
                     .isInstanceOf(ReservationNotFoundException.class);
-            assertThat(findInventoryItem.byId(itemId).getQuantityOnHand()).isEqualTo(Quantity.of(10));
+            assertThat(findInventoryItem.byId(itemId).getStockOnHand()).isEqualTo(Quantity.of(10));
         }
 
         @Test

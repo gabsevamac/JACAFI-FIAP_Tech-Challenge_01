@@ -51,7 +51,7 @@ public class ReplenishStockUseCase {
                 command.actor(), clock.instant()));
 
         log.info("Stock replenished: id={} name={} added={} onHand={}",
-                item.getId(), item.getName(), added, item.getQuantityOnHand());
+                item.getId(), item.getName(), added, item.getStockOnHand());
         return item;
     }
 }

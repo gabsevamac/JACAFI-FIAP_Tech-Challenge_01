@@ -69,7 +69,7 @@ public class InventoryItem {
     private BigDecimal unitPrice;
 
     /** Everything physically on the shelf, including the units reserved for open orders. */
-    private Quantity quantityOnHand;
+    private Quantity stockOnHand;
 
     /**
      * Open reservations, keyed by the service order that holds them.
@@ -94,7 +94,7 @@ public class InventoryItem {
         this.name = builder.name;
         this.type = builder.type;
         this.unitPrice = builder.unitPrice;
-        this.quantityOnHand = builder.quantityOnHand;
+        this.stockOnHand = builder.stockOnHand;
         this.reservations = new LinkedHashMap<>(builder.reservations);
         this.registeredAt = builder.registeredAt;
         this.updatedAt = builder.updatedAt;
@@ -145,7 +145,7 @@ public class InventoryItem {
             throw new IllegalArgumentException("A replenishment must add at least one unit");
         }
 
-        this.quantityOnHand = quantityOnHand.plus(quantity);
+        this.stockOnHand = stockOnHand.plus(quantity);
         this.updatedAt = clock.instant();
     }
 
@@ -173,8 +173,8 @@ public class InventoryItem {
         if (!quantity.isPositive()) {
             throw new IllegalArgumentException("A reservation must hold at least one unit");
         }
-        if (quantityAvailable().isLessThan(quantity)) {
-            throw new InsufficientStockException(quantity, quantityAvailable());
+        if (stockAvailable().isLessThan(quantity)) {
+            throw new InsufficientStockException(quantity, stockAvailable());
         }
 
         Reservation existing = reservations.get(serviceOrderId);
@@ -245,7 +245,7 @@ public class InventoryItem {
 
         // Cannot go negative: a reservation was only ever accepted against available stock, and
         // available is what is on hand minus every other claim.
-        this.quantityOnHand = quantityOnHand.minus(reservation.quantity());
+        this.stockOnHand = stockOnHand.minus(reservation.quantity());
         Instant now = clock.instant();
         this.updatedAt = now;
 
@@ -297,20 +297,20 @@ public class InventoryItem {
     }
 
     /** Everything on the shelf, reserved units included. */
-    public Quantity getQuantityOnHand() {
-        return quantityOnHand;
+    public Quantity getStockOnHand() {
+        return stockOnHand;
     }
 
     /** What every open reservation holds, added up. */
-    public Quantity quantityReserved() {
+    public Quantity stockReserved() {
         return reservations.values().stream()
                 .map(Reservation::quantity)
                 .reduce(Quantity.ZERO, Quantity::plus);
     }
 
     /** What a new order could still be promised. Never negative, by the reservation rule. */
-    public Quantity quantityAvailable() {
-        return quantityOnHand.minus(quantityReserved());
+    public Quantity stockAvailable() {
+        return stockOnHand.minus(stockReserved());
     }
 
     /** Open reservations, in the order they were first opened. */
@@ -389,7 +389,7 @@ public class InventoryItem {
     @Override
     public String toString() {
         return "InventoryItem[id=%s, name=%s, type=%s, onHand=%s, reserved=%s, removed=%s]"
-                .formatted(id, name, type, quantityOnHand, quantityReserved(), isRemoved());
+                .formatted(id, name, type, stockOnHand, stockReserved(), isRemoved());
     }
 
     /**
@@ -409,7 +409,7 @@ public class InventoryItem {
         private String name;
         private MaterialType type;
         private BigDecimal unitPrice;
-        private Quantity quantityOnHand = Quantity.ZERO;
+        private Quantity stockOnHand = Quantity.ZERO;
         private Map<UUID, Reservation> reservations = Map.of();
         private Instant registeredAt;
         private Instant updatedAt;
@@ -439,8 +439,8 @@ public class InventoryItem {
         }
 
         /** The opening balance on registration; whatever storage holds on rehydration. */
-        public Builder quantityOnHand(Quantity quantityOnHand) {
-            this.quantityOnHand = quantityOnHand;
+        public Builder stockOnHand(Quantity stockOnHand) {
+            this.stockOnHand = stockOnHand;
             return this;
         }
 
@@ -491,7 +491,7 @@ public class InventoryItem {
             Objects.requireNonNull(clock, "clock must not be null");
             Objects.requireNonNull(id, "id must not be null");
             Objects.requireNonNull(type, "type must not be null");
-            Objects.requireNonNull(quantityOnHand, "quantityOnHand must not be null");
+            Objects.requireNonNull(stockOnHand, "stockOnHand must not be null");
 
             if (registeredAt != null || updatedAt != null || removedAt != null) {
                 throw new IllegalArgumentException(
@@ -521,7 +521,7 @@ public class InventoryItem {
             Objects.requireNonNull(name, "name must not be null");
             Objects.requireNonNull(type, "type must not be null");
             Objects.requireNonNull(unitPrice, "unitPrice must not be null");
-            Objects.requireNonNull(quantityOnHand, "quantityOnHand must not be null");
+            Objects.requireNonNull(stockOnHand, "stockOnHand must not be null");
             Objects.requireNonNull(registeredAt, "registeredAt must not be null");
             Objects.requireNonNull(updatedAt, "updatedAt must not be null");
 

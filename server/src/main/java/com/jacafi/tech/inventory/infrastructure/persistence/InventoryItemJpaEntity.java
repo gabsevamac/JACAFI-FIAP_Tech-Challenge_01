@@ -45,8 +45,8 @@ public class InventoryItemJpaEntity {
     private BigDecimal unitPrice;
 
     /** Everything on the shelf, reserved units included. Never negative — see the check constraint. */
-    @Column(name = "quantity_on_hand", nullable = false)
-    private int quantityOnHand;
+    @Column(name = "stock_on_hand", nullable = false)
+    private int stockOnHand;
 
     @Column(name = "registered_at", nullable = false, updatable = false)
     private Instant registeredAt;
@@ -66,13 +66,13 @@ public class InventoryItemJpaEntity {
     }
 
     InventoryItemJpaEntity(UUID id, String name, MaterialType type, BigDecimal unitPrice,
-                           int quantityOnHand, Instant registeredAt, Instant updatedAt,
+                           int stockOnHand, Instant registeredAt, Instant updatedAt,
                            Instant removedAt) {
         this.id = id;
         this.name = name;
         this.type = type;
         this.unitPrice = unitPrice;
-        this.quantityOnHand = quantityOnHand;
+        this.stockOnHand = stockOnHand;
         this.registeredAt = registeredAt;
         this.updatedAt = updatedAt;
         this.removedAt = removedAt;
@@ -94,8 +94,8 @@ public class InventoryItemJpaEntity {
         return unitPrice;
     }
 
-    int getQuantityOnHand() {
-        return quantityOnHand;
+    int getStockOnHand() {
+        return stockOnHand;
     }
 
     Instant getRegisteredAt() {
@@ -126,6 +126,6 @@ public class InventoryItemJpaEntity {
     @Override
     public String toString() {
         return "InventoryItemJpaEntity[id=%s, name=%s, onHand=%d, removed=%s]"
-                .formatted(id, name, quantityOnHand, removedAt != null);
+                .formatted(id, name, stockOnHand, removedAt != null);
     }
 }

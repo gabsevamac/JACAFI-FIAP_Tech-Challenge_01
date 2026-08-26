@@ -11,6 +11,13 @@ package com.jacafi.tech.inventory.domain;
  * <p>Addition is checked rather than wrapping. Overflow is unreachable with real quantities, and
  * an unreachable case that silently produces a negative number is worse than one that throws.
  *
+ * <p>The type stays {@code Quantity} while the stock level it holds is named {@code stock},
+ * which is what §9 of the dictionary fixes: "{@code stock} para a quantidade". The two are not
+ * the same thing. A stock level is a quantity, but so is the amount a reservation holds and the
+ * amount a withdrawal moves, and neither of those is stock — a baixa does not have a stock of
+ * four. The dictionary settles the vocabulary of the domain, not the names of measurement types,
+ * which is why {@code Instant} and {@code BigDecimal} are absent from it as well.
+ *
  * @param value the number of units, zero or more
  */
 public record Quantity(int value) {

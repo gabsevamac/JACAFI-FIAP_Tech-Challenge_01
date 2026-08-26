@@ -58,7 +58,7 @@ public class ReleaseReservationUseCase {
 
         log.info("Reservation released: id={} name={} serviceOrderId={} released={} available={}",
                 item.getId(), item.getName(), serviceOrderId, released.quantity(),
-                item.quantityAvailable());
+                item.stockAvailable());
         return released;
     }
 }
