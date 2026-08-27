@@ -6,13 +6,13 @@ import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.auth.domain.exception.AuthenticationFailedException;
 
-public final class AuthenticationService {
+public final class AuthenticateUserService {
 
     private final UserAccountRepositoryPort accounts;
     private final PasswordHashPort passwordHash;
     private final AccessTokenPort accessTokens;
 
-    public AuthenticationService(
+    public AuthenticateUserService(
             UserAccountRepositoryPort accounts, PasswordHashPort passwordHash, AccessTokenPort accessTokens) {
         this.accounts = accounts;
         this.passwordHash = passwordHash;

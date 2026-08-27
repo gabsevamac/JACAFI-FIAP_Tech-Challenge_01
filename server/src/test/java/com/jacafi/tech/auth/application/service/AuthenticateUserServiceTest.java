@@ -18,7 +18,7 @@ import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.auth.domain.exception.AuthenticationFailedException;
 import com.jacafi.tech.shared.domain.ErrorCode;
 
-class AuthenticationServiceTest {
+class AuthenticateUserServiceTest {
 
     private static final UserAccount ACTIVE_ACCOUNT = UserAccount.restore(
             UUID.fromString("10000000-0000-0000-0000-000000000001"),
@@ -32,8 +32,8 @@ class AuthenticationServiceTest {
     void authenticatesThroughPasswordAndTokenPorts() {
         FakePasswordHash passwordHash = new FakePasswordHash(true);
         RecordingAccessToken accessToken = new RecordingAccessToken();
-        AuthenticationService service =
-                new AuthenticationService(new SingleAccountRepository(ACTIVE_ACCOUNT), passwordHash, accessToken);
+        AuthenticateUserService service =
+                new AuthenticateUserService(new SingleAccountRepository(ACTIVE_ACCOUNT), passwordHash, accessToken);
 
         LoginResult result = service.login("admin", "raw-password");
 
@@ -60,7 +60,7 @@ class AuthenticationServiceTest {
     }
 
     private static AuthenticationFailedException failureFor(UserAccount account, boolean passwordMatches) {
-        AuthenticationService service = new AuthenticationService(
+        AuthenticateUserService service = new AuthenticateUserService(
                 new SingleAccountRepository(account),
                 new FakePasswordHash(passwordMatches),
                 new RecordingAccessToken());

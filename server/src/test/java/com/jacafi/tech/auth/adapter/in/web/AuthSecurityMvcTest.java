@@ -22,8 +22,12 @@ import com.jacafi.tech.auth.adapter.in.web.controller.AuthController;
 import com.jacafi.tech.auth.adapter.in.web.controller.UserAccountController;
 import com.jacafi.tech.auth.application.port.AccessTokenPort;
 import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
-import com.jacafi.tech.auth.application.service.AuthenticationService;
-import com.jacafi.tech.auth.application.service.UserAccountService;
+import com.jacafi.tech.auth.application.service.AuthenticateUserService;
+import com.jacafi.tech.auth.application.service.CreateUserAccountService;
+import com.jacafi.tech.auth.application.service.DeactivateUserAccountService;
+import com.jacafi.tech.auth.application.service.FindUserAccountService;
+import com.jacafi.tech.auth.application.service.GetCurrentUserAccountService;
+import com.jacafi.tech.auth.application.service.ListUserAccountsService;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.config.SecurityConfig;
@@ -55,10 +59,22 @@ class AuthSecurityMvcTest {
     private MockMvc mvc;
 
     @MockitoBean
-    private AuthenticationService authenticationService;
+    private AuthenticateUserService authenticateUserService;
 
     @MockitoBean
-    private UserAccountService userAccountService;
+    private CreateUserAccountService createUserAccountService;
+
+    @MockitoBean
+    private ListUserAccountsService listUserAccountsService;
+
+    @MockitoBean
+    private FindUserAccountService findUserAccountService;
+
+    @MockitoBean
+    private GetCurrentUserAccountService getCurrentUserAccountService;
+
+    @MockitoBean
+    private DeactivateUserAccountService deactivateUserAccountService;
 
     @MockitoBean
     private AccessTokenPort accessTokens;
@@ -104,7 +120,7 @@ class AuthSecurityMvcTest {
 
     @Test
     void allowsAdminManagement() throws Exception {
-        when(userAccountService.list()).thenReturn(List.of(ADMIN));
+        when(listUserAccountsService.list()).thenReturn(List.of(ADMIN));
 
         mvc.perform(get("/api/v1/user-accounts").header("Authorization", "Bearer admin-token"))
                 .andExpect(status().isOk())
@@ -114,7 +130,7 @@ class AuthSecurityMvcTest {
 
     @Test
     void allowsCustomerToReadOnlyCurrentAccount() throws Exception {
-        when(userAccountService.currentAccount()).thenReturn(CUSTOMER);
+        when(getCurrentUserAccountService.get()).thenReturn(CUSTOMER);
 
         mvc.perform(get("/api/v1/user-accounts/me").header("Authorization", "Bearer customer-token"))
                 .andExpect(status().isOk())
@@ -125,7 +141,7 @@ class AuthSecurityMvcTest {
 
     @Test
     void allowsMultiRoleCustomerToReadOnlyCurrentAccount() throws Exception {
-        when(userAccountService.currentAccount()).thenReturn(CUSTOMER_SERVICE_ADVISOR);
+        when(getCurrentUserAccountService.get()).thenReturn(CUSTOMER_SERVICE_ADVISOR);
 
         mvc.perform(get("/api/v1/user-accounts/me").header("Authorization", "Bearer customer-service-advisor-token"))
                 .andExpect(status().isOk())

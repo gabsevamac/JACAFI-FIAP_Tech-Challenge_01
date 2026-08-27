@@ -23,7 +23,7 @@ import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
 import com.jacafi.tech.auth.domain.exception.UsernameAlreadyExistsException;
 
-class UserAccountServiceTest {
+class UserAccountUseCasesTest {
 
     private static final UUID ADMIN_ID = UUID.fromString("10000000-0000-0000-0000-000000000001");
     private static final UUID CUSTOMER_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
@@ -31,7 +31,11 @@ class UserAccountServiceTest {
     private final InMemoryAccounts accounts = new InMemoryAccounts();
     private final RecordingPasswordHash passwordHash = new RecordingPasswordHash();
     private AuthenticatedUser principal;
-    private UserAccountService service;
+    private CreateUserAccountService createUserAccount;
+    private ListUserAccountsService listUserAccounts;
+    private FindUserAccountService findUserAccount;
+    private GetCurrentUserAccountService getCurrentUserAccount;
+    private DeactivateUserAccountService deactivateUserAccount;
 
     @BeforeEach
     void setUp() {
@@ -39,19 +43,24 @@ class UserAccountServiceTest {
         accounts.save(admin);
         principal = new AuthenticatedUser(ADMIN_ID, Set.of(Role.ADMIN), null);
         CurrentAuthenticatedUserPort currentUser = () -> principal;
-        service = new UserAccountService(accounts, passwordHash, currentUser);
+        UserAccountAuthorizationPolicy authorization = new UserAccountAuthorizationPolicy(currentUser);
+        createUserAccount = new CreateUserAccountService(accounts, passwordHash, authorization);
+        listUserAccounts = new ListUserAccountsService(accounts, authorization);
+        findUserAccount = new FindUserAccountService(accounts, authorization);
+        getCurrentUserAccount = new GetCurrentUserAccountService(accounts, currentUser);
+        deactivateUserAccount = new DeactivateUserAccountService(accounts, authorization);
     }
 
     @Test
     void adminCreatesListsReadsAndDeactivatesAccounts() {
-        UserAccount created = service.create("customer", "raw-password", Set.of(Role.CUSTOMER), CUSTOMER_ID);
+        UserAccount created = createUserAccount.create("customer", "raw-password", Set.of(Role.CUSTOMER), CUSTOMER_ID);
 
         assertThat(passwordHash.rawPassword).isEqualTo("raw-password");
         assertThat(created.passwordHash()).isEqualTo("encoded-password");
-        assertThat(service.list()).extracting(UserAccount::username).containsExactly("customer");
-        assertThat(service.get(created.id())).isSameAs(created);
+        assertThat(listUserAccounts.list()).extracting(UserAccount::username).containsExactly("customer");
+        assertThat(findUserAccount.find(created.id())).isSameAs(created);
 
-        service.deactivate(created.id());
+        deactivateUserAccount.deactivate(created.id());
 
         assertThat(accounts.findById(created.id()))
                 .get()
@@ -61,33 +70,33 @@ class UserAccountServiceTest {
 
     @Test
     void refusesDuplicateUsernameBeforeHashing() {
-        assertThatThrownBy(() -> service.create("admin", "raw-password", Set.of(Role.MANAGER), null))
+        assertThatThrownBy(() -> createUserAccount.create("admin", "raw-password", Set.of(Role.MANAGER), null))
                 .isInstanceOf(UsernameAlreadyExistsException.class);
         assertThat(passwordHash.rawPassword).isNull();
     }
 
     @Test
-    void nonAdminCannotListReadCreateOrDeactivateOtherAccounts() {
+    void nonAdminCannotManageOtherAccounts() {
         principal = new AuthenticatedUser(ADMIN_ID, Set.of(Role.TECHNICIAN), null);
 
-        assertThatThrownBy(service::list).isInstanceOf(AccountAccessDeniedException.class);
-        assertThatThrownBy(() -> service.get(ADMIN_ID)).isInstanceOf(AccountAccessDeniedException.class);
-        assertThatThrownBy(() -> service.create("other", "password", Set.of(Role.MANAGER), null))
+        assertThatThrownBy(listUserAccounts::list).isInstanceOf(AccountAccessDeniedException.class);
+        assertThatThrownBy(() -> findUserAccount.find(ADMIN_ID)).isInstanceOf(AccountAccessDeniedException.class);
+        assertThatThrownBy(() -> createUserAccount.create("other", "password", Set.of(Role.MANAGER), null))
                 .isInstanceOf(AccountAccessDeniedException.class);
-        assertThatThrownBy(() -> service.deactivate(ADMIN_ID)).isInstanceOf(AccountAccessDeniedException.class);
+        assertThatThrownBy(() -> deactivateUserAccount.deactivate(ADMIN_ID))
+                .isInstanceOf(AccountAccessDeniedException.class);
     }
 
     @Test
     void currentAccountComesFromAuthenticatedPrincipal() {
-        principal = new AuthenticatedUser(ADMIN_ID, Set.of(Role.ADMIN), null);
-
-        assertThat(service.currentAccount().id()).isEqualTo(ADMIN_ID);
+        assertThat(getCurrentUserAccount.get().id()).isEqualTo(ADMIN_ID);
     }
 
     @Test
     void adminCannotManageItsOwnAccountThroughAdministrativeOperations() {
-        assertThatThrownBy(() -> service.get(ADMIN_ID)).isInstanceOf(AccountAccessDeniedException.class);
-        assertThatThrownBy(() -> service.deactivate(ADMIN_ID)).isInstanceOf(AccountAccessDeniedException.class);
+        assertThatThrownBy(() -> findUserAccount.find(ADMIN_ID)).isInstanceOf(AccountAccessDeniedException.class);
+        assertThatThrownBy(() -> deactivateUserAccount.deactivate(ADMIN_ID))
+                .isInstanceOf(AccountAccessDeniedException.class);
     }
 
     private static final class RecordingPasswordHash implements PasswordHashPort {
