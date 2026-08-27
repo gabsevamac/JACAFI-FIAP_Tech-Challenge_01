@@ -17,6 +17,10 @@ public class SpringSecurityCurrentAuthenticatedUserAdapter implements CurrentAut
         if (!(principal instanceof AuthenticatedPrincipal authenticated)) {
             throw new AuthenticationFailedException();
         }
-        return new AuthenticatedUser(authenticated.userAccountId(), authenticated.roles(), authenticated.customerId());
+        return new AuthenticatedUser(
+                authenticated.userAccountId(),
+                authenticated.username(),
+                authenticated.roles(),
+                authenticated.customerId());
     }
 }

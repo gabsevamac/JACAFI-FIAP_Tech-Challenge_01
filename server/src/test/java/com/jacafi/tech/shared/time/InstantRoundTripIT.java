@@ -16,9 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.jacafi.tech.support.AbstractIntegrationTest;
-import com.jacafi.tech.vehicle.domain.LicensePlate;
-import com.jacafi.tech.vehicle.domain.Vehicle;
-import com.jacafi.tech.vehicle.domain.VehicleRepository;
+import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
+import com.jacafi.tech.vehicle.domain.entity.Vehicle;
 
 /**
  * An {@code Instant} written to Postgres and read back must be the same instant.
@@ -50,7 +50,7 @@ import com.jacafi.tech.vehicle.domain.VehicleRepository;
 class InstantRoundTripIT extends AbstractIntegrationTest {
 
     @Autowired
-    private VehicleRepository repository;
+    private VehicleRepositoryPort repository;
 
     @Autowired
     private Clock clock;
@@ -61,19 +61,14 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
     @AfterEach
     void restoreUtc() {
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
-        jdbcTemplate.execute("TRUNCATE TABLE vehicles, vehicle_audit_entries");
+        jdbcTemplate.execute("TRUNCATE TABLE vehicles, audit_trail");
     }
 
     private UUID save(String plate) {
         UUID id = UUID.randomUUID();
-        repository.save(Vehicle.builder()
-                .id(id)
-                .licensePlate(new LicensePlate(plate))
-                .make("Volkswagen")
-                .model("Gol")
-                .modelYear(2020)
-                .customerId(UUID.randomUUID())
-                .register(clock));
+        repository.save(
+                Vehicle.register(id, new LicensePlate(plate), "Volkswagen", "Gol", 2020, UUID.randomUUID(), clock),
+                "system");
         return id;
     }
 
@@ -88,8 +83,8 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
 
         UUID id = save("RTP1A23");
 
-        Instant firstRead = repository.findActiveById(id).orElseThrow().getRegisteredAt();
-        Instant secondRead = repository.findActiveById(id).orElseThrow().getRegisteredAt();
+        Instant firstRead = repository.findActiveById(id).orElseThrow().registeredAt();
+        Instant secondRead = repository.findActiveById(id).orElseThrow().registeredAt();
 
         assertThat(secondRead).isEqualTo(firstRead);
     }
@@ -103,7 +98,7 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
         // field nobody had changed. Verified by reverting the truncation and watching this fail.
         UUID id = save("RTP2B34");
 
-        Instant reloaded = repository.findActiveById(id).orElseThrow().getRegisteredAt();
+        Instant reloaded = repository.findActiveById(id).orElseThrow().registeredAt();
 
         assertThat(reloaded.getNano() % 1_000)
                 .as("o Clock da aplicacao precisa produzir a precisao que o TIMESTAMPTZ guarda")

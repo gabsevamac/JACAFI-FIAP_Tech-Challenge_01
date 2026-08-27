@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
-import com.jacafi.tech.shared.application.FieldChange;
 
 /** JPA adapter for {@link AuditTrailPort}. */
 @Component
@@ -32,17 +32,10 @@ public class JpaAuditTrail implements AuditTrailPort {
      */
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public void record(FieldChange change) {
-        Objects.requireNonNull(change, "change must not be null");
+    public void record(AuditEvent event) {
+        Objects.requireNonNull(event, "event must not be null");
 
         repository.save(new AuditTrailJpaEntity(
-                change.aggregateType(),
-                change.aggregateId(),
-                change.fieldName(),
-                change.oldValue(),
-                change.newValue(),
-                change.reason(),
-                change.changedAt(),
-                change.changedBy()));
+                event.aggregateType(), event.aggregateId(), event.action(), event.actor(), event.occurredAt()));
     }
 }

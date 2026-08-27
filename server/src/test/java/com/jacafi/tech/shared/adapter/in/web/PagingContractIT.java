@@ -56,7 +56,7 @@ class PagingContractIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        jdbc.execute("TRUNCATE TABLE vehicles, vehicle_audit_entries, audit_trail");
+        jdbc.execute("TRUNCATE TABLE vehicles, audit_trail");
         bearer = "Bearer " + jwtTokenAdapter.issue("dev-admin");
         customerId = UUID.randomUUID();
     }
