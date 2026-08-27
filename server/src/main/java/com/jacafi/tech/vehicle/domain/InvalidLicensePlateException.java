@@ -1,7 +1,7 @@
 package com.jacafi.tech.vehicle.domain;
 
-import com.jacafi.tech.shared.web.BusinessException;
-import com.jacafi.tech.shared.web.ErrorCode;
+import com.jacafi.tech.shared.domain.BusinessException;
+import com.jacafi.tech.shared.domain.ErrorCode;
 
 /**
  * A license plate was rejected for not matching either accepted Brazilian format.

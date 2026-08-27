@@ -8,8 +8,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import com.jacafi.tech.shared.adapter.out.persistence.AuditableJpaEntity;
 import com.jacafi.tech.shared.lgpd.PersonalData;
-import com.jacafi.tech.shared.persistence.AuditableEntity;
 
 /**
  * Storage shape of a vehicle. Deliberately separate from the aggregate: {@code domain/} may not
@@ -23,7 +23,7 @@ import com.jacafi.tech.shared.persistence.AuditableEntity;
  */
 @Entity
 @Table(name = "vehicles")
-public class VehicleJpaEntity extends AuditableEntity {
+public class VehicleJpaEntity extends AuditableJpaEntity {
 
     @Id
     @Column(name = "id", nullable = false, updatable = false)

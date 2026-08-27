@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 
-import com.jacafi.tech.shared.web.PageParameters;
+import com.jacafi.tech.shared.adapter.in.web.PageParameters;
 import com.jacafi.tech.vehicle.api.dto.RegisterVehicleRequest;
 import com.jacafi.tech.vehicle.api.dto.UpdateVehicleRequest;
 import com.jacafi.tech.vehicle.api.dto.VehicleResponse;

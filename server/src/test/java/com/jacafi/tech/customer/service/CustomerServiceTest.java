@@ -23,9 +23,9 @@ import com.jacafi.tech.customer.entity.TaxId;
 import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
 import com.jacafi.tech.customer.exception.CustomerNotFoundException;
 import com.jacafi.tech.customer.repository.CustomerRepository;
+import com.jacafi.tech.shared.adapter.out.persistence.SpringDataPaging;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.SortCriterion;
-import com.jacafi.tech.shared.infrastructure.persistence.SpringDataPaging;
 
 @ExtendWith(MockitoExtension.class)
 class CustomerServiceTest {

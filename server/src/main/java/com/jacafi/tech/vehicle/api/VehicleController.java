@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.jacafi.tech.shared.adapter.in.web.PageParameters;
+import com.jacafi.tech.shared.adapter.in.web.SortableFields;
 import com.jacafi.tech.shared.application.PageResult;
-import com.jacafi.tech.shared.web.PageParameters;
-import com.jacafi.tech.shared.web.SortableFields;
 import com.jacafi.tech.vehicle.api.dto.RegisterVehicleRequest;
 import com.jacafi.tech.vehicle.api.dto.UpdateVehicleRequest;
 import com.jacafi.tech.vehicle.api.dto.VehicleResponse;

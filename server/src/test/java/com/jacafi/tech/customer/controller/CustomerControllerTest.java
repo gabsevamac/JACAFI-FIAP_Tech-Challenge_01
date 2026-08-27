@@ -18,7 +18,7 @@ import com.jacafi.tech.customer.entity.Customer;
 import com.jacafi.tech.customer.entity.TaxId;
 import com.jacafi.tech.customer.exception.CustomerAlreadyExistsException;
 import com.jacafi.tech.customer.service.CustomerService;
-import com.jacafi.tech.shared.web.GlobalExceptionHandler;
+import com.jacafi.tech.shared.adapter.in.web.GlobalExceptionHandler;
 
 class CustomerControllerTest {
 

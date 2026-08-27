@@ -1,7 +1,7 @@
 package com.jacafi.tech.customer.exception;
 
-import com.jacafi.tech.shared.web.BusinessException;
-import com.jacafi.tech.shared.web.ErrorCode;
+import com.jacafi.tech.shared.domain.BusinessException;
+import com.jacafi.tech.shared.domain.ErrorCode;
 
 public class CustomerNotFoundException extends BusinessException {
 

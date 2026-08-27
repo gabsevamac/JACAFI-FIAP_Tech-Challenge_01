@@ -41,13 +41,14 @@ import com.jacafi.tech.inventory.application.UpdateMaterialUseCase;
 import com.jacafi.tech.inventory.application.WithdrawMaterialUseCase;
 import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.MaterialType;
+import com.jacafi.tech.shared.adapter.in.web.GlobalExceptionHandler;
 
 /**
  * REST surface of the inventory slice. Every endpoint requires a JWT.
  *
  * <p>Thin on purpose: it turns HTTP into a command, delegates, and turns the result into a DTO.
  * The rules live in the aggregate, the policies in the use cases, the mapping of a failure onto a
- * status code in {@link InventoryExceptionHandler}, and the API description in {@link InventoryApi}.
+ * status code in {@link GlobalExceptionHandler}, and the API description in {@link InventoryApi}.
  *
  * <p>The author of every write comes from the authenticated principal, never from the request
  * body: a client that could name its own actor would make the ledger worthless as evidence of who

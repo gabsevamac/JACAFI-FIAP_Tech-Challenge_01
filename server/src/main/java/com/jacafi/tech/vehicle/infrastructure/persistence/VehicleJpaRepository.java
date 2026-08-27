@@ -16,7 +16,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  *
  * <p>The method names say {@code DeletedAt} while the column says {@code removed_at} and the
  * dictionary says removed (§9, {@code VehicleRemoved}). Spring Data derives a query from the
- * <em>property</em> name, and the property is inherited from {@code AuditableEntity}, which names
+ * <em>property</em> name, and the property is inherited from {@code AuditableJpaEntity}, which names
  * logical removal once for every slice. The column keeps the vehicle's own vocabulary through an
  * {@code @AttributeOverride} — renaming it would mean rebuilding the partial unique index that
  * guards plate uniqueness, which is a real cost for a cosmetic gain.

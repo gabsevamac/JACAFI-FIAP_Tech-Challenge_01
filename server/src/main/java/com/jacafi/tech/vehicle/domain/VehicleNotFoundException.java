@@ -2,8 +2,8 @@ package com.jacafi.tech.vehicle.domain;
 
 import java.util.UUID;
 
-import com.jacafi.tech.shared.web.BusinessException;
-import com.jacafi.tech.shared.web.ErrorCode;
+import com.jacafi.tech.shared.domain.BusinessException;
+import com.jacafi.tech.shared.domain.ErrorCode;
 
 /**
  * No active vehicle exists for the given identifier.

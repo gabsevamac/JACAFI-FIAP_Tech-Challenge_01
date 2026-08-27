@@ -11,7 +11,7 @@ import jakarta.persistence.Table;
 
 import org.hibernate.annotations.UuidGenerator;
 
-import com.jacafi.tech.shared.persistence.AuditableEntity;
+import com.jacafi.tech.shared.adapter.out.persistence.AuditableJpaEntity;
 
 /**
  * Whoever the workshop bills for the work: a natural person or a company, told apart by which
@@ -28,7 +28,7 @@ import com.jacafi.tech.shared.persistence.AuditableEntity;
  */
 @Entity
 @Table(name = "customers")
-public class Customer extends AuditableEntity {
+public class Customer extends AuditableJpaEntity {
 
     @Id
     @GeneratedValue

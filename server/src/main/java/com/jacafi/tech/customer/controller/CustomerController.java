@@ -20,9 +20,9 @@ import com.jacafi.tech.customer.dto.CreateCustomerRequest;
 import com.jacafi.tech.customer.dto.CustomerResponse;
 import com.jacafi.tech.customer.dto.UpdateCustomerRequest;
 import com.jacafi.tech.customer.service.CustomerService;
+import com.jacafi.tech.shared.adapter.in.web.PageParameters;
+import com.jacafi.tech.shared.adapter.in.web.SortableFields;
 import com.jacafi.tech.shared.application.PageResult;
-import com.jacafi.tech.shared.web.PageParameters;
-import com.jacafi.tech.shared.web.SortableFields;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

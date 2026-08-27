@@ -6,9 +6,9 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
+import com.jacafi.tech.shared.adapter.out.persistence.SpringDataPaging;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
-import com.jacafi.tech.shared.infrastructure.persistence.SpringDataPaging;
 import com.jacafi.tech.vehicle.application.VehicleQueries;
 import com.jacafi.tech.vehicle.domain.Vehicle;
 

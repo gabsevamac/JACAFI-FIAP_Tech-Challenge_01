@@ -12,11 +12,11 @@ import org.hibernate.annotations.UuidGenerator;
 
 import com.jacafi.tech.features.service.domain.Service;
 import com.jacafi.tech.features.service_order.add_service_to_order.ServiceOrderService;
-import com.jacafi.tech.shared.persistence.AuditableEntity;
+import com.jacafi.tech.shared.adapter.out.persistence.AuditableJpaEntity;
 
 @Entity
 @Table(name = "service_orders")
-public class ServiceOrder extends AuditableEntity {
+public class ServiceOrder extends AuditableJpaEntity {
 
     @Id
     @GeneratedValue

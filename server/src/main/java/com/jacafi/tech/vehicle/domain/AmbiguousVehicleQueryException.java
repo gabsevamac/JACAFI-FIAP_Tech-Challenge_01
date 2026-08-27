@@ -1,7 +1,7 @@
 package com.jacafi.tech.vehicle.domain;
 
-import com.jacafi.tech.shared.web.BusinessException;
-import com.jacafi.tech.shared.web.ErrorCode;
+import com.jacafi.tech.shared.domain.BusinessException;
+import com.jacafi.tech.shared.domain.ErrorCode;
 
 /**
  * The collection was asked for by neither key, or by both at once.
