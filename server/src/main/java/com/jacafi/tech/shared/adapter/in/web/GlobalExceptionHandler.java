@@ -23,10 +23,6 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
-import com.jacafi.tech.inventory.domain.InsufficientStockException;
-import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
-import com.jacafi.tech.inventory.domain.ReservationNotFoundException;
 import com.jacafi.tech.shared.domain.BusinessException;
 import com.jacafi.tech.shared.domain.ErrorCode;
 
@@ -67,30 +63,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 TraceIdFilter.currentTraceId(),
                 LogSafe.value(e.logContext().orElse("")));
         return problem(e.errorCode());
-    }
-
-    @ExceptionHandler(InventoryItemNotFoundException.class)
-    public ProblemDetail handleInventoryItemNotFound(InventoryItemNotFoundException e) {
-        logClientError(ErrorCode.INVENTORY_ITEM_NOT_FOUND, e);
-        return problem(ErrorCode.INVENTORY_ITEM_NOT_FOUND);
-    }
-
-    @ExceptionHandler(ReservationNotFoundException.class)
-    public ProblemDetail handleReservationNotFound(ReservationNotFoundException e) {
-        logClientError(ErrorCode.RESERVATION_NOT_FOUND, e);
-        return problem(ErrorCode.RESERVATION_NOT_FOUND);
-    }
-
-    @ExceptionHandler(DuplicateMaterialException.class)
-    public ProblemDetail handleDuplicateMaterial(DuplicateMaterialException e) {
-        logClientError(ErrorCode.DUPLICATE_MATERIAL, e);
-        return problem(ErrorCode.DUPLICATE_MATERIAL);
-    }
-
-    @ExceptionHandler(InsufficientStockException.class)
-    public ProblemDetail handleInsufficientStock(InsufficientStockException e) {
-        logClientError(ErrorCode.INSUFFICIENT_STOCK, e);
-        return problem(ErrorCode.INSUFFICIENT_STOCK);
     }
 
     // ---------------------------------------------------------------------------------------
