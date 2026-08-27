@@ -14,6 +14,7 @@ class CustomerTest {
 
         assertThat(customer.id()).isNotNull();
         assertThat(customer.active()).isTrue();
+        assertThat(customer.version()).isZero();
         assertThat(customer.name()).isEqualTo("Maria da Silva");
         assertThat(customer.email()).isEqualTo("maria@example.com");
     }

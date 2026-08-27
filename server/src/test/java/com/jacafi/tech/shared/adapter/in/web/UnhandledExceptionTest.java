@@ -6,9 +6,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
+import jakarta.persistence.OptimisticLockException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.orm.jpa.JpaOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,6 +46,11 @@ class UnhandledExceptionTest {
         @GetMapping("/business-failure")
         String businessFailure() {
             throw new SensitiveBusinessException();
+        }
+
+        @GetMapping("/optimistic-lock-failure")
+        String optimisticLockFailure() {
+            throw new JpaOptimisticLockingFailureException(new OptimisticLockException("submitted-secret"));
         }
     }
 
@@ -113,6 +121,22 @@ class UnhandledExceptionTest {
     @DisplayName("answers a business exception from the stable catalogue without its message")
     void answersBusinessExceptionsWithoutTheirMessage() throws Exception {
         String body = mockMvc.perform(get("/business-failure"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.code").value("GEN-005"))
+                .andExpect(jsonPath("$.detail").value("A operação conflita com dados já registrados."))
+                .andExpect(jsonPath("$.traceId").exists())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(body).doesNotContain("submitted-secret");
+    }
+
+    @Test
+    @DisplayName("answers a JPA optimistic locking failure as a safe conflict")
+    void answersOptimisticLockingFailuresAsSafeConflicts() throws Exception {
+        String body = mockMvc.perform(get("/optimistic-lock-failure"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.code").value("GEN-005"))

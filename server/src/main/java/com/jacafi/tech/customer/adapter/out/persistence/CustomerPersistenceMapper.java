@@ -27,6 +27,7 @@ final class CustomerPersistenceMapper {
                 entity.email(),
                 entity.phone(),
                 entity.active(),
+                entity.getVersion(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import com.jacafi.tech.customer.application.port.CustomerRepositoryPort;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.customer.domain.entity.TaxId;
+import com.jacafi.tech.customer.domain.exception.CustomerUpdateConflictException;
 import com.jacafi.tech.shared.adapter.out.persistence.SpringDataPaging;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
@@ -29,6 +30,9 @@ public class CustomerPersistenceAdapter implements CustomerRepositoryPort {
         CustomerJpaEntity entity = repository
                 .findById(customer.id())
                 .map(existing -> {
+                    if (existing.getVersion() != customer.version()) {
+                        throw new CustomerUpdateConflictException();
+                    }
                     existing.apply(candidate);
                     return existing;
                 })

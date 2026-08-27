@@ -8,6 +8,7 @@ public final class Customer {
 
     private final UUID id;
     private final TaxId taxId;
+    private final long version;
     private final Instant createdAt;
     private final Instant updatedAt;
     private String name;
@@ -24,10 +25,12 @@ public final class Customer {
             String email,
             String phone,
             boolean active,
+            long version,
             Instant createdAt,
             Instant updatedAt) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.taxId = Objects.requireNonNull(taxId, "taxId must not be null");
+        this.version = version;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         changeProfile(name, tradeName, email, phone);
@@ -35,7 +38,7 @@ public final class Customer {
     }
 
     public static Customer register(TaxId taxId, String name, String tradeName, String email, String phone) {
-        return new Customer(UUID.randomUUID(), taxId, name, tradeName, email, phone, true, null, null);
+        return new Customer(UUID.randomUUID(), taxId, name, tradeName, email, phone, true, 0, null, null);
     }
 
     public static Customer restore(
@@ -46,9 +49,10 @@ public final class Customer {
             String email,
             String phone,
             boolean active,
+            long version,
             Instant createdAt,
             Instant updatedAt) {
-        return new Customer(id, taxId, name, tradeName, email, phone, active, createdAt, updatedAt);
+        return new Customer(id, taxId, name, tradeName, email, phone, active, version, createdAt, updatedAt);
     }
 
     public void changeProfile(String name, String tradeName, String email, String phone) {
@@ -88,6 +92,10 @@ public final class Customer {
 
     public boolean active() {
         return active;
+    }
+
+    public long version() {
+        return version;
     }
 
     public Instant createdAt() {

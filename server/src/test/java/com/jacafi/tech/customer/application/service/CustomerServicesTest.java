@@ -127,6 +127,6 @@ class CustomerServicesTest {
 
     private static Customer customer(UUID id) {
         return Customer.restore(
-                id, TaxId.of("52998224725"), "Maria", null, "maria@example.com", "11999999999", true, null, null);
+                id, TaxId.of("52998224725"), "Maria", null, "maria@example.com", "11999999999", true, 0, null, null);
     }
 }

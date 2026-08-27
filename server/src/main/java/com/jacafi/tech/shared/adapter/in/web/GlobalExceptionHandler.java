@@ -8,6 +8,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -116,6 +117,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         // The full message, index name included, goes to the log — where it is exactly what an
         // operator needs, and where no client can read it.
         log.warn("Data integrity violation [{}]", ErrorCode.DATA_CONFLICT.code(), e);
+        return problem(ErrorCode.DATA_CONFLICT);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ProblemDetail handleOptimisticLockingFailure(OptimisticLockingFailureException ignored) {
+        log.warn(
+                "Optimistic locking failure [{}] traceId={}",
+                ErrorCode.DATA_CONFLICT.code(),
+                TraceIdFilter.currentTraceId());
         return problem(ErrorCode.DATA_CONFLICT);
     }
 
