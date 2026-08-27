@@ -31,11 +31,6 @@ spring:
 
   flyway:
     enabled: true
-    # As migracoes usam versao por timestamp (V<AAAAMMDDhhmm>__<task_id>.sql). Com esse formato,
-    # uma migracao criada antes pode ser mergeada depois de outra de versao maior — cenario
-    # normal com quatro fatias em paralelo. Sem out-of-order o Flyway falha quando isso ocorre.
-    # E inofensivo aqui porque o banco e descartavel e sobe do zero a cada `docker compose up`.
-    out-of-order: true
 
 server:
   port: ${SERVER_PORT:8082}
