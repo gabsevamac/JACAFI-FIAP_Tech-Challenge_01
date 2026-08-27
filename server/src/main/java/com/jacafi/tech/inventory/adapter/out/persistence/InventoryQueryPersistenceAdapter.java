@@ -29,9 +29,10 @@ public class InventoryQueryPersistenceAdapter implements InventoryQueryPort {
 
     @Override
     public InventoryPage findActive(MaterialType type, PageQuery query) {
+        var pageable = SpringDataPaging.toPageable(query, Map.of("registeredAt", "createdAt"));
         Page<InventoryItemJpaEntity> page = type == null
-                ? items.findByDeletedAtIsNull(SpringDataPaging.toPageable(query))
-                : items.findByTypeAndDeletedAtIsNull(type, SpringDataPaging.toPageable(query));
+                ? items.findByDeletedAtIsNull(pageable)
+                : items.findByTypeAndDeletedAtIsNull(type, pageable);
         return new InventoryPage(toDomain(page.getContent()), query.page(), query.size(), page.getTotalElements());
     }
 
