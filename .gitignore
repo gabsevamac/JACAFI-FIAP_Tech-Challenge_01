@@ -35,3 +35,5 @@ build/
 
 # Local worktrees used for isolated feature development.
 .worktrees/
+.superpowers/
+docs/superpowers/
