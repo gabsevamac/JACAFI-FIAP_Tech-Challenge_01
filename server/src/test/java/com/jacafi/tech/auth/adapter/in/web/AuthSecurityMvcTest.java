@@ -43,6 +43,13 @@ class AuthSecurityMvcTest {
             Set.of(Role.CUSTOMER),
             UUID.fromString("20000000-0000-0000-0000-000000000003"),
             true);
+    private static final UserAccount CUSTOMER_SERVICE_ADVISOR = UserAccount.restore(
+            UUID.fromString("10000000-0000-0000-0000-000000000005"),
+            "customer-service-advisor",
+            "hash",
+            Set.of(Role.CUSTOMER, Role.SERVICE_ADVISOR),
+            UUID.fromString("20000000-0000-0000-0000-000000000005"),
+            true);
 
     @Autowired
     private MockMvc mvc;
@@ -64,10 +71,13 @@ class AuthSecurityMvcTest {
         when(accessTokens.parseSubject("admin-token")).thenReturn("admin");
         when(accessTokens.parseSubject("technician-token")).thenReturn("technician");
         when(accessTokens.parseSubject("customer-token")).thenReturn("customer");
+        when(accessTokens.parseSubject("customer-service-advisor-token")).thenReturn("customer-service-advisor");
         when(accessTokens.parseSubject("inactive-token")).thenReturn("inactive");
         when(accounts.findByUsername("admin")).thenReturn(java.util.Optional.of(ADMIN));
         when(accounts.findByUsername("technician")).thenReturn(java.util.Optional.of(TECHNICIAN));
         when(accounts.findByUsername("customer")).thenReturn(java.util.Optional.of(CUSTOMER));
+        when(accounts.findByUsername("customer-service-advisor"))
+                .thenReturn(java.util.Optional.of(CUSTOMER_SERVICE_ADVISOR));
         when(accounts.findByUsername("inactive"))
                 .thenReturn(java.util.Optional.of(UserAccount.restore(
                         UUID.fromString("10000000-0000-0000-0000-000000000004"),
@@ -111,6 +121,24 @@ class AuthSecurityMvcTest {
                 .andExpect(jsonPath("$.id").value(CUSTOMER.id().toString()))
                 .andExpect(jsonPath("$.customerId")
                         .value(CUSTOMER.customerId().orElseThrow().toString()));
+    }
+
+    @Test
+    void allowsMultiRoleCustomerToReadOnlyCurrentAccount() throws Exception {
+        when(userAccountService.currentAccount()).thenReturn(CUSTOMER_SERVICE_ADVISOR);
+
+        mvc.perform(get("/api/v1/user-accounts/me").header("Authorization", "Bearer customer-service-advisor-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(CUSTOMER_SERVICE_ADVISOR.id().toString()))
+                .andExpect(jsonPath("$.customerId")
+                        .value(CUSTOMER_SERVICE_ADVISOR
+                                .customerId()
+                                .orElseThrow()
+                                .toString()));
+
+        mvc.perform(get("/api/v1/user-accounts").header("Authorization", "Bearer customer-service-advisor-token"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("SEG-002"));
     }
 
     @Test
