@@ -1,6 +1,7 @@
 package com.jacafi.tech.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -133,6 +134,77 @@ class DatabaseMigrationTest {
                         WHERE table_schema = 'public'
                           AND table_name = 'service_orders'
                         """)).doesNotContain("priority");
+    }
+
+    @Test
+    void allowsReReservationAfterEarlierReservationIsDeleted() throws SQLException {
+        execute("""
+                INSERT INTO customers (
+                    id, tax_id, name, email, phone, created_at, created_by, updated_at, updated_by
+                ) VALUES (
+                    '10000000-0000-0000-0000-000000000001', '12345678901', 'Test customer',
+                    'test@example.com', '11999999999', CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP, 'test'
+                );
+                INSERT INTO vehicles (
+                    id, license_plate, make, model, model_year, customer_id,
+                    created_at, created_by, updated_at, updated_by
+                ) VALUES (
+                    '20000000-0000-0000-0000-000000000001', 'TST1A23', 'Test', 'Test', 2026,
+                    '10000000-0000-0000-0000-000000000001',
+                    CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP, 'test'
+                );
+                INSERT INTO service_orders (
+                    id, customer_id, vehicle_id, status, reported_issue,
+                    created_at, created_by, updated_at, updated_by
+                ) VALUES (
+                    '30000000-0000-0000-0000-000000000001',
+                    '10000000-0000-0000-0000-000000000001',
+                    '20000000-0000-0000-0000-000000000001',
+                    'RECEIVED', 'Test', CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP, 'test'
+                );
+                INSERT INTO inventory_items (
+                    id, name, type, unit_price, stock_on_hand,
+                    created_at, created_by, updated_at, updated_by
+                ) VALUES (
+                    '40000000-0000-0000-0000-000000000001', 'Test item', 'PART', 1.00, 2,
+                    CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP, 'test'
+                );
+                INSERT INTO inventory_reservations (
+                    id, inventory_item_id, service_order_id, quantity, reserved_at,
+                    created_at, created_by, updated_at, updated_by
+                ) VALUES (
+                    '50000000-0000-0000-0000-000000000001',
+                    '40000000-0000-0000-0000-000000000001',
+                    '30000000-0000-0000-0000-000000000001',
+                    1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP, 'test'
+                );
+                UPDATE inventory_reservations
+                SET deleted_at = CURRENT_TIMESTAMP,
+                    deleted_by = 'test',
+                    updated_at = CURRENT_TIMESTAMP,
+                    updated_by = 'test',
+                    version = version + 1
+                WHERE id = '50000000-0000-0000-0000-000000000001';
+                """);
+
+        assertThatCode(() -> execute("""
+                        INSERT INTO inventory_reservations (
+                            id, inventory_item_id, service_order_id, quantity, reserved_at,
+                            created_at, created_by, updated_at, updated_by
+                        ) VALUES (
+                            '50000000-0000-0000-0000-000000000002',
+                            '40000000-0000-0000-0000-000000000001',
+                            '30000000-0000-0000-0000-000000000001',
+                            1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP, 'test'
+                        );
+                        """)).doesNotThrowAnyException();
+
+        assertThat(string("""
+                SELECT indexdef
+                FROM pg_indexes
+                WHERE schemaname = 'public'
+                  AND indexname = 'uk_inventory_reservations_item_order'
+                """)).contains("WHERE (deleted_at IS NULL)");
     }
 
     @Test
@@ -271,6 +343,13 @@ class DatabaseMigrationTest {
 
     private static String string(String sql) throws SQLException {
         return strings(sql).getFirst();
+    }
+
+    private static void execute(String sql) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.createStatement()) {
+            statement.execute(sql);
+        }
     }
 
     private static Connection connection() throws SQLException {

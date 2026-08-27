@@ -43,7 +43,8 @@ CREATE TABLE inventory_reservations (
 );
 
 CREATE UNIQUE INDEX uk_inventory_reservations_item_order
-    ON inventory_reservations (inventory_item_id, service_order_id);
+    ON inventory_reservations (inventory_item_id, service_order_id)
+    WHERE deleted_at IS NULL;
 
 CREATE INDEX ix_inventory_reservations_service_order
     ON inventory_reservations (service_order_id);
