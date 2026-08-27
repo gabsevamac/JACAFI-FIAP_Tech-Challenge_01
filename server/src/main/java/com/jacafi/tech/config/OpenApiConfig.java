@@ -27,5 +27,5 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
         scheme = "bearer",
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER,
-        description = "Token obtained from POST /auth/login")
+        description = "Token obtained from POST /api/v1/auth/login")
 public class OpenApiConfig {}

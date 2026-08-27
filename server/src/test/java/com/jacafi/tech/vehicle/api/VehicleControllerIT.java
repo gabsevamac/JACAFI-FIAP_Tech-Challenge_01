@@ -23,7 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.jacafi.tech.auth.JwtService;
+import com.jacafi.tech.auth.adapter.out.security.JwtTokenAdapter;
 import com.jacafi.tech.support.AbstractIntegrationTest;
 
 /**
@@ -41,7 +41,7 @@ class VehicleControllerIT extends AbstractIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private JwtService jwtService;
+    private JwtTokenAdapter jwtTokenAdapter;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -52,7 +52,7 @@ class VehicleControllerIT extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         jdbcTemplate.execute("TRUNCATE TABLE vehicles, vehicle_audit_entries");
-        bearerToken = "Bearer " + jwtService.generateToken("admin");
+        bearerToken = "Bearer " + jwtTokenAdapter.issue("dev-admin");
         customerId = UUID.randomUUID();
     }
 

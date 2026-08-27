@@ -32,6 +32,9 @@ public enum ErrorCode {
     AUTHENTICATION_REQUIRED("SEG-001", "Autenticação necessária."),
     ACCESS_DENIED("SEG-002", "Acesso negado para esta operação."),
 
+    USER_ACCOUNT_NOT_FOUND("USU-001", "Conta de usuário não encontrada."),
+    USERNAME_ALREADY_EXISTS("USU-002", "Nome de usuário já cadastrado."),
+
     // Paginação e ordenação, compartilhadas por toda listagem.
     INVALID_PAGING("PAG-001", "Parâmetros de paginação ou ordenação inválidos."),
 

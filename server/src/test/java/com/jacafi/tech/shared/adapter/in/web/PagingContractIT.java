@@ -21,7 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.jacafi.tech.auth.JwtService;
+import com.jacafi.tech.auth.adapter.out.security.JwtTokenAdapter;
 import com.jacafi.tech.support.AbstractIntegrationTest;
 import com.jacafi.tech.support.FixedClockConfiguration;
 
@@ -46,7 +46,7 @@ class PagingContractIT extends AbstractIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private JwtService jwtService;
+    private JwtTokenAdapter jwtTokenAdapter;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -57,7 +57,7 @@ class PagingContractIT extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         jdbc.execute("TRUNCATE TABLE vehicles, vehicle_audit_entries, audit_trail");
-        bearer = "Bearer " + jwtService.generateToken("admin");
+        bearer = "Bearer " + jwtTokenAdapter.issue("dev-admin");
         customerId = UUID.randomUUID();
     }
 
