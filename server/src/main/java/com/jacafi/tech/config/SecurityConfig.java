@@ -55,6 +55,12 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers("/api/v1/user-accounts", "/api/v1/user-accounts/**")
                         .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/customers/me")
+                        .authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/customers/me")
+                        .authenticated()
+                        .requestMatchers("/api/v1/customers", "/api/v1/customers/**")
+                        .hasAnyRole("ADMIN", "MANAGER", "SERVICE_ADVISOR")
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
