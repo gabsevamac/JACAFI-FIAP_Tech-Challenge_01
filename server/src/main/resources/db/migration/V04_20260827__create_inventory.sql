@@ -28,9 +28,18 @@ CREATE TABLE inventory_reservations (
     service_order_id UUID NOT NULL,
     quantity INTEGER NOT NULL,
     reserved_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    created_by VARCHAR(120) NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    updated_by VARCHAR(120) NOT NULL,
+    deleted_at TIMESTAMPTZ,
+    deleted_by VARCHAR(120),
+    version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT fk_inventory_reservations_item
         FOREIGN KEY (inventory_item_id) REFERENCES inventory_items (id),
-    CONSTRAINT ck_inventory_reservations_quantity CHECK (quantity > 0)
+    CONSTRAINT ck_inventory_reservations_quantity CHECK (quantity > 0),
+    CONSTRAINT ck_inventory_reservations_deletion_audit
+        CHECK ((deleted_at IS NULL) = (deleted_by IS NULL))
 );
 
 CREATE UNIQUE INDEX uk_inventory_reservations_item_order

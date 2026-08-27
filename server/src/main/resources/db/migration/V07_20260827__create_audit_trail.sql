@@ -4,15 +4,7 @@ CREATE TABLE audit_trail (
     aggregate_id UUID NOT NULL,
     action VARCHAR(60) NOT NULL,
     actor VARCHAR(120) NOT NULL,
-    occurred_at TIMESTAMPTZ NOT NULL,
-    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    CONSTRAINT ck_audit_trail_metadata_object
-        CHECK (jsonb_typeof(metadata) = 'object'),
-    CONSTRAINT ck_audit_trail_non_sensitive_metadata
-        CHECK (NOT metadata ?| ARRAY[
-            'old_value', 'new_value', 'cpf', 'cnpj', 'tax_id', 'plate', 'license_plate',
-            'password', 'password_hash', 'token', 'access_token', 'refresh_token'
-        ])
+    occurred_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE INDEX ix_audit_trail_aggregate_time

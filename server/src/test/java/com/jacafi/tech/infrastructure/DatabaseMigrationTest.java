@@ -161,6 +161,21 @@ class DatabaseMigrationTest {
                         && definition.contains("[0-9]{11}")
                         && definition.contains("[A-Z0-9]{12}[0-9]{2}"));
         assertThat(strings("""
+                        SELECT match[1]
+                        FROM (
+                            SELECT regexp_matches(
+                                pg_get_constraintdef(oid),
+                                '''([A-Z_]+)''',
+                                'g'
+                            ) AS match
+                            FROM pg_constraint
+                            WHERE conname = 'ck_service_orders_status'
+                        ) approved_statuses
+                        ORDER BY match[1]
+                        """))
+                .containsExactly(
+                        "AWAITING_APPROVAL", "COMPLETED", "DELIVERED", "IN_PROGRESS", "RECEIVED", "UNDER_DIAGNOSIS");
+        assertThat(strings("""
                         SELECT conname
                         FROM pg_constraint
                         WHERE contype = 'c'
@@ -174,8 +189,7 @@ class DatabaseMigrationTest {
                         "ck_service_order_service_lines_quantity",
                         "ck_service_order_material_lines_price",
                         "ck_service_order_material_lines_quantity",
-                        "ck_service_order_estimates_total_amount",
-                        "ck_audit_trail_non_sensitive_metadata");
+                        "ck_service_order_estimates_total_amount");
         assertThat(strings("""
                         SELECT trigger_name
                         FROM information_schema.triggers
@@ -188,8 +202,9 @@ class DatabaseMigrationTest {
                         WHERE table_schema = 'public'
                           AND table_name = 'audit_trail'
                         """))
-                .contains("aggregate_type", "aggregate_id", "action", "actor", "occurred_at", "metadata")
-                .doesNotContain("old_value", "new_value", "cpf", "cnpj", "tax_id", "plate", "password", "token");
+                .contains("aggregate_type", "aggregate_id", "action", "actor", "occurred_at")
+                .doesNotContain(
+                        "metadata", "old_value", "new_value", "cpf", "cnpj", "tax_id", "plate", "password", "token");
 
         assertThat(strings("""
                         SELECT username || ':' || active || ':' || role
@@ -218,6 +233,7 @@ class DatabaseMigrationTest {
                 "customers",
                 "vehicles",
                 "inventory_items",
+                "inventory_reservations",
                 "service_catalog_items",
                 "service_orders",
                 "service_order_service_lines",
