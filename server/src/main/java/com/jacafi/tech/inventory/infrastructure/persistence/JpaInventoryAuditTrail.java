@@ -1,9 +1,10 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
+import org.springframework.stereotype.Component;
+
 import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
 import com.jacafi.tech.inventory.domain.Stock;
-import org.springframework.stereotype.Component;
 
 /**
  * Writes the audit trail to its own table, inside the transaction of the operation being audited.
@@ -24,7 +25,8 @@ public class JpaInventoryAuditTrail implements InventoryAuditTrail {
 
     @Override
     public void append(InventoryAuditEntry entry) {
-        repository.save(new InventoryAuditEntryJpaEntity(entry.inventoryItemId(),
+        repository.save(new InventoryAuditEntryJpaEntity(
+                entry.inventoryItemId(),
                 entry.operation(),
                 entry.serviceOrderId(),
                 entry.optionalQuantity().map(Stock::value).orElse(null),

@@ -1,19 +1,20 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
-import com.jacafi.tech.inventory.application.InventoryPage;
-import com.jacafi.tech.inventory.application.InventoryQueries;
-import com.jacafi.tech.inventory.domain.InventoryItem;
-import com.jacafi.tech.inventory.domain.MaterialType;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Repository;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Repository;
+
+import com.jacafi.tech.inventory.application.InventoryPage;
+import com.jacafi.tech.inventory.application.InventoryQueries;
+import com.jacafi.tech.inventory.domain.InventoryItem;
+import com.jacafi.tech.inventory.domain.MaterialType;
 
 /**
  * Implements the read port. Spring Data's {@code Pageable} stops here: above this class, paging is
@@ -29,9 +30,10 @@ public class InventoryQueriesAdapter implements InventoryQueries {
     private final InventoryReservationJpaRepository reservationRepository;
     private final InventoryPersistenceMapper mapper;
 
-    public InventoryQueriesAdapter(InventoryItemJpaRepository itemRepository,
-                                   InventoryReservationJpaRepository reservationRepository,
-                                   InventoryPersistenceMapper mapper) {
+    public InventoryQueriesAdapter(
+            InventoryItemJpaRepository itemRepository,
+            InventoryReservationJpaRepository reservationRepository,
+            InventoryPersistenceMapper mapper) {
         this.itemRepository = itemRepository;
         this.reservationRepository = reservationRepository;
         this.mapper = mapper;
@@ -61,7 +63,8 @@ public class InventoryQueriesAdapter implements InventoryQueries {
         List<UUID> ids = entities.stream().map(InventoryItemJpaEntity::getId).toList();
         Map<UUID, List<InventoryReservationJpaEntity>> byItem = new HashMap<>();
         for (InventoryReservationJpaEntity row : reservationRepository.findByInventoryItemIdIn(ids)) {
-            byItem.computeIfAbsent(row.getInventoryItemId(), key -> new ArrayList<>()).add(row);
+            byItem.computeIfAbsent(row.getInventoryItemId(), key -> new ArrayList<>())
+                    .add(row);
         }
 
         return entities.stream()

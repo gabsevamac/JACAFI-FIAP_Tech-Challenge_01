@@ -1,5 +1,23 @@
 package com.jacafi.tech.inventory.api;
 
+import java.net.URI;
+import java.util.UUID;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
+
 import com.jacafi.tech.inventory.api.dto.InventoryItemResponse;
 import com.jacafi.tech.inventory.api.dto.InventoryPageResponse;
 import com.jacafi.tech.inventory.api.dto.RegisterMaterialRequest;
@@ -23,22 +41,6 @@ import com.jacafi.tech.inventory.application.UpdateMaterialUseCase;
 import com.jacafi.tech.inventory.application.WithdrawMaterialUseCase;
 import com.jacafi.tech.inventory.domain.InventoryItem;
 import com.jacafi.tech.inventory.domain.MaterialType;
-import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import java.net.URI;
-import java.util.UUID;
 
 /**
  * REST surface of the inventory slice. Every endpoint requires a JWT.
@@ -80,15 +82,16 @@ public class InventoryController implements InventoryApi {
     private final FindInventoryItemUseCase findInventoryItem;
     private final ListInventoryUseCase listInventory;
 
-    public InventoryController(RegisterMaterialUseCase registerMaterial,
-                               UpdateMaterialUseCase updateMaterial,
-                               RemoveMaterialUseCase removeMaterial,
-                               ReplenishStockUseCase replenishStock,
-                               ReserveMaterialUseCase reserveMaterial,
-                               ReleaseReservationUseCase releaseReservation,
-                               WithdrawMaterialUseCase withdrawMaterial,
-                               FindInventoryItemUseCase findInventoryItem,
-                               ListInventoryUseCase listInventory) {
+    public InventoryController(
+            RegisterMaterialUseCase registerMaterial,
+            UpdateMaterialUseCase updateMaterial,
+            RemoveMaterialUseCase removeMaterial,
+            ReplenishStockUseCase replenishStock,
+            ReserveMaterialUseCase reserveMaterial,
+            ReleaseReservationUseCase releaseReservation,
+            WithdrawMaterialUseCase withdrawMaterial,
+            FindInventoryItemUseCase findInventoryItem,
+            ListInventoryUseCase listInventory) {
         this.registerMaterial = registerMaterial;
         this.updateMaterial = updateMaterial;
         this.removeMaterial = removeMaterial;
@@ -102,13 +105,10 @@ public class InventoryController implements InventoryApi {
 
     @Override
     @PostMapping
-    public ResponseEntity<InventoryItemResponse> register(@Valid @RequestBody RegisterMaterialRequest request,
-                                                          Authentication authentication) {
-        InventoryItem item = registerMaterial.register(new RegisterMaterialCommand(request.name(),
-                request.type(),
-                request.unitPrice(),
-                request.initialStock(),
-                authentication.getName()));
+    public ResponseEntity<InventoryItemResponse> register(
+            @Valid @RequestBody RegisterMaterialRequest request, Authentication authentication) {
+        InventoryItem item = registerMaterial.register(new RegisterMaterialCommand(
+                request.name(), request.type(), request.unitPrice(), request.initialStock(), authentication.getName()));
 
         URI location = UriComponentsBuilder.fromPath("/api/v1/inventory/items/{id}")
                 .buildAndExpand(item.getId())
@@ -124,9 +124,10 @@ public class InventoryController implements InventoryApi {
 
     @Override
     @GetMapping
-    public InventoryPageResponse list(@RequestParam(required = false) MaterialType type,
-                                      @RequestParam(defaultValue = "0") int page,
-                                      @RequestParam(defaultValue = "20") int size) {
+    public InventoryPageResponse list(
+            @RequestParam(required = false) MaterialType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         if (page < 0) {
             throw new IllegalArgumentException("page must not be negative");
         }
@@ -138,13 +139,10 @@ public class InventoryController implements InventoryApi {
 
     @Override
     @PutMapping("/{id}")
-    public InventoryItemResponse update(@PathVariable UUID id,
-                                        @Valid @RequestBody UpdateMaterialRequest request,
-                                        Authentication authentication) {
-        return InventoryItemResponse.from(updateMaterial.update(new UpdateMaterialCommand(id,
-                request.name(),
-                request.unitPrice(),
-                authentication.getName())));
+    public InventoryItemResponse update(
+            @PathVariable UUID id, @Valid @RequestBody UpdateMaterialRequest request, Authentication authentication) {
+        return InventoryItemResponse.from(updateMaterial.update(
+                new UpdateMaterialCommand(id, request.name(), request.unitPrice(), authentication.getName())));
     }
 
     @Override
@@ -156,11 +154,10 @@ public class InventoryController implements InventoryApi {
 
     @Override
     @PostMapping("/{id}/replenishments")
-    public InventoryItemResponse replenish(@PathVariable UUID id,
-                                           @Valid @RequestBody ReplenishStockRequest request,
-                                           Authentication authentication) {
-        return InventoryItemResponse.from(replenishStock.replenish(
-                new ReplenishStockCommand(id, request.quantity(), authentication.getName())));
+    public InventoryItemResponse replenish(
+            @PathVariable UUID id, @Valid @RequestBody ReplenishStockRequest request, Authentication authentication) {
+        return InventoryItemResponse.from(
+                replenishStock.replenish(new ReplenishStockCommand(id, request.quantity(), authentication.getName())));
     }
 
     /**
@@ -169,29 +166,24 @@ public class InventoryController implements InventoryApi {
      */
     @Override
     @PostMapping("/{id}/reservations")
-    public InventoryItemResponse reserve(@PathVariable UUID id,
-                                         @Valid @RequestBody ReserveMaterialRequest request,
-                                         Authentication authentication) {
-        return InventoryItemResponse.from(reserveMaterial.reserve(new ReserveMaterialCommand(id,
-                request.serviceOrderId(),
-                request.quantity(),
-                authentication.getName())));
+    public InventoryItemResponse reserve(
+            @PathVariable UUID id, @Valid @RequestBody ReserveMaterialRequest request, Authentication authentication) {
+        return InventoryItemResponse.from(reserveMaterial.reserve(new ReserveMaterialCommand(
+                id, request.serviceOrderId(), request.quantity(), authentication.getName())));
     }
 
     @Override
     @DeleteMapping("/{id}/reservations/{serviceOrderId}")
-    public ResponseEntity<Void> release(@PathVariable UUID id,
-                                        @PathVariable UUID serviceOrderId,
-                                        Authentication authentication) {
+    public ResponseEntity<Void> release(
+            @PathVariable UUID id, @PathVariable UUID serviceOrderId, Authentication authentication) {
         releaseReservation.release(id, serviceOrderId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 
     @Override
     @PostMapping("/{id}/withdrawals")
-    public StockWithdrawalResponse withdraw(@PathVariable UUID id,
-                                            @Valid @RequestBody WithdrawMaterialRequest request,
-                                            Authentication authentication) {
+    public StockWithdrawalResponse withdraw(
+            @PathVariable UUID id, @Valid @RequestBody WithdrawMaterialRequest request, Authentication authentication) {
         return StockWithdrawalResponse.from(
                 withdrawMaterial.withdraw(id, request.serviceOrderId(), authentication.getName()));
     }

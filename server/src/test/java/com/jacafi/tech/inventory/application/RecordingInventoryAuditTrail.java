@@ -1,10 +1,10 @@
 package com.jacafi.tech.inventory.application;
 
-import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
-import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
+import com.jacafi.tech.inventory.domain.InventoryAuditTrail;
 
 /** Collects the audit entries a use case appends, so a test can assert what was recorded. */
 class RecordingInventoryAuditTrail implements InventoryAuditTrail {

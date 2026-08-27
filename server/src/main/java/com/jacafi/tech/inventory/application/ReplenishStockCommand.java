@@ -10,5 +10,4 @@ import java.util.UUID;
  *
  * @param actor who is performing the operation, taken from the JWT subject by the api layer
  */
-public record ReplenishStockCommand(UUID inventoryItemId, int quantity, String actor) {
-}
+public record ReplenishStockCommand(UUID inventoryItemId, int quantity, String actor) {}

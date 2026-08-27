@@ -1,9 +1,7 @@
 package com.jacafi.tech.inventory.api;
 
-import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
-import com.jacafi.tech.inventory.domain.InsufficientStockException;
-import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
-import com.jacafi.tech.inventory.domain.ReservationNotFoundException;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -12,7 +10,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.List;
+import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
+import com.jacafi.tech.inventory.domain.InsufficientStockException;
+import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
+import com.jacafi.tech.inventory.domain.ReservationNotFoundException;
 
 /**
  * Maps the slice's failures onto RFC 7807 {@code application/problem+json}.
@@ -82,8 +83,7 @@ public class InventoryExceptionHandler {
                 .sorted()
                 .toList();
 
-        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Invalid request",
-                "One or more fields are invalid.");
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "Invalid request", "One or more fields are invalid.");
         problem.setProperty("violations", violations);
         return problem;
     }

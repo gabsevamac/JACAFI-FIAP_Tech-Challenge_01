@@ -1,13 +1,14 @@
 package com.jacafi.tech.inventory.api.dto;
 
-import com.jacafi.tech.inventory.domain.InventoryItem;
-import com.jacafi.tech.inventory.domain.MaterialType;
-import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
+import com.jacafi.tech.inventory.domain.InventoryItem;
+import com.jacafi.tech.inventory.domain.MaterialType;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * A stock item as the API exposes it. The aggregate never leaves the application through the wire.
@@ -25,15 +26,23 @@ public record InventoryItemResponse(
         String name,
         MaterialType type,
         BigDecimal unitPrice,
-        @Schema(description = "Units physically on the shelf, reserved ones included") int stockOnHand,
-        @Schema(description = "Units held by open reservations") int stockReserved,
-        @Schema(description = "Units a new order could still be promised") int stockAvailable,
+
+        @Schema(description = "Units physically on the shelf, reserved ones included")
+        int stockOnHand,
+
+        @Schema(description = "Units held by open reservations")
+        int stockReserved,
+
+        @Schema(description = "Units a new order could still be promised")
+        int stockAvailable,
+
         List<ReservationResponse> reservations,
         Instant registeredAt,
         Instant updatedAt) {
 
     public static InventoryItemResponse from(InventoryItem item) {
-        return new InventoryItemResponse(item.getId(),
+        return new InventoryItemResponse(
+                item.getId(),
                 item.getName(),
                 item.getType(),
                 item.getUnitPrice(),

@@ -1,17 +1,7 @@
 package com.jacafi.tech.inventory.infrastructure.persistence;
 
-import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
-import com.jacafi.tech.inventory.domain.InventoryItem;
-import com.jacafi.tech.inventory.domain.InventoryItemRepository;
-import com.jacafi.tech.inventory.domain.MaterialType;
-import com.jacafi.tech.inventory.domain.Stock;
-import com.jacafi.tech.support.AbstractIntegrationTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.support.TransactionTemplate;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -19,8 +9,19 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
+import com.jacafi.tech.inventory.domain.InventoryItem;
+import com.jacafi.tech.inventory.domain.InventoryItemRepository;
+import com.jacafi.tech.inventory.domain.MaterialType;
+import com.jacafi.tech.inventory.domain.Stock;
+import com.jacafi.tech.support.AbstractIntegrationTest;
 
 /**
  * Exercises the schema directly, bypassing the application layer's checks.
@@ -55,8 +56,7 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void clean() {
-        jdbcTemplate.execute(
-                "TRUNCATE TABLE inventory_reservations, inventory_audit_entries, inventory_items");
+        jdbcTemplate.execute("TRUNCATE TABLE inventory_reservations, inventory_audit_entries, inventory_items");
     }
 
     private InventoryItem itemNamed(String name, int onHand) {
@@ -135,7 +135,8 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
         assertThat(countReservations(item)).isEqualTo(2);
 
         transactionTemplate.executeWithoutResult(status -> {
-            InventoryItem loaded = repository.findActiveByIdForUpdate(item.getId()).orElseThrow();
+            InventoryItem loaded =
+                    repository.findActiveByIdForUpdate(item.getId()).orElseThrow();
             loaded.reserve(orderA, Stock.of(1), CLOCK);
             loaded.withdraw(orderB, CLOCK);
             repository.save(loaded);
@@ -143,11 +144,13 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
 
         assertThat(countReservations(item)).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT quantity FROM inventory_reservations WHERE service_order_id = ?",
-                Integer.class, orderA)).isEqualTo(4);
+                        "SELECT quantity FROM inventory_reservations WHERE service_order_id = ?",
+                        Integer.class,
+                        orderA))
+                .isEqualTo(4);
         assertThat(jdbcTemplate.queryForObject(
-                "SELECT stock_on_hand FROM inventory_items WHERE id = ?",
-                Integer.class, item.getId())).isEqualTo(8);
+                        "SELECT stock_on_hand FROM inventory_items WHERE id = ?", Integer.class, item.getId()))
+                .isEqualTo(8);
     }
 
     @Test
@@ -160,7 +163,8 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
         repository.save(item);
 
         transactionTemplate.executeWithoutResult(status -> {
-            InventoryItem loaded = repository.findActiveByIdForUpdate(item.getId()).orElseThrow();
+            InventoryItem loaded =
+                    repository.findActiveByIdForUpdate(item.getId()).orElseThrow();
             loaded.releaseReservation(order, CLOCK);
             repository.save(loaded);
         });
@@ -186,7 +190,6 @@ class InventoryItemRepositoryAdapterIT extends AbstractIntegrationTest {
 
     private Long countReservations(InventoryItem item) {
         return jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM inventory_reservations WHERE inventory_item_id = ?",
-                Long.class, item.getId());
+                "SELECT count(*) FROM inventory_reservations WHERE inventory_item_id = ?", Long.class, item.getId());
     }
 }

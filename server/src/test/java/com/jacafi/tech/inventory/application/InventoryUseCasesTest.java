@@ -1,19 +1,7 @@
 package com.jacafi.tech.inventory.application;
 
-import com.jacafi.tech.inventory.domain.AuditedOperation;
-import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
-import com.jacafi.tech.inventory.domain.InsufficientStockException;
-import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
-import com.jacafi.tech.inventory.domain.InventoryItem;
-import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
-import com.jacafi.tech.inventory.domain.MaterialType;
-import com.jacafi.tech.inventory.domain.Stock;
-import com.jacafi.tech.inventory.domain.ReservationNotFoundException;
-import com.jacafi.tech.inventory.domain.StockWithdrawal;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -21,8 +9,21 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import com.jacafi.tech.inventory.domain.AuditedOperation;
+import com.jacafi.tech.inventory.domain.DuplicateMaterialException;
+import com.jacafi.tech.inventory.domain.InsufficientStockException;
+import com.jacafi.tech.inventory.domain.InventoryAuditEntry;
+import com.jacafi.tech.inventory.domain.InventoryItem;
+import com.jacafi.tech.inventory.domain.InventoryItemNotFoundException;
+import com.jacafi.tech.inventory.domain.MaterialType;
+import com.jacafi.tech.inventory.domain.ReservationNotFoundException;
+import com.jacafi.tech.inventory.domain.Stock;
+import com.jacafi.tech.inventory.domain.StockWithdrawal;
 
 /**
  * The use cases against hand-written doubles: no Spring, no database, no clock of its own.
@@ -121,8 +122,8 @@ class InventoryUseCasesTest {
             register("Filtro de óleo", MaterialType.PART, 1);
             InventoryItem other = register("Filtro de ar", MaterialType.PART, 1);
 
-            assertThatThrownBy(() -> updateMaterial.update(new UpdateMaterialCommand(
-                    other.getId(), "Filtro de óleo", new BigDecimal("10.00"), ACTOR)))
+            assertThatThrownBy(() -> updateMaterial.update(
+                            new UpdateMaterialCommand(other.getId(), "Filtro de óleo", new BigDecimal("10.00"), ACTOR)))
                     .isInstanceOf(DuplicateMaterialException.class);
         }
 
@@ -131,8 +132,8 @@ class InventoryUseCasesTest {
         void allowsUpdateKeepingTheSameName() {
             InventoryItem item = register("Filtro de óleo", MaterialType.PART, 1);
 
-            InventoryItem updated = updateMaterial.update(new UpdateMaterialCommand(
-                    item.getId(), "Filtro de óleo", new BigDecimal("54.90"), ACTOR));
+            InventoryItem updated = updateMaterial.update(
+                    new UpdateMaterialCommand(item.getId(), "Filtro de óleo", new BigDecimal("54.90"), ACTOR));
 
             assertThat(updated.getUnitPrice()).isEqualByComparingTo("54.90");
             assertThat(auditTrail.last().operation()).isEqualTo(AuditedOperation.UPDATED);
@@ -146,8 +147,7 @@ class InventoryUseCasesTest {
 
             assertThatThrownBy(() -> removeMaterial.remove(item.getId(), ACTOR))
                     .isInstanceOf(InventoryItemNotFoundException.class);
-            assertThatThrownBy(() -> replenishStock.replenish(
-                    new ReplenishStockCommand(item.getId(), 1, ACTOR)))
+            assertThatThrownBy(() -> replenishStock.replenish(new ReplenishStockCommand(item.getId(), 1, ACTOR)))
                     .isInstanceOf(InventoryItemNotFoundException.class);
         }
 
@@ -220,8 +220,8 @@ class InventoryUseCasesTest {
             int auditedBefore = auditTrail.entries().size();
             int savedBefore = repository.saveCount();
 
-            assertThatThrownBy(() -> reserveMaterial.reserve(
-                    new ReserveMaterialCommand(itemId, serviceOrderId, 11, ACTOR)))
+            assertThatThrownBy(() ->
+                            reserveMaterial.reserve(new ReserveMaterialCommand(itemId, serviceOrderId, 11, ACTOR)))
                     .isInstanceOf(InsufficientStockException.class);
 
             assertThat(auditTrail.entries()).hasSize(auditedBefore);
