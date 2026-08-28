@@ -59,7 +59,10 @@ public enum ErrorCode {
     INVENTORY_ITEM_NOT_FOUND("INV-001", "Item de estoque não encontrado."),
     RESERVATION_NOT_FOUND("INV-002", "Reserva de estoque não encontrada."),
     DUPLICATE_MATERIAL("INV-003", "Material já cadastrado."),
-    INSUFFICIENT_STOCK("INV-004", "Estoque insuficiente.");
+    INSUFFICIENT_STOCK("INV-004", "Estoque insuficiente."),
+
+    SERVICE_CATALOG_ITEM_NOT_FOUND("CAT-001", "Item de catálogo não encontrado."),
+    DUPLICATE_SERVICE_CATALOG_ITEM("CAT-002", "Já existe um item ativo com este nome.");
 
     private final String code;
     private final String message;
