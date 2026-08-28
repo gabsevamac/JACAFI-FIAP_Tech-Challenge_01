@@ -1,5 +1,6 @@
 package com.jacafi.tech.auth.adapter.in.security;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -12,8 +13,11 @@ public class SpringSecurityCurrentAuthenticatedUserAdapter implements CurrentAut
 
     @Override
     public AuthenticatedUser currentUser() {
-        Object principal =
-                SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new AuthenticationFailedException();
+        }
+        Object principal = authentication.getPrincipal();
         if (!(principal instanceof AuthenticatedPrincipal authenticated)) {
             throw new AuthenticationFailedException();
         }

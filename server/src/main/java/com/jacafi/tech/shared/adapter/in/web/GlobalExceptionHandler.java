@@ -31,8 +31,8 @@ import com.jacafi.tech.shared.domain.ErrorCode;
  *
  * <p>The rule, without exception: the client receives a status, a code from {@link ErrorCode}, a
  * sentence written for a human, and a trace id. It never receives a stack trace, SQL, a constraint
- * or index name, a class or property name, a file path, or the value it submitted. Everything the
- * response withholds is in the log under the same trace id, so support loses nothing.
+ * or index name, a class or property name, a file path, or the value it submitted. Logs preserve
+ * the trace id and the operational context without recording values from expected client errors.
  *
  * <p>Extends {@code ResponseEntityExceptionHandler} to take over the framework's own handlers —
  * otherwise Spring answers those itself, in its own format, past every rule here.
@@ -77,7 +77,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * (license_plate)=(ABC1D23) already exists.} — the index name and the plate, in one string.
      * Hibernate wraps it, Spring rewraps it, and any handler that reaches for {@code getMessage()}
      * publishes both: the schema, and personal data the caller may not have been entitled to
-     * confirm.
+     *     confirm.
      *
      * <p>Answered generically for that reason. A duplicate the application can foresee is caught
      * before reaching the database and arrives here as a {@code BusinessException} with its own
@@ -85,10 +85,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * check.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException e) {
-        // The full message, index name included, goes to the log — where it is exactly what an
-        // operator needs, and where no client can read it.
-        log.warn("Data integrity violation [{}]", ErrorCode.DATA_CONFLICT.code(), e);
+    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ignored) {
+        log.warn(
+                "Data integrity violation [{}] traceId={}",
+                ErrorCode.DATA_CONFLICT.code(),
+                TraceIdFilter.currentTraceId());
         return problem(ErrorCode.DATA_CONFLICT);
     }
 
@@ -109,8 +110,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      * this far; this handler covers whatever route did not go through it.
      */
     @ExceptionHandler(PropertyReferenceException.class)
-    public ProblemDetail handlePropertyReference(PropertyReferenceException e) {
-        log.warn("Rejected property reference [{}]", ErrorCode.INVALID_PAGING.code(), e);
+    public ProblemDetail handlePropertyReference(PropertyReferenceException ignored) {
+        log.warn(
+                "Rejected property reference [{}] traceId={}",
+                ErrorCode.INVALID_PAGING.code(),
+                TraceIdFilter.currentTraceId());
         return problem(ErrorCode.INVALID_PAGING);
     }
 
