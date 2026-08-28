@@ -49,6 +49,8 @@ import com.jacafi.tech.vehicle.domain.entity.Vehicle;
 @DisplayName("an Instant through Postgres")
 class InstantRoundTripIT extends AbstractIntegrationTest {
 
+    private static final UUID CUSTOMER_ID = UUID.fromString("a1d4e145-e3f8-4fdc-b84e-8584c564c927");
+
     @Autowired
     private VehicleRepositoryPort repository;
 
@@ -61,14 +63,18 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
     @AfterEach
     void restoreUtc() {
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
-        jdbcTemplate.execute("TRUNCATE TABLE vehicles, audit_trail");
+        jdbcTemplate.execute("TRUNCATE TABLE vehicles, audit_trail CASCADE");
     }
 
     private UUID save(String plate) {
+        jdbcTemplate.update("""
+                INSERT INTO customers (id, tax_id, name, email, phone, active, created_at, created_by, updated_at, updated_by, version)
+                VALUES (?, '52998224725', 'Integration Test Customer', 'integration-test@example.com', '11999999999', TRUE, CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP, 'test', 0)
+                ON CONFLICT (id) DO NOTHING
+                """, CUSTOMER_ID);
         UUID id = UUID.randomUUID();
         repository.save(
-                Vehicle.register(id, new LicensePlate(plate), "Volkswagen", "Gol", 2020, UUID.randomUUID(), clock),
-                "system");
+                Vehicle.register(id, new LicensePlate(plate), "Volkswagen", "Gol", 2020, CUSTOMER_ID, clock), "system");
         return id;
     }
 

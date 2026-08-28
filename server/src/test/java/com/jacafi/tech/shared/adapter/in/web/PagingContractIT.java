@@ -41,6 +41,7 @@ import com.jacafi.tech.support.FixedClockConfiguration;
 class PagingContractIT extends AbstractIntegrationTest {
 
     private static final String CUSTOMER_VEHICLES = "/api/v1/vehicles";
+    private static final UUID CUSTOMER_ID = UUID.fromString("a1d4e145-e3f8-4fdc-b84e-8584c564c927");
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,9 +57,14 @@ class PagingContractIT extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        jdbc.execute("TRUNCATE TABLE vehicles, audit_trail");
+        jdbc.execute("TRUNCATE TABLE vehicles, audit_trail CASCADE");
         bearer = "Bearer " + jwtTokenAdapter.issue("dev-admin");
-        customerId = UUID.randomUUID();
+        customerId = CUSTOMER_ID;
+        jdbc.update("""
+                INSERT INTO customers (id, tax_id, name, email, phone, active, created_at, created_by, updated_at, updated_by, version)
+                VALUES (?, '52998224725', 'Integration Test Customer', 'integration-test@example.com', '11999999999', TRUE, CURRENT_TIMESTAMP, 'test', CURRENT_TIMESTAMP, 'test', 0)
+                ON CONFLICT (id) DO NOTHING
+                """, customerId);
     }
 
     private void register(String plate) throws Exception {
