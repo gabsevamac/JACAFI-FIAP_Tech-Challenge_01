@@ -13,10 +13,17 @@ RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:25-jre
 
+RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app \
+    && apt-get update \
+    && apt-get install --no-install-recommends --yes curl \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-COPY --from=build /app/target/*-SNAPSHOT.jar app.jar
+COPY --from=build --chown=app:app /app/target/*-SNAPSHOT.jar app.jar
 
 ENV TZ=UTC
 EXPOSE 8082
-CMD ["java", "-jar", "app.jar"]
+USER app
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
