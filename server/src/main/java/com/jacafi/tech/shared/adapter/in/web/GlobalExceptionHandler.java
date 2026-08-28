@@ -312,7 +312,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                     USER_ACCOUNT_NOT_FOUND,
                     INVENTORY_ITEM_NOT_FOUND,
                     RESERVATION_NOT_FOUND,
-                    SERVICE_CATALOG_ITEM_NOT_FOUND -> HttpStatus.NOT_FOUND;
+                    SERVICE_CATALOG_ITEM_NOT_FOUND,
+                    SERVICE_ORDER_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case AUTHENTICATION_REQUIRED -> HttpStatus.UNAUTHORIZED;
             case ACCESS_DENIED -> HttpStatus.FORBIDDEN;
         };

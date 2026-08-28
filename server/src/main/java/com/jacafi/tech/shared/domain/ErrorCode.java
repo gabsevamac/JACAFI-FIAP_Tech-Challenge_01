@@ -62,7 +62,9 @@ public enum ErrorCode {
     INSUFFICIENT_STOCK("INV-004", "Estoque insuficiente."),
 
     SERVICE_CATALOG_ITEM_NOT_FOUND("CAT-001", "Item de catálogo não encontrado."),
-    DUPLICATE_SERVICE_CATALOG_ITEM("CAT-002", "Já existe um item ativo com este nome.");
+    DUPLICATE_SERVICE_CATALOG_ITEM("CAT-002", "Já existe um item ativo com este nome."),
+
+    SERVICE_ORDER_NOT_FOUND("OS-001", "Ordem de serviço não encontrada.");
 
     private final String code;
     private final String message;
