@@ -65,7 +65,7 @@ class VehiclePersistenceAdapterTest {
                 "Gol",
                 2020,
                 customerId,
-                Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+                Clock.fixed(Instant.parse("2026-08-27T10:00:00Z"), ZoneOffset.UTC));
         removed.remove(Instant.parse("2026-08-27T10:00:00Z"));
 
         assertThatThrownBy(() -> entity.apply(removed, "")).isInstanceOf(IllegalArgumentException.class);

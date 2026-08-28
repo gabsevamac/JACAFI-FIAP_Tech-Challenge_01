@@ -68,6 +68,7 @@ class DatabaseMigrationTest {
                         "service_order_service_lines",
                         "service_order_material_lines",
                         "service_order_estimates",
+                        "service_order_estimate_decisions",
                         "service_order_status_history",
                         "audit_trail")
                 .doesNotContain("users", "clients", "parties", "services", "service_orders_service");
@@ -93,6 +94,8 @@ class DatabaseMigrationTest {
                         "fk_service_order_material_lines_order",
                         "fk_service_order_material_lines_inventory_item",
                         "fk_service_order_estimates_order",
+                        "fk_service_order_estimate_decisions_order",
+                        "fk_service_order_estimate_decisions_estimate",
                         "fk_service_order_status_history_order",
                         "fk_user_account_roles_account");
 
@@ -111,7 +114,7 @@ class DatabaseMigrationTest {
                         "uk_inventory_items_active_name",
                         "uk_inventory_reservations_item_order",
                         "uk_service_catalog_items_active_name",
-                        "uk_service_order_estimates_idempotency_key",
+                        "uk_service_order_estimate_decisions_idempotency_key",
                         "ix_service_orders_operational_queue");
 
         var operationalIndex = string("""
@@ -229,6 +232,7 @@ class DatabaseMigrationTest {
                 .anyMatch(definition -> definition.contains("PENDING")
                         && definition.contains("APPROVED")
                         && definition.contains("REJECTED"))
+                .anyMatch(definition -> definition.contains("APPROVE") && definition.contains("REJECT"))
                 .anyMatch(definition -> definition.contains("tax_id")
                         && definition.contains("[0-9]{11}")
                         && definition.contains("[A-Z0-9]{12}[0-9]{2}"));
