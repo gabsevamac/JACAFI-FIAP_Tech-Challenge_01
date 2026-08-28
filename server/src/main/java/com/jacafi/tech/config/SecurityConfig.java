@@ -49,8 +49,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**")
                         .permitAll()
                         // API documentation is a project requirement, and the Swagger UI has to
-                        // fetch its own JSON before any token exists.
-                        // TODO: restrict these paths outside development — the MVP has a single environment.
+                        // fetch its own JSON before any token exists. The runtime image disables
+                        // Springdoc by default; the local Compose environment enables it explicitly.
                         .requestMatchers(SPRINGDOC_PATHS)
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/user-accounts/me")

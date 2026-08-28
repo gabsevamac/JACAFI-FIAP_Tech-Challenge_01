@@ -22,7 +22,9 @@ WORKDIR /app
 
 COPY --from=build --chown=app:app /app/target/*-SNAPSHOT.jar app.jar
 
-ENV TZ=UTC
+ENV TZ=UTC \
+    SPRINGDOC_API_DOCS_ENABLED=false \
+    SPRINGDOC_SWAGGER_UI_ENABLED=false
 EXPOSE 8082
 USER app
 

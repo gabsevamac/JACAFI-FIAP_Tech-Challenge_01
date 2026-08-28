@@ -40,6 +40,8 @@ Antes de subir, altere `JWT_SECRET` em `.env` por um segredo local de pelo menos
 
 `APP_PORT` e `DATABASE_PORT` permitem alterar somente as portas expostas no host; `SERVER_PORT` mantém a porta interna da aplicação. O Compose aguarda a saúde do PostgreSQL antes de iniciar a API e verifica a prontidão da aplicação.
 
+A imagem de runtime desabilita OpenAPI e Swagger por padrão. O Compose os habilita somente para desenvolvimento local; em outro ambiente, mantenha `SPRINGDOC_API_DOCS_ENABLED=false` e `SPRINGDOC_SWAGGER_UI_ENABLED=false`, ou proteja os endpoints por rede e autenticação.
+
 Para encerrar o ambiente:
 
 ```powershell
