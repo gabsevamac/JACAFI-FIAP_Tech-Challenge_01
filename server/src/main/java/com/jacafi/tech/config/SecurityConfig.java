@@ -46,6 +46,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/error")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**")
+                        .permitAll()
                         // API documentation is a project requirement, and the Swagger UI has to
                         // fetch its own JSON before any token exists.
                         // TODO: restrict these paths outside development — the MVP has a single environment.

@@ -11,6 +11,9 @@ import com.jacafi.tech.vehicle.adapter.in.web.dto.UpdateVehicleRequest;
 import com.jacafi.tech.vehicle.adapter.in.web.dto.VehicleResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -19,13 +22,18 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface VehicleApi {
 
     @Operation(summary = "Register a vehicle")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Registered"),
+        @ApiResponse(responseCode = "409", description = "License plate already registered to an active vehicle")
+    })
     ResponseEntity<VehicleResponse> register(RegisterVehicleRequest request);
 
     @Operation(summary = "Find a vehicle by identifier")
-    VehicleResponse findById(UUID vehicleId);
+    VehicleResponse findById(@Parameter(description = "Identifier assigned at registration") UUID vehicleId);
 
     @Operation(summary = "Find a vehicle by license plate")
-    VehicleResponse findByLicensePlate(String licensePlate);
+    VehicleResponse findByLicensePlate(
+            @Parameter(description = "Exact plate, in either layout; separators are ignored") String licensePlate);
 
     @Operation(summary = "List a customer's vehicles")
     PageResult<VehicleResponse> list(UUID customerId, PageParameters paging);
@@ -37,5 +45,6 @@ public interface VehicleApi {
     VehicleResponse update(UUID vehicleId, UpdateVehicleRequest request);
 
     @Operation(summary = "Logically remove a vehicle")
+    @ApiResponse(responseCode = "204", description = "Removed")
     ResponseEntity<Void> remove(UUID vehicleId);
 }

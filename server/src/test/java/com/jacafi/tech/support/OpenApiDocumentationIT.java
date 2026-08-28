@@ -31,7 +31,7 @@ class OpenApiDocumentationIT extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("SINATES"))
                 .andExpect(jsonPath("$.paths['/api/v1/vehicles']").exists())
-                .andExpect(jsonPath("$.paths['/api/v1/vehicles/{id}']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}']").exists())
                 .andExpect(
                         jsonPath("$.components.securitySchemes['bearer-jwt']").exists())
                 .andReturn()
@@ -42,8 +42,11 @@ class OpenApiDocumentationIT extends AbstractIntegrationTest {
         assertThat(document)
                 .contains("Register a vehicle")
                 .contains("Find a vehicle by identifier")
-                .contains("Correct make, model and model year")
-                .contains("Remove a vehicle from the active registry");
+                .contains("Find a vehicle by license plate")
+                .contains("List a customer's vehicles")
+                .contains("List the authenticated customer's vehicles")
+                .contains("Update a vehicle")
+                .contains("Logically remove a vehicle");
     }
 
     /**
@@ -67,14 +70,15 @@ class OpenApiDocumentationIT extends AbstractIntegrationTest {
                 // Response level, including the ones with no body.
                 .andExpect(jsonPath("$.paths['/api/v1/vehicles'].post.responses.409.description")
                         .value("License plate already registered to an active vehicle"))
-                .andExpect(jsonPath("$.paths['/api/v1/vehicles/{id}'].delete.responses.204.description")
+                .andExpect(jsonPath("$.paths['/api/v1/vehicles/{vehicleId}'].delete.responses.204.description")
                         .value("Removed"))
                 // Parameter level: @Parameter on an interface method argument, merged with the
                 // @RequestParam and @PathVariable that stayed on the implementation.
-                .andExpect(
-                        jsonPath("$.paths['/api/v1/vehicles'].get.parameters[?(@.name == 'licensePlate')].description")
-                                .value("Exact plate, in either layout; separators are ignored"))
-                .andExpect(jsonPath("$.paths['/api/v1/vehicles/{id}'].get.parameters[?(@.name == 'id')].description")
+                .andExpect(jsonPath(
+                                "$.paths['/api/v1/vehicles/lookup'].get.parameters[?(@.name == 'licensePlate')].description")
+                        .value("Exact plate, in either layout; separators are ignored"))
+                .andExpect(jsonPath(
+                                "$.paths['/api/v1/vehicles/{vehicleId}'].get.parameters[?(@.name == 'vehicleId')].description")
                         .value("Identifier assigned at registration"));
     }
 
@@ -82,5 +86,13 @@ class OpenApiDocumentationIT extends AbstractIntegrationTest {
     @DisplayName("the Swagger UI itself is reachable without a JWT")
     void servesTheSwaggerUi() throws Exception {
         mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("the readiness probe is public and reports application health")
+    void servesReadinessProbe() throws Exception {
+        mockMvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
     }
 }

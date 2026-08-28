@@ -50,6 +50,16 @@ server:
     whitelabel:
       enabled: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
 logging:
   pattern:
     # O traceId acompanha cada linha. E o que liga a resposta opaca que o cliente recebeu ao
