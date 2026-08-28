@@ -62,6 +62,18 @@ public final class ServiceOrder {
 
     public static ServiceOrder open(
             UUID id, UUID customerId, UUID vehicleId, String reportedIssue, String actor, Clock clock) {
+        return open(id, customerId, vehicleId, reportedIssue, List.of(), List.of(), actor, clock);
+    }
+
+    public static ServiceOrder open(
+            UUID id,
+            UUID customerId,
+            UUID vehicleId,
+            String reportedIssue,
+            Collection<ServiceLineItem> serviceLines,
+            Collection<MaterialLineItem> materialLines,
+            String actor,
+            Clock clock) {
         Instant now = requireClock(clock).instant();
         return new ServiceOrder(
                 id,
@@ -72,8 +84,8 @@ public final class ServiceOrder {
                 0,
                 now,
                 now,
-                List.of(),
-                List.of(),
+                serviceLines,
+                materialLines,
                 List.of(),
                 List.of(new StatusHistory(null, ServiceOrderStatus.RECEIVED, requireActor(actor), now)),
                 List.of());

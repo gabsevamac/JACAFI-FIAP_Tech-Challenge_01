@@ -70,6 +70,12 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "MANAGER", "SERVICE_ADVISOR")
                         .requestMatchers("/api/v1/service-catalog-items", "/api/v1/service-catalog-items/**")
                         .hasAnyRole("ADMIN", "MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/service-orders/*/status")
+                        .authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/service-orders/*/estimates/*/decision")
+                        .authenticated()
+                        .requestMatchers("/api/v1/service-orders", "/api/v1/service-orders/**")
+                        .hasAnyRole("ADMIN", "MANAGER", "SERVICE_ADVISOR")
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

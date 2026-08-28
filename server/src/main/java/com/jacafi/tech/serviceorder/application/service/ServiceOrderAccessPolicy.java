@@ -1,7 +1,9 @@
 package com.jacafi.tech.serviceorder.application.service;
 
 import java.util.Set;
+import java.util.UUID;
 
+import com.jacafi.tech.auth.application.port.AuthenticatedUser;
 import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
@@ -16,6 +18,16 @@ public final class ServiceOrderAccessPolicy {
 
     void requireOperationalAccess() {
         if (currentUser.currentUser().roles().stream().noneMatch(OPERATIONAL_ROLES::contains)) {
+            throw new AccountAccessDeniedException();
+        }
+    }
+
+    void requireReadAccess(UUID customerId) {
+        AuthenticatedUser user = currentUser.currentUser();
+        if (user.roles().stream().anyMatch(OPERATIONAL_ROLES::contains)) {
+            return;
+        }
+        if (!user.roles().contains(Role.CUSTOMER) || !customerId.equals(user.customerId())) {
             throw new AccountAccessDeniedException();
         }
     }

@@ -25,6 +25,8 @@ import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
 import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
+import com.jacafi.tech.shared.application.PageQuery;
+import com.jacafi.tech.shared.application.PageResult;
 
 class DecideEstimateServiceTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-28T10:00:00Z"), ZoneOffset.UTC);
@@ -72,6 +74,11 @@ class DecideEstimateServiceTest {
         @Override
         public Optional<ServiceOrder> findById(UUID id) {
             return order.id().equals(id) ? Optional.of(order) : Optional.empty();
+        }
+
+        @Override
+        public PageResult<ServiceOrder> findOperationalQueue(PageQuery query) {
+            throw new UnsupportedOperationException();
         }
     }
 

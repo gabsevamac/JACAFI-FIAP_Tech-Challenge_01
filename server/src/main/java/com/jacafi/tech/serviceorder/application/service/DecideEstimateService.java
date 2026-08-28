@@ -31,8 +31,8 @@ public class DecideEstimateService {
 
     @Transactional
     public Estimate decide(UUID serviceOrderId, UUID estimateId, EstimateDecision decision, String idempotencyKey) {
-        access.requireOperationalAccess();
         var order = orders.findById(serviceOrderId).orElseThrow(ServiceOrderNotFoundException::new);
+        access.requireReadAccess(order.customerId());
         String actor = access.currentActor();
         Estimate estimate = order.decideEstimate(estimateId, decision, idempotencyKey, actor, clock);
         orders.save(order);

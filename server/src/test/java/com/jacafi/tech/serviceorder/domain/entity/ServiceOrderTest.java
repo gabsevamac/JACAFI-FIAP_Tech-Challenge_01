@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,25 @@ import org.junit.jupiter.api.Test;
 class ServiceOrderTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-28T10:00:00Z"), ZoneOffset.UTC);
     private static final String ACTOR = "advisor";
+
+    @Test
+    void opensReceivedOrderWithRequestedLineSnapshots() {
+        ServiceOrder order = ServiceOrder.open(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "Engine noise",
+                List.of(ServiceLineItem.of(
+                        UUID.randomUUID(), UUID.randomUUID(), "Oil change", new BigDecimal("89.90"), 1)),
+                List.of(MaterialLineItem.of(
+                        UUID.randomUUID(), UUID.randomUUID(), "Engine oil", new BigDecimal("39.90"), 2)),
+                ACTOR,
+                CLOCK);
+
+        assertThat(order.status()).isEqualTo(ServiceOrderStatus.RECEIVED);
+        assertThat(order.serviceLines()).hasSize(1);
+        assertThat(order.materialLines()).hasSize(1);
+    }
 
     @Test
     void calculatesAnEstimateFromFrozenServiceAndMaterialLines() {
