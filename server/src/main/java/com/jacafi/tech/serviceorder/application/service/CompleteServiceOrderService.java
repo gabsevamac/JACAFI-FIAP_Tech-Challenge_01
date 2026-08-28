@@ -29,7 +29,7 @@ public class CompleteServiceOrderService {
 
     @Transactional
     public void complete(UUID serviceOrderId) {
-        access.requireOperationalAccess();
+        access.requireStatusManagementAccess();
         var order = orders.findById(serviceOrderId).orElseThrow(ServiceOrderNotFoundException::new);
         String actor = access.currentActor();
         order.complete(actor, clock);

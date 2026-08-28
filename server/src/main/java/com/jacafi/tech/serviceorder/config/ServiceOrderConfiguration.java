@@ -9,7 +9,9 @@ import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
 import com.jacafi.tech.inventory.application.service.ReserveInventoryStockService;
 import com.jacafi.tech.servicecatalog.application.port.ServiceCatalogRepositoryPort;
+import com.jacafi.tech.serviceorder.adapter.out.notification.LoggingStatusNotificationAdapter;
 import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.application.service.CompleteServiceOrderService;
 import com.jacafi.tech.serviceorder.application.service.DecideEstimateService;
 import com.jacafi.tech.serviceorder.application.service.DeliverServiceOrderService;
@@ -19,6 +21,7 @@ import com.jacafi.tech.serviceorder.application.service.ListOperationalServiceOr
 import com.jacafi.tech.serviceorder.application.service.OpenServiceOrderService;
 import com.jacafi.tech.serviceorder.application.service.ServiceOrderAccessPolicy;
 import com.jacafi.tech.serviceorder.application.service.StartServiceOrderDiagnosisService;
+import com.jacafi.tech.serviceorder.application.service.UpdateServiceOrderStatusService;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
 
@@ -98,5 +101,20 @@ public class ServiceOrderConfiguration {
             ServiceOrderAccessPolicy access,
             Clock clock) {
         return new DeliverServiceOrderService(orders, auditTrail, access, clock);
+    }
+
+    @Bean
+    StatusNotificationPort statusNotificationPort() {
+        return new LoggingStatusNotificationAdapter();
+    }
+
+    @Bean
+    UpdateServiceOrderStatusService updateServiceOrderStatusService(
+            ServiceOrderRepositoryPort orders,
+            StatusNotificationPort notifications,
+            AuditTrailPort auditTrail,
+            ServiceOrderAccessPolicy access,
+            Clock clock) {
+        return new UpdateServiceOrderStatusService(orders, notifications, auditTrail, access, clock);
     }
 }

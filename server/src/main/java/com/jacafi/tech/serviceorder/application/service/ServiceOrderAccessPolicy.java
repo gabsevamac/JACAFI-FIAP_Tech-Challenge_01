@@ -10,6 +10,8 @@ import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
 
 public final class ServiceOrderAccessPolicy {
     private static final Set<Role> OPERATIONAL_ROLES = Set.of(Role.ADMIN, Role.MANAGER, Role.SERVICE_ADVISOR);
+    private static final Set<Role> STATUS_MANAGEMENT_ROLES =
+            Set.of(Role.ADMIN, Role.MANAGER, Role.SERVICE_ADVISOR, Role.TECHNICIAN);
     private final CurrentAuthenticatedUserPort currentUser;
 
     public ServiceOrderAccessPolicy(CurrentAuthenticatedUserPort currentUser) {
@@ -18,6 +20,12 @@ public final class ServiceOrderAccessPolicy {
 
     void requireOperationalAccess() {
         if (currentUser.currentUser().roles().stream().noneMatch(OPERATIONAL_ROLES::contains)) {
+            throw new AccountAccessDeniedException();
+        }
+    }
+
+    void requireStatusManagementAccess() {
+        if (currentUser.currentUser().roles().stream().noneMatch(STATUS_MANAGEMENT_ROLES::contains)) {
             throw new AccountAccessDeniedException();
         }
     }

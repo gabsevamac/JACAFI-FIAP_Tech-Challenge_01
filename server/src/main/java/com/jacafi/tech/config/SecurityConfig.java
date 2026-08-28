@@ -76,6 +76,8 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/service-orders/*/estimates/*/decision")
                         .authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/service-orders/*/status")
+                        .hasAnyRole("ADMIN", "MANAGER", "SERVICE_ADVISOR", "TECHNICIAN")
                         .requestMatchers("/api/v1/service-orders", "/api/v1/service-orders/**")
                         .hasAnyRole("ADMIN", "MANAGER", "SERVICE_ADVISOR")
                         .anyRequest()

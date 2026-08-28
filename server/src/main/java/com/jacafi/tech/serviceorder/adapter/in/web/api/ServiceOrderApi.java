@@ -10,6 +10,7 @@ import com.jacafi.tech.serviceorder.adapter.in.web.dto.OpenServiceOrderRequest;
 import com.jacafi.tech.serviceorder.adapter.in.web.dto.ServiceOrderOpenedResponse;
 import com.jacafi.tech.serviceorder.adapter.in.web.dto.ServiceOrderQueueItemResponse;
 import com.jacafi.tech.serviceorder.adapter.in.web.dto.ServiceOrderStatusResponse;
+import com.jacafi.tech.serviceorder.adapter.in.web.dto.UpdateServiceOrderStatusRequest;
 import com.jacafi.tech.shared.adapter.in.web.PageParameters;
 import com.jacafi.tech.shared.application.PageResult;
 
@@ -28,6 +29,9 @@ public interface ServiceOrderApi {
 
     @Operation(summary = "Approve or reject an estimate idempotently")
     EstimateResponse decide(UUID serviceOrderId, UUID estimateId, EstimateDecisionRequest request);
+
+    @Operation(summary = "Update a service order status and request customer notification")
+    ServiceOrderStatusResponse updateStatus(UUID serviceOrderId, UpdateServiceOrderStatusRequest request);
 
     @Operation(summary = "List operational service orders in priority order")
     PageResult<ServiceOrderQueueItemResponse> list(PageParameters paging);
