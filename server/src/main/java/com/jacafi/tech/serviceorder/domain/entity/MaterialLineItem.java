@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** Immutable inventory-material snapshot recorded on one service order. */
 public record MaterialLineItem(
         UUID id, UUID inventoryItemId, String materialNameSnapshot, BigDecimal unitPriceSnapshot, int quantity) {
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");

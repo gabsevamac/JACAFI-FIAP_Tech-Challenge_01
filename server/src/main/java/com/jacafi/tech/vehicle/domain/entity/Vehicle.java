@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** Vehicle aggregate. It references its owner by identifier, never by another slice's aggregate. */
 public final class Vehicle {
 
     private static final int EARLIEST_MODEL_YEAR = 1886;

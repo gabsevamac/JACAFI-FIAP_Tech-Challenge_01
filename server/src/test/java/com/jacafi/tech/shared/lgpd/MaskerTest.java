@@ -84,8 +84,7 @@ class MaskerTest {
         @Test
         @DisplayName("hides the length of the local part")
         void doesNotRevealLocalPartLength() {
-            // Same initial, different lengths: the initial is kept by design, so it has to be held
-            // constant for this to measure what it claims to measure.
+
             assertThat(Masker.email("mariana@example.com")).isEqualTo(Masker.email("marcos@example.com"));
         }
 
@@ -121,9 +120,7 @@ class MaskerTest {
         @Test
         @DisplayName("a value longer than any of these formats does not get a run of asterisks per character")
         void boundsTheAsteriskRun() {
-            // The token that replaces a plate on removal. Proportional masking rendered it as
-            // three characters and thirty-eight asterisks: unreadable, and disclosing a length
-            // that tells the reader nothing they can use.
+
             assertThat(Masker.licensePlate("ANON-0f7c9a1e-3b2d-4c5f-8a9b-1d2e3f4a5b6c"))
                     .isEqualTo("ANO***********");
         }

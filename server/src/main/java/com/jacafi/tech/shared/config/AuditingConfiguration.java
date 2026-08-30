@@ -8,17 +8,8 @@ import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
-import com.jacafi.tech.shared.adapter.out.persistence.AuditableJpaEntity;
 import com.jacafi.tech.shared.adapter.out.persistence.JwtAuditorAware;
 
-/**
- * Turns on JPA auditing for every entity inheriting {@link AuditableJpaEntity}.
- *
- * <p>Both references are named explicitly rather than left to type resolution. Spring Data picks
- * a {@code DateTimeProvider} by bean name, and the default name resolves to one backed by the
- * system clock — so omitting {@code dateTimeProviderRef} produces auditing that silently ignores
- * the application clock, with no error to notice.
- */
 @Configuration
 @EnableJpaAuditing(dateTimeProviderRef = "clockDateTimeProvider", auditorAwareRef = "jwtAuditorAware")
 public class AuditingConfiguration {

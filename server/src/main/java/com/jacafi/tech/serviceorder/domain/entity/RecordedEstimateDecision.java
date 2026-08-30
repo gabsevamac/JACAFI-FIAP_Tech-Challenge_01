@@ -3,7 +3,6 @@ package com.jacafi.tech.serviceorder.domain.entity;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Stored idempotency result for one external estimate-decision notification. */
 public record RecordedEstimateDecision(
         String idempotencyKey, UUID estimateId, EstimateDecision decision, Instant decidedAt) {
     public RecordedEstimateDecision {

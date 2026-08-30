@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** Immutable catalogue-service snapshot recorded on one service order. */
 public record ServiceLineItem(
         UUID id, UUID serviceCatalogItemId, String serviceNameSnapshot, BigDecimal unitPriceSnapshot, int quantity) {
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");

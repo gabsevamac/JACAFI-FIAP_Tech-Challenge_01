@@ -5,7 +5,6 @@ import java.util.regex.Pattern;
 
 import com.jacafi.tech.vehicle.domain.exception.InvalidLicensePlateException;
 
-/** Brazilian vehicle plate normalized to its seven-character representation. */
 public record LicensePlate(String value) {
 
     private static final Pattern SEPARATORS = Pattern.compile("[^A-Za-z0-9]");

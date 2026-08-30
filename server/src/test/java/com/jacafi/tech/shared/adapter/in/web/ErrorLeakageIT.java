@@ -22,17 +22,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.jacafi.tech.auth.adapter.out.security.JwtTokenAdapter;
 import com.jacafi.tech.support.AbstractIntegrationTest;
 
-/**
- * What an error response must never contain.
- *
- * <p>The most important tests of the error handling, and the ones written as prohibitions rather
- * than expectations. A test asserting that a 409 has the right message stays green while the body
- * also carries the index name and the submitted plate; only a test that asserts on absence
- * catches that.
- *
- * <p>Every scanner in the world checks for these, and a vulnerability report is a deliverable of
- * this challenge.
- */
 @AutoConfigureMockMvc
 @DisplayName("what an error response must not leak")
 class ErrorLeakageIT extends AbstractIntegrationTest {
@@ -93,18 +82,12 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
                     .getResponse()
                     .getContentAsString();
 
-            // Postgres words this as: duplicate key value violates unique constraint
-            // "ux_vehicles_license_plate_active" / Detail: Key (license_plate)=(LEK1A23) already
-            // exists. Hibernate wraps it, Spring rewraps it, and getMessage() publishes all of it.
             assertThat(body)
                     .doesNotContain(PLATE)
                     .doesNotContain("ux_vehicles_license_plate_active")
                     .doesNotContain("license_plate")
                     .doesNotContain("duplicate key")
                     .doesNotContain("constraint");
-            // "vehicles" nao entra na lista: o corpo traz "instance":"/api/v1/vehicles", que e o
-            // caminho que o proprio cliente pediu. Afirmar sobre ele testaria a URI, nao o
-            // vazamento — e um teste que falha por motivo errado e apagado, nao consertado.
         }
     }
 
@@ -115,9 +98,7 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
         @Test
         @DisplayName("answers 500 with status, code and traceId, and nothing else")
         void carriesNoStackTrace() throws Exception {
-            // A UUID that is syntactically valid makes it past binding and into the use case; the
-            // route that fails inside is what produces an unhandled exception rather than a 404.
-            // What matters is the shape of the body, not which failure produced it.
+
             String body = mockMvc.perform(
                             get("/api/v1/vehicles/" + UUID.randomUUID()).header("Authorization", bearer))
                     .andReturn()
@@ -138,9 +119,6 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
         void theErrorRouteIsHardened() throws Exception {
             String body = mockMvc.perform(get("/api/v1/rota-que-nao-existe").header("Authorization", bearer))
                     .andExpect(status().isNotFound())
-                    // "trace" e a propriedade que o tratador padrao do container acrescenta com a
-                    // stack trace; "traceId" e nossa e precisa estar la. Por isso a assercao e
-                    // sobre a propriedade JSON, e nao sobre a substring.
                     .andExpect(jsonPath("$.trace").doesNotExist())
                     .andExpect(jsonPath("$.traceId").exists())
                     .andExpect(jsonPath("$.code").value("GEN-008"))
@@ -169,9 +147,6 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
                     .getResponse()
                     .getContentAsString();
 
-            // An invalid CPF is still a value a person typed, and an error body is not a place for
-            // it (LGPD Art. 6 VII). FieldError.getRejectedValue() holds exactly this string, which
-            // is what a naive handler puts in the response.
             assertThat(body).doesNotContain("11111111111");
         }
 
@@ -205,8 +180,6 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
                     .getResponse()
                     .getContentAsString();
 
-            // Distinguir "usuario inexistente" de "senha errada" de "token expirado" entrega um
-            // oraculo de enumeracao: quem sonda aprende quais usuarios existem pela diferenca.
             assertThat(body)
                     .doesNotContain("expired")
                     .doesNotContain("expirado")
@@ -225,13 +198,9 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
                     .andExpect(status().isBadRequest())
                     .andExpect(header().exists(TraceIdFilter.HEADER));
 
-            // Including the ones produced before any controller runs. A request rejected by the
-            // security filter never reaches the advice, and a filter ordered after security could
-            // not have added the header.
             mockMvc.perform(get("/api/v1/vehicles/" + UUID.randomUUID()))
                     .andExpect(status().isUnauthorized())
                     .andExpect(header().exists(TraceIdFilter.HEADER))
-                    // E o corpo segue o mesmo contrato do resto, apesar de vir de outro lugar.
                     .andExpect(jsonPath("$.code").value("SEG-001"))
                     .andExpect(jsonPath("$.traceId").exists());
         }

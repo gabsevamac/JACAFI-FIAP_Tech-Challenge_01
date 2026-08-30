@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Open allocation of an inventory item to one service order. */
 public record Reservation(UUID id, UUID serviceOrderId, Stock quantity, Instant reservedAt) {
     public Reservation {
         Objects.requireNonNull(id, "id must not be null");

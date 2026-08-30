@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.UUID;
 
-/** An immutable-price proposal internal to a service order. */
 public final class Estimate {
     private final UUID id;
     private final BigDecimal totalAmount;

@@ -18,7 +18,6 @@ import com.jacafi.tech.shared.adapter.in.web.SecurityProblemDetailHandler;
 @Configuration
 public class SecurityConfig {
 
-    /** Paths served by springdoc: the OpenAPI 3.1 document and the Swagger UI. */
     private static final String[] SPRINGDOC_PATHS = {
         "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**"
     };
@@ -36,7 +35,6 @@ public class SecurityConfig {
             throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Without an explicit entry point, a request with no credentials got 403 instead of 401.
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(problemDetailHandler)
                         .accessDeniedHandler(problemDetailHandler))
@@ -48,9 +46,6 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**")
                         .permitAll()
-                        // API documentation is a project requirement, and the Swagger UI has to
-                        // fetch its own JSON before any token exists. The runtime image disables
-                        // Springdoc by default; the local Compose environment enables it explicitly.
                         .requestMatchers(SPRINGDOC_PATHS)
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/user-accounts/me")

@@ -16,20 +16,6 @@ import org.springframework.stereotype.Component;
 
 import com.jacafi.tech.shared.domain.ErrorCode;
 
-/**
- * Renders authentication and authorization failures as RFC 7807 {@code application/problem+json}.
- *
- * <p>Without an explicit entry point, Spring Security falls back to
- * {@code Http403ForbiddenEntryPoint} for a request that carries no credentials, answering 403
- * where the correct status is 401: the client is unauthenticated, not forbidden.
- *
- * <p>The body is written by hand instead of through an {@code ObjectMapper} because Jackson 2 and
- * Jackson 3 are both on the classpath (Spring Boot 4 uses Jackson 3; {@code jjwt-jackson} still
- * pulls Jackson 2), and a security filter is the wrong place to depend on which one wins.
- *
- * <p>No detail derived from the credentials reaches the response: an error message must never
- * carry personal data (LGPD Art. 6 VII).
- */
 @Component
 public class SecurityProblemDetailHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
@@ -47,13 +33,6 @@ public class SecurityProblemDetailHandler implements AuthenticationEntryPoint, A
         write(request, response, ErrorCode.ACCESS_DENIED);
     }
 
-    /**
-     * Same shape the advice produces, {@code code} and {@code traceId} included.
-     *
-     * <p>These two responses are the ones an unauthenticated caller sees most, so a client that
-     * branches on {@code code} must be able to branch on them too. A contract that holds for every
-     * error except the two most common ones is not a contract.
-     */
     private void write(HttpServletRequest request, HttpServletResponse response, ErrorCode code) throws IOException {
         HttpStatus status = GlobalExceptionHandler.httpStatus(code);
         response.setStatus(status.value());
@@ -70,7 +49,6 @@ public class SecurityProblemDetailHandler implements AuthenticationEntryPoint, A
                         escape(TraceIdFilter.currentTraceId())));
     }
 
-    /** Minimal JSON string escaping — the request URI is client-controlled input. */
     private static String escape(String value) {
         var out = new StringBuilder(value.length() + 8);
         for (int i = 0; i < value.length(); i++) {

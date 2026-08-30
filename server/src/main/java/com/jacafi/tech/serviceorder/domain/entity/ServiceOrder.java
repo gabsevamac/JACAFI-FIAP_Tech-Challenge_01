@@ -10,7 +10,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** Aggregate that enforces the approval gate before execution. */
 public final class ServiceOrder {
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 

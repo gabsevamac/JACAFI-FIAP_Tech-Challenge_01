@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 import com.jacafi.tech.inventory.domain.exception.InsufficientStockException;
 import com.jacafi.tech.inventory.domain.exception.ReservationNotFoundException;
 
-/** Aggregate that owns one material and its open reservations. */
 public final class InventoryItem {
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
     private static final int MAX_NAME_LENGTH = 120;

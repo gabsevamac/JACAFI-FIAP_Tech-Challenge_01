@@ -1,6 +1,5 @@
 package com.jacafi.tech.inventory.domain.entity;
 
-/** Non-negative number of stock units. */
 public record Stock(int value) {
     public static final Stock ZERO = new Stock(0);
 

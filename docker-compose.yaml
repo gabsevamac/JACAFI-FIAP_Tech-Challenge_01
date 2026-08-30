@@ -11,14 +11,6 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      # As duas variaveis existem porque atendem coisas diferentes, e so as duas juntas
-      # fecham o cerco: TZ e o fuso do sistema operacional do container (o que `date` e o
-      # log do Postgres usam), PGTZ e o fuso que o cliente libpq assume na sessao.
-      #
-      # A aplicacao mede tempo medio de execucao de servico, que e subtracao entre
-      # timestamps. Se o banco resolver "agora" num fuso e a JVM em outro, a conta erra por
-      # um numero inteiro de horas — e erra silenciosamente, porque o resultado continua
-      # sendo um numero plausivel.
       TZ: UTC
       PGTZ: UTC
     healthcheck:
@@ -42,12 +34,8 @@ services:
       DB_USERNAME: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       SERVER_PORT: ${SERVER_PORT:-8082}
-      # A imagem de runtime desabilita a documentação por padrão. O Compose é apenas para o
-      # desenvolvimento local, onde Swagger é necessário para explorar a API.
       SPRINGDOC_API_DOCS_ENABLED: ${SPRINGDOC_API_DOCS_ENABLED:-true}
       SPRINGDOC_SWAGGER_UI_ENABLED: ${SPRINGDOC_SWAGGER_UI_ENABLED:-true}
-      # Obrigatorio: application.yaml resolve ${JWT_SECRET} na subida do contexto e,
-      # sem a variavel, o container nao inicia. Minimo de 32 bytes para HS256.
       JWT_SECRET: ${JWT_SECRET}
       RESEND_ENABLED: ${RESEND_ENABLED:-false}
       RESEND_API_KEY: ${RESEND_API_KEY:-}

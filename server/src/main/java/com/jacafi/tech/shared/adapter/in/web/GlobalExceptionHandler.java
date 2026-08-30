@@ -26,35 +26,11 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import com.jacafi.tech.shared.domain.BusinessException;
 import com.jacafi.tech.shared.domain.ErrorCode;
 
-/**
- * Turns every failure into RFC 9457 {@code application/problem+json}, and lets nothing else out.
- *
- * <p>The rule, without exception: the client receives a status, a code from {@link ErrorCode}, a
- * sentence written for a human, and a trace id. It never receives a stack trace, SQL, a constraint
- * or index name, a class or property name, a file path, or the value it submitted. Logs preserve
- * the trace id and the operational context without recording values from expected client errors.
- *
- * <p>Extends {@code ResponseEntityExceptionHandler} to take over the framework's own handlers —
- * otherwise Spring answers those itself, in its own format, past every rule here.
- *
- * <p>Global rather than per slice. The two advices this replaces each mapped
- * {@code IllegalArgumentException} to 400 <em>and copied its message into the body</em>, which
- * published domain invariant messages such as {@code "vehicleId must not be null"} to whoever
- * asked. That is the class of leak a per-slice advice keeps reintroducing: the rule has to be
- * stated once, in one place, for it to be true everywhere.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // ---------------------------------------------------------------------------------------
-    // As nossas
-    // ---------------------------------------------------------------------------------------
-
-    /**
-     * Business failures are rendered from the stable catalogue, never from exception text.
-     */
     @ExceptionHandler(BusinessException.class)
     public ProblemDetail handleBusiness(BusinessException e) {
         log.warn(
@@ -65,25 +41,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(e.errorCode());
     }
 
-    // ---------------------------------------------------------------------------------------
-    // Persistência
-    // ---------------------------------------------------------------------------------------
-
-    /**
-     * The one this task exists for.
-     *
-     * <p>Postgres reports a unique index violation as {@code duplicate key value violates unique
-     * constraint "ux_vehicles_license_plate_active"} followed by {@code Detail: Key
-     * (license_plate)=(ABC1D23) already exists.} — the index name and the plate, in one string.
-     * Hibernate wraps it, Spring rewraps it, and any handler that reaches for {@code getMessage()}
-     * publishes both: the schema, and personal data the caller may not have been entitled to
-     *     confirm.
-     *
-     * <p>Answered generically for that reason. A duplicate the application can foresee is caught
-     * before reaching the database and arrives here as a {@code BusinessException} with its own
-     * code; what actually lands here is the concurrent case, where two writers passed the same
-     * check.
-     */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ignored) {
         log.warn(
@@ -102,13 +59,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(ErrorCode.DATA_CONFLICT);
     }
 
-    /**
-     * Comes from Spring Data when a sort or filter names a property that does not exist.
-     *
-     * <p>Its message lists the properties that <em>do</em> exist on the entity, which maps the
-     * schema one request at a time. The paging whitelist rejects unknown fields before they get
-     * this far; this handler covers whatever route did not go through it.
-     */
     @ExceptionHandler(PropertyReferenceException.class)
     public ProblemDetail handlePropertyReference(PropertyReferenceException ignored) {
         log.warn(
@@ -118,11 +68,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(ErrorCode.INVALID_PAGING);
     }
 
-    // ---------------------------------------------------------------------------------------
-    // Validação fora do corpo da requisição
-    // ---------------------------------------------------------------------------------------
-
-    /** {@code @Validated} on a parameter, rather than {@code @Valid} on a body. */
     @ExceptionHandler(ConstraintViolationException.class)
     public ProblemDetail handleConstraintViolation(ConstraintViolationException e) {
         List<Map<String, String>> errors = e.getConstraintViolations().stream()
@@ -137,38 +82,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem;
     }
 
-    /**
-     * A programmer error that reached the edge: an invariant, a null check, a bad argument.
-     *
-     * <p>Answered 400 because it is almost always the client's input that provoked it, but with a
-     * generic message and never with {@code getMessage()}. Those messages are written for whoever
-     * reads the log — {@code "modelYear must not be null"}, {@code "field must not be blank"} —
-     * and describe the internals, not anything the caller can act on.
-     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail handleIllegalArgument(IllegalArgumentException e) {
         logClientError(ErrorCode.INVALID_PARAMETER, e);
         return problem(ErrorCode.INVALID_PARAMETER);
     }
 
-    /** A state transition the aggregate refuses. */
     @ExceptionHandler(IllegalStateException.class)
     public ProblemDetail handleIllegalState(IllegalStateException e) {
         logClientError(ErrorCode.DATA_CONFLICT, e);
         return problem(ErrorCode.DATA_CONFLICT);
     }
 
-    // ---------------------------------------------------------------------------------------
-    // Rede de segurança
-    // ---------------------------------------------------------------------------------------
-
-    /**
-     * Everything nobody predicted.
-     *
-     * <p>Logged at ERROR with the whole stack trace, because an unforeseen 500 is the one thing an
-     * operator must be able to reconstruct. Answered with a status, a code and the trace id, and
-     * nothing else — the exception's class name alone would disclose the stack in use.
-     */
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpected(Exception e) {
         log.error(
@@ -179,11 +104,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(ErrorCode.INTERNAL_ERROR);
     }
 
-    // ---------------------------------------------------------------------------------------
-    // Handlers do próprio Spring, sobrescritos para passarem pelas mesmas regras
-    // ---------------------------------------------------------------------------------------
-
-    /** {@code @Valid} on a request body. Field names and messages, never the submitted values. */
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException e, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
@@ -196,52 +116,29 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         error.getDefaultMessage() == null ? "Valor inválido." : error.getDefaultMessage()))
                 .toList();
 
-        // FieldError.getRejectedValue() holds exactly what the client sent, and is what a naive
-        // handler echoes back. For a CPF field that means publishing the registration in the error
-        // body — the value is never read here, and that is the point.
         logClientError(ErrorCode.VALIDATION_FAILED, e);
         ProblemDetail problem = problem(ErrorCode.VALIDATION_FAILED);
         problem.setProperty("errors", errors);
         return ResponseEntity.status(problem.getStatus()).body(problem);
     }
 
-    /** Malformed JSON, a wrong type inside the body, an unparseable date. */
     @Override
     protected ResponseEntity<Object> handleHttpMessageNotReadable(
             HttpMessageNotReadableException e, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
 
-        // Jackson's message quotes the offending fragment of the payload and names the target
-        // class and field. Both are withheld: the fragment can carry submitted personal data, and
-        // the class name discloses the internal model.
         logClientError(ErrorCode.MALFORMED_BODY, e);
         return ResponseEntity.status(httpStatus(ErrorCode.MALFORMED_BODY)).body(problem(ErrorCode.MALFORMED_BODY));
     }
 
-    /**
-     * A path or query parameter that will not convert — {@code ?customerId=abc}.
-     *
-     * <p>A plain {@code @ExceptionHandler} rather than an override: this exception is not among
-     * the ones {@code ResponseEntityExceptionHandler} declares, so there is nothing to override.
-     */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException e) {
-        // The parameter name is useful and safe: the client chose it and already knows it. The
-        // required type is not — "UUID" or "VehicleStatus" describes the internal model, and the
-        // enum's name would enumerate its constants.
+
         logClientError(ErrorCode.INVALID_PARAMETER, e);
         ProblemDetail problem = problem(ErrorCode.INVALID_PARAMETER);
         problem.setProperty("parameter", e.getName());
         return problem;
     }
 
-    /**
-     * Last gate on the framework's own responses.
-     *
-     * <p>{@code ResponseEntityExceptionHandler} handles a dozen exceptions this class does not
-     * override, and its default bodies carry the framework's wording. Routing them through here
-     * means every response leaving the application has a code and a trace id, including the ones
-     * nobody thought to override.
-     */
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception e, Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {
@@ -253,14 +150,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             logClientError(code, e);
         }
 
-        // O status vem do statusCode que o framework decidiu, e nao do catalogo. Os dois podem
-        // divergir — uma rota inexistente chega aqui como 404 e cairia num codigo generico de 400
-        // — e quando divergem o corpo passa a contradizer o cabecalho HTTP, que e pior do que
-        // qualquer um dos dois estar errado sozinho.
         return ResponseEntity.status(statusCode).body(problem(code, code.message(), statusCode));
     }
-
-    // ---------------------------------------------------------------------------------------
 
     private static ErrorCode codeFor(HttpStatusCode status) {
         if (status.isSameCodeAs(HttpStatus.METHOD_NOT_ALLOWED)) {
@@ -323,13 +214,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         };
     }
 
-    /**
-     * 4xx logs at WARN and without a stack trace.
-     *
-     * <p>A client sending bad input is not an incident, and a stack trace per malformed request
-     * turns the log into noise that hides the 5xx worth reading. The message is kept because it is
-     * what makes the entry useful, and it is safe here: only the log sees it.
-     */
     private static void logClientError(ErrorCode code, Exception e) {
         log.warn(
                 "Client error [{}] traceId={}: {}",
@@ -338,7 +222,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 LogSafe.value(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
     }
 
-    /** {@code registerVehicle.command.licensePlate} to {@code licensePlate}. */
     private static String lastNodeOf(String propertyPath) {
         int lastDot = propertyPath.lastIndexOf('.');
         return lastDot < 0 ? propertyPath : propertyPath.substring(lastDot + 1);

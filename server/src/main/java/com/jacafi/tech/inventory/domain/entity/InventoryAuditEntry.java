@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Append-only stock movement ledger entry. */
 public record InventoryAuditEntry(
         UUID inventoryItemId,
         AuditedOperation operation,

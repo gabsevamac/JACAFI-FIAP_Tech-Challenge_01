@@ -16,7 +16,6 @@ import org.hibernate.type.SqlTypes;
 
 import com.jacafi.tech.shared.application.AuditEvent;
 
-/** Storage shape of one append-only audit event. */
 @Entity
 @Table(name = "audit_trail")
 public class AuditTrailJpaEntity {

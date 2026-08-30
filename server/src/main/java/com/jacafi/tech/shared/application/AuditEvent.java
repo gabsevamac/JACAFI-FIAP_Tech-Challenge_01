@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-/** One successful business action recorded in the append-only audit trail. */
 public record AuditEvent(
         String aggregateType,
         UUID aggregateId,

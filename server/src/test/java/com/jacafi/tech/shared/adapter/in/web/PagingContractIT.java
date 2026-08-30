@@ -25,17 +25,7 @@ import com.jacafi.tech.auth.adapter.out.security.JwtTokenAdapter;
 import com.jacafi.tech.support.AbstractIntegrationTest;
 import com.jacafi.tech.support.FixedClockConfiguration;
 
-/**
- * The paging contract, over HTTP, against the real stack.
- *
- * <p>Asserted at the edge rather than on {@code PageParameters} directly, because the guarantees
- * that matter here are about what a client receives: the status code, and what the error body does
- * not contain.
- */
 @AutoConfigureMockMvc
-// O relogio fixo nao esta aqui por determinismo, e sim para forcar o pior caso da ordenacao:
-// com ele todo created_at e literalmente o mesmo valor, entao a ordenacao por registro nao tem
-// nada para separar as linhas alem do desempate por identificador.
 @Import(FixedClockConfiguration.class)
 @DisplayName("the paging contract over HTTP")
 class PagingContractIT extends AbstractIntegrationTest {
@@ -128,12 +118,8 @@ class PagingContractIT extends AbstractIntegrationTest {
                     .getResponse()
                     .getContentAsString();
 
-            // The submitted value, echoed back, confirms to a prober which names are being tested.
             assertThat(body).doesNotContain("campoInexistente");
 
-            // Spring Data's PropertyReferenceException reads "No property 'x' found for type
-            // 'VehicleJpaEntity'" and lists the properties that do exist. Letting it reach the
-            // client hands over the entity's shape one request at a time.
             assertThat(body)
                     .doesNotContain("VehicleJpaEntity")
                     .doesNotContain("PropertyReferenceException")
@@ -150,20 +136,7 @@ class PagingContractIT extends AbstractIntegrationTest {
         @Test
         @DisplayName("neither repeat nor skip a record")
         void areStable() throws Exception {
-            // Five vehicles under one fixed clock, so every created_at is literally the same
-            // value and the ordering has nothing to separate them by but the tie-breaker.
-            //
-            // Worth being exact about what this proves, because it is less than it looks.
-            // Removing the tie-breaker from SortableFields leaves this test green: Postgres
-            // happens to return these five rows in a stable order anyway, on a small table with a
-            // sequential scan. Instability is permitted, not guaranteed, so no integration test
-            // can force it. What actually guards the tie-breaker is
-            // PageParametersTest.appendsTheTieBreaker, which asserts on the resolved criteria and
-            // does fail under that mutation.
-            //
-            // This one guards the contract a client depends on — that walking the pages yields
-            // every record exactly once — which is worth asserting even where the mechanism is
-            // asserted elsewhere.
+
             List<String> plates = List.of("PGA1A11", "PGB2B22", "PGC3C33", "PGD4D44", "PGE5E55");
             for (String plate : plates) {
                 register(plate);
@@ -215,8 +188,6 @@ class PagingContractIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.size").value(20))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
-                // Spring Data's Page would serialize "pageable", "numberOfElements", "first",
-                // "last" and a nested "sort" object. None of that is our contract.
                 .andExpect(jsonPath("$.pageable").doesNotExist())
                 .andExpect(jsonPath("$.numberOfElements").doesNotExist());
     }

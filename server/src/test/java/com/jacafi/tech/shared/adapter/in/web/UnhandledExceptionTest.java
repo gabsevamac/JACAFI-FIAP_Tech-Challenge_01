@@ -19,26 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.jacafi.tech.shared.domain.BusinessException;
 import com.jacafi.tech.shared.domain.ErrorCode;
 
-/**
- * The fallback, exercised with a genuinely unforeseen failure.
- *
- * <p>Standalone MockMvc around a controller that exists only here, rather than an integration test
- * against a real endpoint: forcing a 500 from a real one means either breaking it on purpose or
- * finding a bug, and neither makes a repeatable test. A controller whose whole job is to throw
- * makes the fallback the only thing under test.
- */
 @DisplayName("an unhandled exception")
 class UnhandledExceptionTest {
 
-    /** Throws where a real controller would do its work. */
     @RestController
     static class ExplodingController {
 
         @GetMapping("/boom")
         String boom() {
-            // A NullPointerException specifically, because it is the archetype: it carries a
-            // message naming a field or method of ours, which is exactly the kind of internal
-            // detail that must not leave the process.
+
             String value = null;
             return value.trim();
         }
@@ -100,11 +89,7 @@ class UnhandledExceptionTest {
     @Test
     @DisplayName("answers exactly the agreed properties, and no others")
     void answersNoExtraProperties() throws Exception {
-        // An allow-list rather than a list of prohibitions. A future handler adding a helpful
-        // "exception" or "path" property would pass every doesNotContain above and still widen
-        // what a 500 discloses; this fails the moment the shape changes.
-        // "type" fica de fora: a RFC 9457 permite omiti-lo quando vale o default about:blank, e
-        // e o que o ProblemDetail faz.
+
         mockMvc.perform(get("/boom"))
                 .andExpect(jsonPath("$.title").exists())
                 .andExpect(jsonPath("$.status").exists())

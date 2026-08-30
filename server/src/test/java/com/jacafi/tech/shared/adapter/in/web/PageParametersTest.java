@@ -39,9 +39,7 @@ class PageParametersTest {
         @Test
         @DisplayName("reject a size above the ceiling instead of clamping it")
         void rejectsOversizedPages() {
-            // Clamping would answer 100 elements to a request for 500 and report success. A client
-            // looping over pages would then skip four fifths of the data and never know: a wrong
-            // answer is worse than an error, because only the error gets fixed.
+
             assertThatExceptionOfType(InvalidPageRequestException.class).isThrownBy(() -> query(0, 101, null));
         }
 
@@ -91,9 +89,7 @@ class PageParametersTest {
         @Test
         @DisplayName("always end in the tie-breaker, so paging is stable")
         void appendsTheTieBreaker() {
-            // Without a unique final criterion, rows sharing a value come back in whatever order
-            // the database picks, and that order may differ between two queries — so a row can
-            // land on page 1 and again on page 2, or on neither.
+
             assertThat(query(0, 20, List.of("name")).sort()).extracting("field").containsExactly("name", "id");
         }
 
@@ -119,8 +115,7 @@ class PageParametersTest {
         @Test
         @DisplayName("say nothing about the rejected field, nor about which fields exist")
         void doesNotDiscloseTheSchema() {
-            // The whole point of the allow-list. Spring Data's PropertyReferenceException names
-            // the properties that do exist, which maps the entity one guess at a time.
+
             assertThatExceptionOfType(InvalidPageRequestException.class)
                     .isThrownBy(() -> query(0, 20, List.of("passwordHash")))
                     .withMessageNotContaining("passwordHash")

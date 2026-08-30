@@ -8,7 +8,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** A service offered by the workshop, with the current reference price. */
 public final class ServiceCatalogItem {
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
     private static final int MAX_NAME_LENGTH = 120;
