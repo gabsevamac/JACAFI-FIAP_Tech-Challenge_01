@@ -37,7 +37,3 @@ build/
 .worktrees/
 .superpowers/
 docs/superpowers/
-.terraform/
-*.tfstate
-*.tfstate.*
-infra/kubeconfig

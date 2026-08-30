@@ -81,27 +81,3 @@ docker run --rm -v "${PWD}/server:/workspace" -v "${HOME}/.m2:/root/.m2" -w /wor
 ```
 
 O relatório de segurança, incluindo escopo, evidências e limitações, será mantido em `docs/security/vulnerability-analysis.md`.
-
-## Infraestrutura e deploy
-
-O diretório `infra` usa Terraform para criar um cluster local Kind com dois workers, namespace, Secrets, PostgreSQL 16, Service e volume persistente. Os manifests em `k8s` publicam a API com ConfigMap, Deployment com duas réplicas, Service e HPA entre 2 e 6 pods por CPU e memória.
-
-Pré-requisitos para Kubernetes local: Docker, Terraform, `kubectl` e `kind`.
-
-```powershell
-Copy-Item infra/terraform.tfvars.example infra/terraform.tfvars
-# Edite os segredos antes de aplicar.
-Set-Location infra
-terraform init
-terraform apply
-Set-Location ..
-
-docker build -t jacafi-tech:local server
-kind load docker-image jacafi-tech:local --name jacafi-tech
-kubectl apply -k k8s
-kubectl -n jacafi port-forward service/tech-api 8082:8082
-```
-
-O arquivo `k8s/secret.example.yaml` é apenas uma referência: no fluxo local o Secret é criado pelo Terraform; não versione credenciais reais. Para o HPA coletar métricas no Kind, instale o Metrics Server compatível com o cluster antes de demonstrar a escala.
-
-O workflow [delivery](.github/workflows/delivery.yml) executa `verify` em pull requests, constrói e publica a imagem no GHCR para a `main` e, em runner auto-hospedado com Docker, `kind`, `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET`, provisiona a infraestrutura e publica os manifests. Assim, segredos não entram no repositório e o deploy permanece opt-in.
