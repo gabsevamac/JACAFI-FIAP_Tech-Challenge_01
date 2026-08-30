@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -43,7 +44,11 @@ class UpdateServiceOrderStatusServiceTest {
         assertThat(orders.saved).isSameAs(order);
         assertThat(notifications.events)
                 .containsExactly(new Notification(order.id(), order.customerId(), ServiceOrderStatus.COMPLETED));
-        assertThat(trail.events).singleElement().extracting(AuditEvent::action).isEqualTo("STATUS_UPDATED");
+        assertThat(trail.events).singleElement().satisfies(event -> {
+            assertThat(event.action()).isEqualTo("STATUS_UPDATED");
+            assertThat(event.beforeState()).containsExactlyEntriesOf(Map.of("status", "IN_PROGRESS"));
+            assertThat(event.afterState()).containsExactlyEntriesOf(Map.of("status", "COMPLETED"));
+        });
     }
 
     private static ServiceOrder inProgressOrder() {

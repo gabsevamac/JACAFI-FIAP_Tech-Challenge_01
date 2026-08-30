@@ -1,11 +1,23 @@
 package com.jacafi.tech.shared.application;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 /** One successful business action recorded in the append-only audit trail. */
-public record AuditEvent(String aggregateType, UUID aggregateId, String action, String actor, Instant occurredAt) {
+public record AuditEvent(
+        String aggregateType,
+        UUID aggregateId,
+        String action,
+        String actor,
+        Instant occurredAt,
+        Map<String, String> beforeState,
+        Map<String, String> afterState) {
+
+    public AuditEvent(String aggregateType, UUID aggregateId, String action, String actor, Instant occurredAt) {
+        this(aggregateType, aggregateId, action, actor, occurredAt, Map.of(), Map.of());
+    }
 
     public AuditEvent {
         aggregateType = requireText(aggregateType, "aggregateType");
@@ -13,6 +25,8 @@ public record AuditEvent(String aggregateType, UUID aggregateId, String action, 
         actor = requireText(actor, "actor");
         Objects.requireNonNull(aggregateId, "aggregateId must not be null");
         Objects.requireNonNull(occurredAt, "occurredAt must not be null");
+        beforeState = Map.copyOf(Objects.requireNonNull(beforeState, "beforeState must not be null"));
+        afterState = Map.copyOf(Objects.requireNonNull(afterState, "afterState must not be null"));
     }
 
     private static String requireText(String value, String field) {

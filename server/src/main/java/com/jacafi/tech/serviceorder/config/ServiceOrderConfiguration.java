@@ -9,7 +9,7 @@ import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
 import com.jacafi.tech.inventory.application.service.ReserveInventoryStockService;
 import com.jacafi.tech.servicecatalog.application.port.ServiceCatalogRepositoryPort;
-import com.jacafi.tech.serviceorder.adapter.out.notification.LoggingStatusNotificationAdapter;
+import com.jacafi.tech.serviceorder.adapter.out.notification.OutboxStatusNotificationAdapter;
 import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
 import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.application.service.CompleteServiceOrderService;
@@ -22,6 +22,7 @@ import com.jacafi.tech.serviceorder.application.service.OpenServiceOrderService;
 import com.jacafi.tech.serviceorder.application.service.ServiceOrderAccessPolicy;
 import com.jacafi.tech.serviceorder.application.service.StartServiceOrderDiagnosisService;
 import com.jacafi.tech.serviceorder.application.service.UpdateServiceOrderStatusService;
+import com.jacafi.tech.shared.adapter.out.persistence.EventOutboxPublisher;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
 
@@ -39,11 +40,12 @@ public class ServiceOrderConfiguration {
             ServiceCatalogRepositoryPort catalog,
             InventoryItemRepositoryPort inventory,
             ReserveInventoryStockService reserveInventory,
+            StatusNotificationPort notifications,
             AuditTrailPort auditTrail,
             ServiceOrderAccessPolicy access,
             Clock clock) {
         return new OpenServiceOrderService(
-                orders, vehicles, catalog, inventory, reserveInventory, auditTrail, access, clock);
+                orders, vehicles, catalog, inventory, reserveInventory, notifications, auditTrail, access, clock);
     }
 
     @Bean
@@ -79,10 +81,11 @@ public class ServiceOrderConfiguration {
     @Bean
     DecideEstimateService decideEstimateService(
             ServiceOrderRepositoryPort orders,
+            StatusNotificationPort notifications,
             AuditTrailPort auditTrail,
             ServiceOrderAccessPolicy access,
             Clock clock) {
-        return new DecideEstimateService(orders, auditTrail, access, clock);
+        return new DecideEstimateService(orders, notifications, auditTrail, access, clock);
     }
 
     @Bean
@@ -104,8 +107,8 @@ public class ServiceOrderConfiguration {
     }
 
     @Bean
-    StatusNotificationPort statusNotificationPort() {
-        return new LoggingStatusNotificationAdapter();
+    StatusNotificationPort statusNotificationPort(EventOutboxPublisher publisher) {
+        return new OutboxStatusNotificationAdapter(publisher);
     }
 
     @Bean

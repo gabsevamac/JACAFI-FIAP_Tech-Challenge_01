@@ -18,6 +18,7 @@ import com.jacafi.tech.auth.application.port.AuthenticatedUser;
 import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.domain.entity.Estimate;
 import com.jacafi.tech.serviceorder.domain.entity.EstimateDecision;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceLineItem;
@@ -41,7 +42,7 @@ class DecideEstimateServiceTest {
         Estimate pending = order.generateEstimate("advisor", CLOCK);
         Orders orders = new Orders(order);
         Trail trail = new Trail();
-        DecideEstimateService service = new DecideEstimateService(orders, trail, operational(), CLOCK);
+        DecideEstimateService service = new DecideEstimateService(orders, notifications(), trail, operational(), CLOCK);
 
         Estimate approved = service.decide(order.id(), pending.id(), EstimateDecision.APPROVE, "notification-1");
 
@@ -89,5 +90,9 @@ class DecideEstimateServiceTest {
         public void record(AuditEvent event) {
             events.add(event);
         }
+    }
+
+    private static StatusNotificationPort notifications() {
+        return (serviceOrderId, customerId, status) -> {};
     }
 }

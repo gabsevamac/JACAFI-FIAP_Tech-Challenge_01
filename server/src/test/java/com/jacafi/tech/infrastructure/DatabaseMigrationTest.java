@@ -33,7 +33,7 @@ class DatabaseMigrationTest {
     }
 
     @Test
-    void appliesExactlyTheDisposableBaseline() throws SQLException {
+    void appliesTheVersionedSchema() throws SQLException {
         assertThat(strings("""
                         SELECT script
                         FROM flyway_schema_history
@@ -48,7 +48,8 @@ class DatabaseMigrationTest {
                         "V05_20260827__create_service_catalog.sql",
                         "V06_20260827__create_service_orders.sql",
                         "V07_20260827__create_audit_trail.sql",
-                        "V08_20260827__seed_admin_account.sql");
+                        "V08_20260827__seed_admin_account.sql",
+                        "V09_20260830__create_event_outbox.sql");
 
         assertThat(strings("""
                         SELECT table_name
@@ -70,7 +71,8 @@ class DatabaseMigrationTest {
                         "service_order_estimates",
                         "service_order_estimate_decisions",
                         "service_order_status_history",
-                        "audit_trail")
+                        "audit_trail",
+                        "event_outbox")
                 .doesNotContain("users", "clients", "parties", "services", "service_orders_service");
     }
 
@@ -278,7 +280,15 @@ class DatabaseMigrationTest {
                         WHERE table_schema = 'public'
                           AND table_name = 'audit_trail'
                         """))
-                .contains("aggregate_type", "aggregate_id", "action", "actor", "occurred_at")
+                .contains(
+                        "outbox_event_id",
+                        "aggregate_type",
+                        "aggregate_id",
+                        "action",
+                        "actor",
+                        "occurred_at",
+                        "before_state",
+                        "after_state")
                 .doesNotContain(
                         "metadata", "old_value", "new_value", "cpf", "cnpj", "tax_id", "plate", "password", "token");
 

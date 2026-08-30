@@ -26,6 +26,7 @@ import com.jacafi.tech.inventory.domain.entity.Stock;
 import com.jacafi.tech.servicecatalog.application.port.ServiceCatalogRepositoryPort;
 import com.jacafi.tech.servicecatalog.domain.entity.ServiceCatalogItem;
 import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
 import com.jacafi.tech.shared.application.AuditEvent;
@@ -61,6 +62,7 @@ class OpenServiceOrderServiceTest {
                 new Catalog(service),
                 inventory,
                 reserve,
+                notifications(),
                 trail,
                 new ServiceOrderAccessPolicy(user),
                 CLOCK);
@@ -197,5 +199,9 @@ class OpenServiceOrderServiceTest {
         public void record(AuditEvent event) {
             events.add(event);
         }
+    }
+
+    private static StatusNotificationPort notifications() {
+        return (serviceOrderId, customerId, status) -> {};
     }
 }

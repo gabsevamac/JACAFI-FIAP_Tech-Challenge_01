@@ -13,10 +13,10 @@ import com.jacafi.tech.shared.application.AuditTrailPort;
 @Component
 public class JpaAuditTrail implements AuditTrailPort {
 
-    private final AuditTrailJpaRepository repository;
+    private final EventOutboxPublisher publisher;
 
-    JpaAuditTrail(AuditTrailJpaRepository repository) {
-        this.repository = Objects.requireNonNull(repository, "repository must not be null");
+    JpaAuditTrail(EventOutboxPublisher publisher) {
+        this.publisher = Objects.requireNonNull(publisher, "publisher must not be null");
     }
 
     /**
@@ -35,7 +35,6 @@ public class JpaAuditTrail implements AuditTrailPort {
     public void record(AuditEvent event) {
         Objects.requireNonNull(event, "event must not be null");
 
-        repository.save(new AuditTrailJpaEntity(
-                event.aggregateType(), event.aggregateId(), event.action(), event.actor(), event.occurredAt()));
+        publisher.publishAudit(event);
     }
 }

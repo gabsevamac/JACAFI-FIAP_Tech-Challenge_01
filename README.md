@@ -42,6 +42,8 @@ Antes de subir, altere `JWT_SECRET` em `.env` por um segredo local de pelo menos
 
 A imagem de runtime desabilita OpenAPI e Swagger por padrão. O Compose os habilita somente para desenvolvimento local; em outro ambiente, mantenha `SPRINGDOC_API_DOCS_ENABLED=false` e `SPRINGDOC_SWAGGER_UI_ENABLED=false`, ou proteja os endpoints por rede e autenticação.
 
+Para habilitar os e-mails de mudança de status da OS, preencha somente o seu `.env` local com `RESEND_ENABLED=true`, `RESEND_API_KEY` e `RESEND_FROM`. A chave não é versionada nem registrada em logs. O remetente deve pertencer a um domínio verificado no Resend; mantenha o recurso desabilitado quando não houver credenciais.
+
 Para encerrar o ambiente:
 
 ```powershell
@@ -73,6 +75,8 @@ Estados: `RECEIVED`, `UNDER_DIAGNOSIS`, `AWAITING_APPROVAL`, `IN_PROGRESS`, `COM
 ## Persistência e qualidade
 
 O banco é PostgreSQL 16, escolhido por suas transações, restrições de integridade e índices para os relacionamentos do domínio. O schema é versionado por Flyway em `server/src/main/resources/db/migration`, seguindo `VNN_YYYYMMDD__short_description.sql`.
+
+Auditoria e notificações usam Transactional Outbox: a transação de negócio grava o evento em `event_outbox`, e uma rotina local registra a `audit_trail` imutável e entrega o e-mail depois. Os estados anterior e posterior guardam apenas campos de negócio alterados, sem CPF/CNPJ, telefone ou e-mail.
 
 Para executar os testes com o runtime Java 25 adotado no projeto:
 

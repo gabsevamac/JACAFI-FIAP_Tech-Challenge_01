@@ -3,7 +3,9 @@ package com.jacafi.tech.shared.adapter.out.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -11,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.jacafi.tech.shared.application.AuditEvent;
 
@@ -19,22 +20,24 @@ import com.jacafi.tech.shared.application.AuditEvent;
 class JpaAuditTrailTest {
 
     @Mock
-    private AuditTrailJpaRepository repository;
+    private EventOutboxJpaRepository repository;
 
     @Test
-    void mapsTheAppendOnlyAuditEventToTheV07Columns() {
+    void queuesTheAuditEventInTheTransactionalOutbox() {
         UUID aggregateId = UUID.randomUUID();
-        new JpaAuditTrail(repository)
+        EventOutboxPublisher publisher =
+                new EventOutboxPublisher(repository, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+        new JpaAuditTrail(publisher)
                 .record(new AuditEvent("Vehicle", aggregateId, "UPDATED", "advisor", Instant.EPOCH));
 
-        ArgumentCaptor<AuditTrailJpaEntity> entry = ArgumentCaptor.forClass(AuditTrailJpaEntity.class);
+        ArgumentCaptor<EventOutboxJpaEntity> entry = ArgumentCaptor.forClass(EventOutboxJpaEntity.class);
         verify(repository).save(entry.capture());
-        assertThat(ReflectionTestUtils.getField(entry.getValue(), "aggregateType"))
-                .isEqualTo("Vehicle");
-        assertThat(ReflectionTestUtils.getField(entry.getValue(), "aggregateId"))
-                .isEqualTo(aggregateId);
-        assertThat(ReflectionTestUtils.getField(entry.getValue(), "action")).isEqualTo("UPDATED");
-        assertThat(ReflectionTestUtils.getField(entry.getValue(), "actor")).isEqualTo("advisor");
-        assertThat(ReflectionTestUtils.getField(entry.getValue(), "occurredAt")).isEqualTo(Instant.EPOCH);
+        assertThat(entry.getValue().aggregateType()).isEqualTo("Vehicle");
+        assertThat(entry.getValue().aggregateId()).isEqualTo(aggregateId);
+        assertThat(entry.getValue().eventType()).isEqualTo(OutboxEventType.AUDIT);
+        assertThat(entry.getValue().payload())
+                .containsEntry("action", "UPDATED")
+                .containsEntry("actor", "advisor")
+                .containsEntry("occurredAt", Instant.EPOCH.toString());
     }
 }

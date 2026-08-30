@@ -41,6 +41,7 @@ import com.jacafi.tech.serviceorder.domain.entity.EstimateDecision;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
 import com.jacafi.tech.shared.adapter.in.web.GlobalExceptionHandler;
 import com.jacafi.tech.shared.adapter.in.web.SecurityProblemDetailHandler;
+import com.jacafi.tech.shared.adapter.out.persistence.EventOutboxPublisher;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.config.TimeConfiguration;
 import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
@@ -85,6 +86,9 @@ class ServiceOrderSecurityMvcTest {
 
     @MockitoBean
     private AuditTrailPort auditTrail;
+
+    @MockitoBean
+    private EventOutboxPublisher eventOutbox;
 
     @BeforeEach
     void setUp() {

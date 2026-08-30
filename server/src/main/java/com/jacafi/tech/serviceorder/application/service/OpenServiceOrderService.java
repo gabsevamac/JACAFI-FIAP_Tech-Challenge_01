@@ -14,6 +14,7 @@ import com.jacafi.tech.inventory.domain.exception.InventoryItemNotFoundException
 import com.jacafi.tech.servicecatalog.application.port.ServiceCatalogRepositoryPort;
 import com.jacafi.tech.servicecatalog.domain.exception.ServiceCatalogItemNotFoundException;
 import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.domain.entity.MaterialLineItem;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceLineItem;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
@@ -28,6 +29,7 @@ public class OpenServiceOrderService {
     private final ServiceCatalogRepositoryPort catalog;
     private final InventoryItemRepositoryPort inventory;
     private final ReserveInventoryStockService reserveInventory;
+    private final StatusNotificationPort notifications;
     private final AuditTrailPort auditTrail;
     private final ServiceOrderAccessPolicy access;
     private final Clock clock;
@@ -38,6 +40,7 @@ public class OpenServiceOrderService {
             ServiceCatalogRepositoryPort catalog,
             InventoryItemRepositoryPort inventory,
             ReserveInventoryStockService reserveInventory,
+            StatusNotificationPort notifications,
             AuditTrailPort auditTrail,
             ServiceOrderAccessPolicy access,
             Clock clock) {
@@ -46,6 +49,7 @@ public class OpenServiceOrderService {
         this.catalog = catalog;
         this.inventory = inventory;
         this.reserveInventory = reserveInventory;
+        this.notifications = notifications;
         this.auditTrail = auditTrail;
         this.access = access;
         this.clock = clock;
@@ -77,6 +81,7 @@ public class OpenServiceOrderService {
         order.startDiagnosis(actor, clock);
         order.generateEstimate(actor, clock);
         saved = orders.save(order);
+        notifications.notifyStatusChanged(saved.id(), saved.customerId(), saved.status());
         auditTrail.record(new AuditEvent("ServiceOrder", saved.id(), "OPENED", actor, clock.instant()));
         return saved;
     }

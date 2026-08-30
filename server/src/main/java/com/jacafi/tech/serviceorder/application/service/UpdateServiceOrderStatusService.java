@@ -1,6 +1,7 @@
 package com.jacafi.tech.serviceorder.application.service;
 
 import java.time.Clock;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.transaction.annotation.Transactional;
@@ -38,10 +39,18 @@ public class UpdateServiceOrderStatusService {
         access.requireStatusManagementAccess();
         ServiceOrder order = orders.findById(serviceOrderId).orElseThrow(ServiceOrderNotFoundException::new);
         String actor = access.currentActor();
+        ServiceOrderStatus previousStatus = order.status();
         applyTransition(order, status, actor);
         orders.save(order);
         notifications.notifyStatusChanged(order.id(), order.customerId(), status);
-        auditTrail.record(new AuditEvent("ServiceOrder", order.id(), "STATUS_UPDATED", actor, clock.instant()));
+        auditTrail.record(new AuditEvent(
+                "ServiceOrder",
+                order.id(),
+                "STATUS_UPDATED",
+                actor,
+                clock.instant(),
+                Map.of("status", previousStatus.name()),
+                Map.of("status", status.name())));
         return order;
     }
 
