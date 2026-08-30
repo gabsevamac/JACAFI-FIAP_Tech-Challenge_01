@@ -1,4 +1,4 @@
-# ADR-001 — Adoção da Arquitetura Vertical Slice
+# ADR-001 — Arquitetura Vertical Slice
 
 ## Status
 
@@ -7,6 +7,12 @@ Aceito.
 ## Contexto
 
 O MVP reúne funcionalidades de clientes, veículos, catálogo, estoque, contas e ordens de serviço, desenvolvidas por mais de uma pessoa. A organização precisa reduzir acoplamento entre essas áreas e permitir evolução seletiva sem transformar o monólito inicial em microsserviços prematuramente.
+
+## Alternativas consideradas
+
+- Monólito em camadas técnicas globais: simples no início, mas concentra mudanças de domínios distintos nas mesmas pastas.
+- Microsserviços desde o MVP: oferece isolamento de deploy, porém adiciona custo operacional e integrações distribuídas antes de haver demanda comprovada.
+- Pacotes somente por entidade: reduz a coesão dos casos de uso que envolvem mais de uma entidade do mesmo contexto.
 
 ## Decisão
 

@@ -1,4 +1,4 @@
-# ADR-003 — Uso de Java com Spring Boot no backend
+# ADR-003 — Backend Java com Spring Boot
 
 ## Status
 
@@ -7,6 +7,12 @@ Aceito.
 ## Contexto
 
 O backend precisa expor APIs REST autenticadas, persistir dados no PostgreSQL, validar entradas, documentar contratos e executar testes automatizados. O time precisa de tecnologias maduras e adequadas a um monólito modular.
+
+## Alternativas consideradas
+
+- Node.js com Express: rápido para iniciar, mas não é a stack adotada pelo projeto nem oferece a mesma integração nativa com o ecossistema Java usado pela equipe.
+- .NET: possui recursos equivalentes, porém exigiria outra stack e experiência operacional adicional.
+- Quarkus: é uma opção Java válida, mas Spring Boot reduz risco por já prover as integrações usadas no projeto.
 
 ## Decisão
 
