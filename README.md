@@ -84,4 +84,4 @@ Para executar os testes com o runtime Java 25 adotado no projeto:
 docker run --rm -v "${PWD}/server:/workspace" -v "${HOME}/.m2:/root/.m2" -w /workspace maven:3.9-eclipse-temurin-25 mvn test
 ```
 
-O relatório de segurança, incluindo escopo, evidências e limitações, será mantido em `docs/security/vulnerability-analysis.md`.
+O [relatório de segurança](docs/security/vulnerability-analysis.md) registra o escopo, as evidências e as limitações do scan realizado.
