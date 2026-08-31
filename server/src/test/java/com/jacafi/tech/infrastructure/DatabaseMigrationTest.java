@@ -12,6 +12,7 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 class DatabaseMigrationTest {
@@ -297,11 +298,13 @@ class DatabaseMigrationTest {
                         FROM user_accounts
                         JOIN user_account_roles ON user_account_id = user_accounts.id
                         """)).containsExactly("dev-admin:true:ADMIN");
-        assertThat(string("""
+        String seededPasswordHash = string("""
                 SELECT password_hash
                 FROM user_accounts
                 WHERE username = 'dev-admin'
-                """)).matches("^\\$2[aby]\\$[0-9]{2}\\$.{53}$");
+                """);
+        assertThat(seededPasswordHash).matches("^\\$2[aby]\\$[0-9]{2}\\$.{53}$");
+        assertThat(BCrypt.checkpw("admin123", seededPasswordHash)).isTrue();
     }
 
     @Test

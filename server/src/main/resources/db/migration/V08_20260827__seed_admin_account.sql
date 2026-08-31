@@ -5,7 +5,7 @@ INSERT INTO user_accounts (
 ) VALUES (
     '00000000-0000-0000-0000-000000000001',
     'dev-admin',
-    '$2a$10$810zYJLvPc510qxCp/2AU.Bo/B3TBqHWaLVDICLQp1E/r7c/2xEIW',
+    '$2a$10$HCE3ASgilvY3mMMHLobV4uwo9zpBkTH7NfdHTGIZgDtQcK3SMnVhy',
     NULL,
     TRUE,
     CURRENT_TIMESTAMP,
