@@ -6,6 +6,8 @@ As decisões que sustentam estas visões estão em [docs/adr](adr) — em especi
 Clean Architecture, e a [ADR-004](adr/ADR-004-transactional-outbox-audit-notifications.md),
 que define o Transactional Outbox para auditoria e notificações.
 
+Para melhor visualização, os diagramas também estão disponíveis no [quadro no Miro](https://miro.com/app/board/uXjVNQGY9hA=/?share_link_id=579203101734).
+
 ## Nível 1 — Contexto
 
 ```mermaid
