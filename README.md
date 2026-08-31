@@ -24,8 +24,7 @@ As decisões arquiteturais estão em [docs/adr](docs/adr), os termos do domínio
 Pré-requisitos: Docker e Docker Compose. Para executar fora do container, use Java 25 e Maven 3.9+.
 
 ```powershell
-Copy-Item .env.example .env
-docker compose up --build
+docker compose --env-file .env.example up -d --build
 ```
 
 Antes de subir, altere `JWT_SECRET` em `.env` por um segredo local de pelo menos 32 bytes. Os serviços ficam disponíveis em:
