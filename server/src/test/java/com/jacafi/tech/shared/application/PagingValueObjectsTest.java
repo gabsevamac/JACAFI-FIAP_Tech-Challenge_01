@@ -13,14 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/**
- * The guard clauses of the shared paging types.
- *
- * <p>Written after coverage showed them unexercised. They are worth testing precisely because
- * nothing else reaches them: every caller today goes through {@code PageParameters}, which
- * validates first, so a guard that stopped working would stay silent until the day someone
- * constructs one of these by hand — which is the day it matters.
- */
 @DisplayName("the shared paging value objects")
 class PagingValueObjectsTest {
 
@@ -51,8 +43,7 @@ class PagingValueObjectsTest {
         @Test
         @DisplayName("refuses an empty ordering, because unordered paging is unstable")
         void refusesAnEmptyOrdering() {
-            // Sem ordenacao o banco pode devolver as linhas em sequencias diferentes entre duas
-            // consultas, e a pagina 2 passa a sobrepor ou pular a 1.
+
             assertThatExceptionOfType(IllegalArgumentException.class)
                     .isThrownBy(() -> new PageQuery(0, 20, List.of()))
                     .withMessageContaining("unstable");

@@ -3,26 +3,8 @@
         "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
         "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
-<!--
-  Excecoes as regras de import. Cada entrada precisa de motivo e de saida.
-  Uma supressao sem plano de remocao vira permissao permanente por inercia.
--->
 <suppressions>
 
-    <!--
-      A jjwt 0.13 recebe e devolve `java.util.Date` na sua propria API: `issuedAt(Date)`,
-      `expiration(Date)` e `Claims.getExpiration()`. Nao existe sobrecarga com `Instant`,
-      entao o tipo legado e imposto pela biblioteca, nao escolhido por nos.
-
-      A supressao cobre apenas o import, e apenas neste arquivo. O que ela NAO absolve e
-      o `new Date()` do metodo generateToken, que le o relogio do sistema direto e deixa
-      o teste de expiracao dependente de tempo real. Esse e o defeito de verdade, e o
-      conserto e injetar o bean Clock — trabalho da tarefa de UTC/Clock, nao desta, que
-      por escopo nao altera logica de classe nenhuma.
-
-      SAIDA: quando o JwtService passar a receber Clock, a conversao vira
-      `java.util.Date.from(Instant.now(clock))` no ponto de chamada e esta entrada sai.
-    -->
     <suppress id="legacyDateTypes" files="[/\\]auth[/\\]JwtService\.java$"/>
 
 </suppressions>

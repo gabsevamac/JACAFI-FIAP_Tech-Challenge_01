@@ -1,0 +1,11 @@
+package com.jacafi.tech.customer.domain.exception;
+
+import com.jacafi.tech.shared.domain.BusinessException;
+import com.jacafi.tech.shared.domain.ErrorCode;
+
+public final class InvalidTaxIdException extends BusinessException {
+
+    public InvalidTaxIdException() {
+        super(ErrorCode.INVALID_TAX_ID);
+    }
+}

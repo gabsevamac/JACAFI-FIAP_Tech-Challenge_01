@@ -3,26 +3,11 @@
         "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
         "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
-<!--
-  Configuracao deliberadamente minima.
-
-  O Checkstyle aqui NAO opina sobre estilo — nome de variavel, comprimento de metodo,
-  chaves, espacamento. Isso e trabalho do Spotless, que reescreve o arquivo em vez de
-  reclamar dele. Duas ferramentas discutindo o mesmo assunto so geram build vermelho
-  sem informacao nova.
-
-  O que sobra para o Checkstyle e a unica classe de erro que um formatador nao consegue
-  ver: o import de um tipo que este projeto decidiu nao usar. Sao tres decisoes ja
-  tomadas, e cada uma tem uma regra propria abaixo para que a mensagem de erro explique
-  o porque em vez de dizer apenas "import ilegal".
--->
 <module name="Checker">
 
     <property name="severity" value="error"/>
     <property name="fileExtensions" value="java"/>
 
-    <!-- Alimentado por <suppressionsLocation> no pom. `optional` evita que a ausencia do
-         arquivo quebre o build de quem rodar o Checkstyle fora do Maven. -->
     <module name="SuppressionFilter">
         <property name="file" value="${checkstyle.suppressions.file}" default=""/>
         <property name="optional" value="true"/>
@@ -30,17 +15,6 @@
 
     <module name="TreeWalker">
 
-        <!-- 1. Jackson 2 no lugar do Jackson 3.
-
-             O Spring Boot 4 serializa com `tools.jackson`. O `com.fasterxml.jackson`
-             continua no classpath por transitividade do springdoc e do jjwt, entao
-             importar a classe errada compila e passa nos testes — e so falha quando o
-             objeto configurado por engano nunca e consultado pelo ObjectMapper de fato
-             em uso. E um erro silencioso, que e exatamente o tipo que vale automatizar.
-
-             Note o alvo: `com.fasterxml.jackson.databind`, nao `com.fasterxml.jackson`.
-             O subpacote `.annotation` e compartilhado pelas duas linhas por decisao do
-             proprio projeto Jackson, e continua permitido. -->
         <module name="IllegalImport">
             <property name="id" value="jackson2Databind"/>
             <property name="illegalPkgs" value="com.fasterxml.jackson.databind"/>
@@ -48,12 +22,6 @@
                      value="Import proibido: {0}. O Boot 4 usa Jackson 3 — importe de tools.jackson.databind. O com.fasterxml.jackson.annotation continua liberado."/>
         </module>
 
-        <!-- 2. Tipos de data legados.
-
-             A aplicacao mede tempo medio de execucao de servico, o que e aritmetica
-             entre timestamps. `java.util.Date` e `java.sql.Timestamp` carregam fuso
-             implicito do sistema e tornam essa conta dependente da maquina. O dominio
-             usa `Instant`, e as colunas sao TIMESTAMPTZ. -->
         <module name="IllegalImport">
             <property name="id" value="legacyDateTypes"/>
             <property name="illegalPkgs" value=""/>
@@ -62,12 +30,6 @@
                      value="Import proibido: {0}. Use java.time.Instant — a aplicacao opera em UTC e esses tipos carregam o fuso da maquina."/>
         </module>
 
-        <!-- 3. Lombok.
-
-             Removido do projeto de proposito, nao por acaso: o @ToString gerado imprimia
-             a placa integra em log, contra o requisito de mascaramento da LGPD. A regra
-             existe para que a reintroducao seja uma decisao consciente do grupo e nao o
-             efeito colateral de um copiar-colar. -->
         <module name="IllegalImport">
             <property name="id" value="lombok"/>
             <property name="illegalPkgs" value="lombok"/>

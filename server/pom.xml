@@ -18,13 +18,10 @@
 
     <properties>
         <java.version>25</java.version>
-        <!-- springdoc 3.x e a linha para Spring Boot 4 / Spring Framework 7. A 2.x e para Boot 3.x. -->
+
         <springdoc.version>3.0.3</springdoc.version>
         <jjwt.version>0.13.0</jjwt.version>
 
-        <!-- Guarda-corpos de build. Versoes fixadas explicitamente: um plugin de
-             qualidade que muda de versao sozinho transforma "o build quebrou" em
-             investigacao, e o parent do Boot nao gerencia nenhum destes. -->
         <spotless.version>3.10.0</spotless.version>
         <palantir-java-format.version>2.97.0</palantir-java-format.version>
         <enforcer-plugin.version>3.6.3</enforcer-plugin.version>
@@ -37,7 +34,7 @@
     </properties>
 
     <dependencies>
-        <!-- Spring -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -50,11 +47,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
-        <!-- Habilita @Valid nos DTOs de entrada (placa, documento, ano do modelo).
-             Jakarta Validation 3.1 na linha Spring Framework 7. -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -62,14 +62,12 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Documentacao da API: OpenAPI 3.1 + Swagger UI -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- Database -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
@@ -84,10 +82,6 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
-        <!-- JWT.
-             Atencao: Spring Boot 4 usa Jackson 3 por padrao (pacote tools.jackson).
-             jjwt-jackson ainda depende de Jackson 2 (com.fasterxml.jackson).
-             Os pacotes coexistem, mas rode `mvn dependency:tree` para saber o que entrou. -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -106,7 +100,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa-test</artifactId>
@@ -123,16 +116,12 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Testes de integracao contra Postgres real, nao H2.
-             H2 nao valida a constraint de unicidade da placa do mesmo jeito. -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Testcontainers 2.x renomeou todos os modulos com o prefixo `testcontainers-`.
-             O testcontainers-bom gerenciado pelo Spring Boot 4.1.0 e o 2.0.5; os artefatos
-             antigos (org.testcontainers:junit-jupiter, :postgresql) nao existem mais nele. -->
+
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-junit-jupiter</artifactId>
@@ -147,21 +136,7 @@
 
     <build>
         <plugins>
-            <!-- Formatacao. O Spotless reescreve o arquivo; ele nao negocia estilo, ele
-                 decide. Isso encerra a discussao de formatacao no code review, que com
-                 quatro pessoas em fatias paralelas estava gerando diff de ruido puro.
 
-                 Formatador escolhido: palantir-java-format, medido, nao presumido.
-                 O google-java-format em AOSP tambem roda no JDK 25 com o Spotless 3.x —
-                 nenhum dos dois precisou das flags add-exports, ao contrario do que a
-                 documentacao mais antiga sugere. O criterio de desempate foi o tamanho
-                 da reformatacao inicial sobre o codigo que ja existe: palantir deixa 16
-                 dos 89 arquivos intactos, google-AOSP deixa 9. Menos churn no commit de
-                 reformatacao, menos historico de autoria perdido.
-
-                 Atencao a versao do Spotless: a 2.44.5 estoura NoSuchMethodError em
-                 Log$DeferredDiagnosticHandler.getDiagnostics() no JDK 25, porque o javac
-                 mudou a assinatura interna. A 3.10.0 acompanha. Nao faca downgrade. -->
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
@@ -172,11 +147,7 @@
                             <version>${palantir-java-format.version}</version>
                         </palantirJavaFormat>
                         <removeUnusedImports/>
-                        <!-- Blocos separados por origem: primeiro a plataforma, depois o
-                             ecossistema, por ultimo o nosso codigo. A virgula final nao e
-                             engano — o grupo vazio e o coringa do Spotless, e o que sobra
-                             cai nele. Sem ele, import de io.jsonwebtoken e de outros
-                             prefixos nao teria lugar definido e oscilaria entre execucoes. -->
+
                         <importOrder>
                             <order>java,javax,jakarta,org,com,</order>
                         </importOrder>
@@ -188,11 +159,7 @@
                 <executions>
                     <execution>
                         <id>spotless-check</id>
-                        <!-- validate, nao verify: falha antes de compilar, que e o feedback
-                             mais barato possivel. `check` e nao `apply` de proposito — um
-                             build que reescreve o codigo-fonte por conta propria muda o que
-                             o desenvolvedor esta editando no meio da edicao. Formatar e
-                             `mvn spotless:apply`, explicito, quando a pessoa quiser. -->
+
                         <phase>validate</phase>
                         <goals>
                             <goal>check</goal>
@@ -201,14 +168,6 @@
                 </executions>
             </plugin>
 
-            <!-- Impede que o Jackson 2 vire dependencia direta.
-
-                 Ele esta e vai continuar no classpath por transitividade do springdoc e do
-                 jjwt — nao da para bani-lo de vez sem perder o Swagger, que e entregavel
-                 obrigatorio. Por isso searchTransitive=false: o alvo nao e a presenca do
-                 jar, e a declaracao deliberada. Se `com.fasterxml.jackson.core` aparecer
-                 como dependencia nossa em escopo compile, alguem precisou dele para
-                 compilar, o que significa que importou a classe da linha errada. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -245,16 +204,12 @@ dependencia nova.
                 </executions>
             </plugin>
 
-            <!-- Tres regras de import, e so isso. O racional de cada uma esta no proprio
-                 checkstyle.xml, junto da regra, que e onde quem tomar o erro vai olhar. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>${checkstyle-plugin.version}</version>
                 <dependencies>
-                    <!-- O plugin embarca uma versao antiga do Checkstyle, que nao entende a
-                         sintaxe do Java 25 e falha ao parsear os arquivos. Sobrescrever a
-                         dependencia e o mecanismo suportado para isso. -->
+
                     <dependency>
                         <groupId>com.puppycrawl.tools</groupId>
                         <artifactId>checkstyle</artifactId>
@@ -264,8 +219,7 @@ dependencia nova.
                 <configuration>
                     <configLocation>config/checkstyle/checkstyle.xml</configLocation>
                     <suppressionsLocation>config/checkstyle/suppressions.xml</suppressionsLocation>
-                    <!-- Teste tambem importa: um teste que monta JSON com o ObjectMapper da
-                         linha errada passa e nao prova nada sobre a serializacao real. -->
+
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     <violationSeverity>error</violationSeverity>
                     <failOnViolation>true</failOnViolation>
@@ -325,8 +279,6 @@ dependencia nova.
                 </executions>
             </plugin>
 
-            <!-- Declarado apenas para receber o argLine do agente do JaCoCo. Sem isto o agente
-                 nao e anexado a JVM do Surefire e os testes unitarios nao instrumentam nada. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -335,11 +287,6 @@ dependencia nova.
                 </configuration>
             </plugin>
 
-            <!-- Failsafe roda os testes de integracao (*IT) na fase integration-test, separados
-                 dos unitarios do Surefire (*Test). A separacao importa: os *IT sobem contexto
-                 Spring e container Postgres, levam dezenas de segundos e nao devem atrasar o
-                 feedback de quem roda `mvn test`. Sem este plugin, arquivos *IT sao
-                 silenciosamente ignorados pelo build — que foi exatamente o que aconteceu aqui. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -355,19 +302,7 @@ dependencia nova.
                     </execution>
                 </executions>
             </plugin>
-            <!-- Cobertura.
-                 
-                 Declarado por ultimo de proposito: dentro de uma mesma fase o Maven executa os
-                 plugins na ordem em que aparecem, e merge/report/check precisam rodar depois de
-                 o Failsafe ter encerrado a JVM que grava o arquivo de execucao.
 
-                 Duas execucoes de preparacao, e nao uma. `prepare-agent` instrumenta a JVM do
-                 Surefire e `prepare-agent-integration` a do Failsafe; com apenas a primeira, os
-                 testes *IT nao contam para a cobertura — e neste projeto eles sao 47 dos 222,
-                 concentrados justamente na infraestrutura que os unitarios nao alcancam.
-
-                 Cada uma escreve o seu proprio arquivo e exporta o argLine sob nome proprio.
-                 Deixar as duas no `argLine` default faria a segunda sobrescrever a primeira. -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -394,9 +329,6 @@ dependencia nova.
                         </configuration>
                     </execution>
 
-                    <!-- Um relatorio so, dos dois conjuntos somados. Relatorios separados
-                         responderiam "quanto cada suite cobre", que nao e a pergunta: uma linha
-                         coberta so por teste de integracao esta coberta. -->
                     <execution>
                         <id>merge-executions</id>
                         <phase>verify</phase>
@@ -428,10 +360,6 @@ dependencia nova.
                         </configuration>
                     </execution>
 
-                    <!-- A meta de 80% vale para dominio e aplicacao, e nao para o projeto todo.
-                         E onde estao as regras de negocio; controller, entidade JPA e mapper sao
-                         codigo de ligacao, e perseguir cobertura neles produz teste que confirma
-                         que o framework funciona. -->
                     <execution>
                         <id>check-coverage</id>
                         <phase>verify</phase>
@@ -448,20 +376,7 @@ dependencia nova.
                                         <include>com.jacafi.tech.*.application</include>
                                     </includes>
                                     <excludes>
-                                        <!-- EXCLUSAO TEMPORARIA, E O MOTIVO PRECISA SER LIDO.
-                                             
-                                             A fatia `features` (service e service_order) tem ZERO
-                                             arquivos de teste: 4,8% e 15,2% de cobertura. Nao ha
-                                             API, nem repositorio, nem caso de uso — so o agregado.
-                                             
-                                             Ela nao esta excluida por a meta ser inatingivel, e sim
-                                             porque reprovar o build de quatro pessoas por causa de
-                                             uma fatia que ainda nao comecou pararia o grupo inteiro.
-                                             O numero real continua visivel no relatorio do JaCoCo,
-                                             que e onde ele deve incomodar.
-                                             
-                                             REMOVER esta exclusao quando aquela fatia tiver testes.
-                                             Ela e divida registrada, nao dispensa. -->
+
                                         <exclude>com.jacafi.tech.features.*</exclude>
                                     </excludes>
                                     <limits>
@@ -478,12 +393,6 @@ dependencia nova.
                 </executions>
             </plugin>
 
-            <!-- Analise estatica de seguranca sobre o bytecode do nosso codigo.
-                 
-                 O SpotBugs sozinho procura defeito; o FindSecBugs acrescenta os detectores de
-                 seguranca — injecao, criptografia fraca, path traversal, XXE, hard-coded secret.
-                 E complementar ao Dependency-Check, que olha as dependencias: um encontra o que
-                 escrevemos, o outro o que importamos, e nenhum ve o campo do outro. -->
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
@@ -491,8 +400,7 @@ dependencia nova.
                 <configuration>
                     <effort>Max</effort>
                     <threshold>Low</threshold>
-                    <!-- Codigo de teste fica de fora: um segredo embutido num teste e um valor
-                         fixo de teste, e o ruido afogaria os achados do codigo de producao. -->
+
                     <includeTests>false</includeTests>
                     <plugins>
                         <plugin>
@@ -508,22 +416,7 @@ dependencia nova.
     </build>
 
     <profiles>
-        <!-- Varredura de vulnerabilidade conhecida nas DEPENDENCIAS.
-             
-             Fora do build padrao de proposito. O plugin baixa e mantem uma copia local da base do
-             NVD: a primeira execucao leva dezenas de minutos, e desde 2023 o NVD exige chave de
-             API para nao aplicar limite de taxa severo. Colocar isso no `mvn verify` de todo dia
-             tornaria o feedback inutilizavel e faria o build depender de um servico externo.
-             
-             Rode antes de entregar, e para gerar o relatorio que o enunciado pede:
-             
-                 mvn -Psecurity-scan verify -Dnvd.api.key=SUA_CHAVE
-             
-             Chave gratuita em https://nvd.nist.gov/developers/request-an-api-key
-             
-             failBuildOnCVSS=7 reprova em vulnerabilidade alta ou critica. O limiar nao e 0 porque
-             uma base de CVE tem falso positivo e transitividade que nao da para remover — um
-             portao que reprova sempre e um portao que alguem desliga. -->
+
         <profile>
             <id>security-scan</id>
             <build>
@@ -539,8 +432,7 @@ dependencia nova.
                                 <format>HTML</format>
                                 <format>JSON</format>
                             </formats>
-                            <!-- Dependencia de teste nao vai para producao; um CVE em container
-                                 de teste nao e superficie de ataque da aplicacao entregue. -->
+
                             <skipTestScope>true</skipTestScope>
                             <suppressionFiles>
                                 <suppressionFile>config/dependency-check-suppressions.xml</suppressionFile>

@@ -4,23 +4,6 @@
           xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0
                               https://maven.apache.org/xsd/settings-1.2.0.xsd">
 
-  <!--
-    Configuracao de resolucao DO PROJETO, aplicada por .mvn/maven.config.
-
-    Existe porque este e um trabalho academico de quatro pessoas, e um dos integrantes tem no
-    ~/.m2/settings.xml um mirror corporativo com <mirrorOf>*</mirrorOf>, apontando para um Nexus
-    interno que exige VPN da empresa. Um mirror com curinga intercepta TODOS os repositorios,
-    inclusive o central — entao, sem este arquivo, o build resolve por um host que os outros tres
-    integrantes nao alcancam, e falha na maquina deles com erro de DNS.
-
-    Um build que depende da rede de uma empresa especifica nao e reprodutivel. Como o projeto usa
-    somente artefatos publicos, apontar direto para o Maven Central resolve para todo mundo.
-
-    Efeito colateral que precisa ser conhecido: `-s` SUBSTITUI o settings.xml do usuario, nao o
-    complementa. Se algum integrante depender de proxy ou credencial declarados no arquivo global,
-    eles nao valem aqui. Nenhum artefato deste projeto exige autenticacao.
-  -->
-
   <profiles>
     <profile>
       <id>maven-central-direto</id>
@@ -29,8 +12,7 @@
           <id>central</id>
           <url>https://repo.maven.apache.org/maven2</url>
           <releases><enabled>true</enabled></releases>
-          <!-- Nenhuma dependencia deste projeto e SNAPSHOT, e habilitar snapshots faria o Maven
-               consultar a rede periodicamente por versoes que nao existem. -->
+
           <snapshots><enabled>false</enabled></snapshots>
         </repository>
       </repositories>

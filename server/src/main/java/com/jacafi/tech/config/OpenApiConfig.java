@@ -8,12 +8,6 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 
-/**
- * Declares the API document and the bearer scheme the endpoints reference.
- *
- * <p>Lives in the shared config package because the document covers every slice; each slice
- * annotates its own controllers.
- */
 @Configuration
 @OpenAPIDefinition(
         info =
@@ -27,5 +21,5 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
         scheme = "bearer",
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER,
-        description = "Token obtained from POST /auth/login")
+        description = "Token obtained from POST /api/v1/auth/login")
 public class OpenApiConfig {}
