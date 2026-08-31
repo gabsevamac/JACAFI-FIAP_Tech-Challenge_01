@@ -17,7 +17,7 @@ com.jacafi.tech/<slice>/
 
 Fatias atuais: `auth`, `customer`, `vehicle`, `inventory`, `servicecatalog` e `serviceorder`. Itens compartilhados são limitados a preocupações transversais, como segurança, auditoria, erros, paginação e tempo.
 
-As decisões arquiteturais estão em [docs/adr](docs/adr), os termos do domínio em [docs/linguagem-ubiqua.md](docs/linguagem-ubiqua.md) e os fluxos em [docs/event-storming.md](docs/event-storming.md).
+As decisões arquiteturais estão em [docs/adr](docs/adr), os termos do domínio em [docs/linguagem-ubiqua.md](docs/linguagem-ubiqua.md), os fluxos em [docs/event-storming.md](docs/event-storming.md) e as visões de arquitetura em [docs/c4-model.md](docs/c4-model.md).
 
 ## Execução local
 
