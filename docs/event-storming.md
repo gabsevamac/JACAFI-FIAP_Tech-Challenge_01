@@ -2,6 +2,8 @@
 
 Este registro sintetiza o fluxo implementado e deve ser refinado com a oficina durante uma sessão de Event Storming.
 
+Para melhor visualização, o fluxo também está disponível no [quadro no Miro](https://miro.com/app/board/uXjVH2t1UaA=/).
+
 ```mermaid
 flowchart LR
     A[Service Advisor] --> B[Register Customer]
