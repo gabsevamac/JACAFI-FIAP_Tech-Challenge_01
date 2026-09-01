@@ -1,35 +1,17 @@
 package com.jacafi.tech.serviceorder.adapter.in.web.controller;
 
-import java.net.URI;
-import java.util.UUID;
-
-import jakarta.validation.Valid;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.jacafi.tech.serviceorder.adapter.in.web.api.ServiceOrderApi;
-import com.jacafi.tech.serviceorder.adapter.in.web.dto.EstimateDecisionRequest;
-import com.jacafi.tech.serviceorder.adapter.in.web.dto.EstimateResponse;
-import com.jacafi.tech.serviceorder.adapter.in.web.dto.OpenServiceOrderRequest;
-import com.jacafi.tech.serviceorder.adapter.in.web.dto.ServiceOrderOpenedResponse;
-import com.jacafi.tech.serviceorder.adapter.in.web.dto.ServiceOrderQueueItemResponse;
-import com.jacafi.tech.serviceorder.adapter.in.web.dto.ServiceOrderStatusResponse;
-import com.jacafi.tech.serviceorder.adapter.in.web.dto.UpdateServiceOrderStatusRequest;
-import com.jacafi.tech.serviceorder.application.service.DecideEstimateService;
-import com.jacafi.tech.serviceorder.application.service.FindServiceOrderStatusService;
-import com.jacafi.tech.serviceorder.application.service.ListOperationalServiceOrdersService;
-import com.jacafi.tech.serviceorder.application.service.OpenServiceOrderService;
-import com.jacafi.tech.serviceorder.application.service.UpdateServiceOrderStatusService;
+import com.jacafi.tech.serviceorder.adapter.in.web.dto.*;
+import com.jacafi.tech.serviceorder.application.service.*;
 import com.jacafi.tech.shared.adapter.in.web.PageParameters;
 import com.jacafi.tech.shared.adapter.in.web.SortableFields;
 import com.jacafi.tech.shared.application.PageResult;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/service-orders")
@@ -60,7 +42,7 @@ public class ServiceOrderController implements ServiceOrderApi {
     public ResponseEntity<ServiceOrderOpenedResponse> open(@Valid @RequestBody OpenServiceOrderRequest request) {
         var order = open.open(request.toCommand());
         return ResponseEntity.created(URI.create("/api/v1/service-orders/" + order.id()))
-                .body(new ServiceOrderOpenedResponse(order.id()));
+                .body(new ServiceOrderOpenedResponse(order.id(), order.estimates().getFirst().id()));
     }
 
     @Override
