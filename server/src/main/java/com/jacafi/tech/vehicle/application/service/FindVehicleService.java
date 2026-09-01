@@ -18,12 +18,12 @@ public final class FindVehicleService {
     }
 
     public Vehicle findById(UUID vehicleId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return vehicles.findActiveById(vehicleId).orElseThrow(VehicleNotFoundException::new);
     }
 
     public Vehicle findByLicensePlate(String licensePlate) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return vehicles.findActiveByLicensePlate(new LicensePlate(licensePlate))
                 .orElseThrow(VehicleNotFoundException::new);
     }

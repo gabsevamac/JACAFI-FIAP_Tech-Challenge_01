@@ -5,7 +5,6 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.inventory.application.port.InventoryAuditLedgerPort;
 import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
 import com.jacafi.tech.inventory.application.port.InventoryQueryPort;
@@ -20,6 +19,7 @@ import com.jacafi.tech.inventory.application.service.ReserveInventoryStockServic
 import com.jacafi.tech.inventory.application.service.UpdateInventoryItemService;
 import com.jacafi.tech.inventory.application.service.WithdrawInventoryStockService;
 import com.jacafi.tech.shared.application.AuditTrailPort;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
 
 @Configuration
 public class InventoryConfiguration {

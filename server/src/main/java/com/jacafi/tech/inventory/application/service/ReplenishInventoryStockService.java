@@ -36,7 +36,7 @@ public class ReplenishInventoryStockService {
 
     @Transactional
     public InventoryItem replenish(UUID id, int quantity) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         var item = items.findActiveByIdForUpdate(id).orElseThrow(InventoryItemNotFoundException::new);
         Stock added = Stock.of(quantity);
         item.replenish(added, clock);

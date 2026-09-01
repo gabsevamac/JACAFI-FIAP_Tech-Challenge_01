@@ -28,7 +28,7 @@ public class UpdateVehicleService {
 
     @Transactional
     public Vehicle update(UUID vehicleId, String make, String model, int modelYear) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         Vehicle vehicle = vehicles.findActiveById(vehicleId).orElseThrow(VehicleNotFoundException::new);
         vehicle.changeDetails(make, model, modelYear, clock);
         String actor = access.currentActor();

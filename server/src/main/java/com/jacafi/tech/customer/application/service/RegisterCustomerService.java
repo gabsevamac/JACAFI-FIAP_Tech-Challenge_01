@@ -16,7 +16,7 @@ public final class RegisterCustomerService {
     }
 
     public Customer register(String taxId, String name, String tradeName, String email, String phone) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         TaxId parsedTaxId = TaxId.of(taxId);
         if (customers.existsByTaxId(parsedTaxId)) {
             throw new CustomerAlreadyExistsException();

@@ -1,16 +1,13 @@
 package com.jacafi.tech.customer.application.service;
 
-import java.util.Set;
 import java.util.UUID;
 
-import com.jacafi.tech.auth.application.port.AuthenticatedUser;
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
-import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.AuthenticatedUser;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 
 public final class CustomerAccessPolicy {
-
-    private static final Set<Role> OPERATIONAL_ROLES = Set.of(Role.ADMIN, Role.MANAGER, Role.SERVICE_ADVISOR);
 
     private final CurrentAuthenticatedUserPort currentUser;
 
@@ -18,8 +15,8 @@ public final class CustomerAccessPolicy {
         this.currentUser = currentUser;
     }
 
-    void requireOperationalAccess() {
-        if (currentUser.currentUser().roles().stream().noneMatch(OPERATIONAL_ROLES::contains)) {
+    void requireEmployee() {
+        if (!currentUser.currentUser().roles().contains(Role.EMPLOYEE)) {
             throw new AccountAccessDeniedException();
         }
     }

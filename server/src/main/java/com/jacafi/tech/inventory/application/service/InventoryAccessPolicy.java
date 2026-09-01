@@ -1,22 +1,21 @@
 package com.jacafi.tech.inventory.application.service;
 
-import java.util.Set;
-
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
-import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 
 public final class InventoryAccessPolicy {
-    private static final Set<Role> OPERATIONAL_ROLES = Set.of(Role.ADMIN, Role.MANAGER, Role.SERVICE_ADVISOR);
+
     private final CurrentAuthenticatedUserPort currentUser;
 
     public InventoryAccessPolicy(CurrentAuthenticatedUserPort currentUser) {
         this.currentUser = currentUser;
     }
 
-    void requireOperationalAccess() {
-        if (currentUser.currentUser().roles().stream().noneMatch(OPERATIONAL_ROLES::contains))
+    void requireEmployee() {
+        if (!currentUser.currentUser().roles().contains(Role.EMPLOYEE)) {
             throw new AccountAccessDeniedException();
+        }
     }
 
     String currentActor() {

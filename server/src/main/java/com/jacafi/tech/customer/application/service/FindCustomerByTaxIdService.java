@@ -16,7 +16,7 @@ public final class FindCustomerByTaxIdService {
     }
 
     public Customer find(String taxId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return customers.findByTaxId(TaxId.of(taxId)).orElseThrow(CustomerNotFoundException::new);
     }
 }

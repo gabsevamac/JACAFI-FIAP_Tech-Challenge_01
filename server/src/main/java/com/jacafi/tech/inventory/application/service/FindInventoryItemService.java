@@ -16,7 +16,7 @@ public class FindInventoryItemService {
     }
 
     public InventoryItem findById(UUID id) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return items.findActiveById(id).orElseThrow(InventoryItemNotFoundException::new);
     }
 }

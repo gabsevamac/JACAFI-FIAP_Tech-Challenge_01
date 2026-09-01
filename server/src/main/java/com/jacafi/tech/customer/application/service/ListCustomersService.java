@@ -18,7 +18,7 @@ public final class ListCustomersService {
     }
 
     public PageResult<Customer> list(Boolean active, PageQuery query) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return customers.findAll(active, Objects.requireNonNull(query, "query must not be null"));
     }
 }

@@ -39,7 +39,7 @@ public class RegisterInventoryItemService {
 
     @Transactional
     public InventoryItem register(String name, MaterialType type, BigDecimal unitPrice, int initialStock) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         InventoryItem item =
                 InventoryItem.register(UUID.randomUUID(), name, type, unitPrice, Stock.of(initialStock), clock);
         if (items.existsActiveWithName(item.name())) throw new DuplicateMaterialException();

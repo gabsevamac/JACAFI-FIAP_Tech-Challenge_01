@@ -36,7 +36,7 @@ public class WithdrawInventoryStockService {
 
     @Transactional
     public StockWithdrawal withdraw(UUID id, UUID serviceOrderId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         var item = items.findActiveByIdForUpdate(id).orElseThrow(InventoryItemNotFoundException::new);
         StockWithdrawal withdrawal = item.withdraw(serviceOrderId, clock);
         String actor = access.currentActor();

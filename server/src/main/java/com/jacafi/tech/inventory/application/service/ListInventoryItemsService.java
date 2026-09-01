@@ -14,7 +14,7 @@ public class ListInventoryItemsService {
     }
 
     public InventoryPage list(MaterialType type, PageQuery query) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return queries.findActive(type, query);
     }
 }

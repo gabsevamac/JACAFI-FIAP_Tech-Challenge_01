@@ -12,7 +12,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -24,12 +23,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.jacafi.tech.auth.adapter.in.security.JwtAuthenticationFilter;
-import com.jacafi.tech.auth.adapter.in.security.SpringSecurityCurrentAuthenticatedUserAdapter;
-import com.jacafi.tech.auth.application.port.AccessTokenPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
-import com.jacafi.tech.auth.domain.entity.Role;
-import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.config.SecurityConfig;
 import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
 import com.jacafi.tech.inventory.application.service.ReserveInventoryStockService;
@@ -44,6 +37,9 @@ import com.jacafi.tech.shared.adapter.in.web.SecurityProblemDetailHandler;
 import com.jacafi.tech.shared.adapter.out.persistence.EventOutboxPublisher;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.config.TimeConfiguration;
+import com.jacafi.tech.shared.security.CustomerIdentityPort;
+import com.jacafi.tech.support.TestSecurityConfiguration;
+import com.jacafi.tech.support.TestTokens;
 import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
 
 @WebMvcTest(ServiceOrderController.class)
@@ -51,23 +47,25 @@ import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
     ServiceOrderConfiguration.class,
     TimeConfiguration.class,
     GlobalExceptionHandler.class,
-    JwtAuthenticationFilter.class,
     SecurityConfig.class,
     SecurityProblemDetailHandler.class,
-    SpringSecurityCurrentAuthenticatedUserAdapter.class
+    TestSecurityConfiguration.class
 })
 class ServiceOrderSecurityMvcTest {
+
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-28T10:00:00Z"), ZoneOffset.UTC);
     private static final UUID SERVICE_ORDER_ID = UUID.fromString("30000000-0000-0000-0000-000000000001");
+    private static final UUID CUSTOMER_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
+    private static final String CUSTOMER_SUBJECT = "10000000-0000-0000-0000-000000000001";
+
+    private static final String EMPLOYEE_BEARER = TestTokens.employeeBearer("employee");
+    private static final String CUSTOMER_BEARER = "Bearer " + TestTokens.customer(CUSTOMER_SUBJECT, "customer");
 
     @Autowired
     private MockMvc mvc;
 
     @MockitoBean
-    private AccessTokenPort accessTokens;
-
-    @MockitoBean
-    private UserAccountRepositoryPort accounts;
+    private CustomerIdentityPort customerIdentities;
 
     @MockitoBean
     private ServiceOrderRepositoryPort orders;
@@ -92,21 +90,16 @@ class ServiceOrderSecurityMvcTest {
 
     @BeforeEach
     void setUp() {
-        when(accessTokens.parseSubject("technician-token")).thenReturn("technician");
-        when(accounts.findByUsername("technician"))
-                .thenReturn(Optional.of(account("technician", Role.TECHNICIAN, null)));
-        when(accessTokens.parseSubject("customer-token")).thenReturn("customer");
-        when(accounts.findByUsername("customer"))
-                .thenReturn(Optional.of(account("customer", Role.CUSTOMER, UUID.randomUUID())));
+        when(customerIdentities.customerIdBySubject(CUSTOMER_SUBJECT)).thenReturn(Optional.of(CUSTOMER_ID));
     }
 
     @Test
-    void technicianCanUpdateAnOperationalStatus() throws Exception {
+    void employeeCanUpdateAnOperationalStatus() throws Exception {
         ServiceOrder order = inProgressOrder();
         when(orders.findById(SERVICE_ORDER_ID)).thenReturn(Optional.of(order));
 
         mvc.perform(patch("/api/v1/service-orders/{serviceOrderId}/status", SERVICE_ORDER_ID)
-                        .header("Authorization", "Bearer technician-token")
+                        .header("Authorization", EMPLOYEE_BEARER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"COMPLETED\"}"))
                 .andExpect(status().isOk())
@@ -118,7 +111,7 @@ class ServiceOrderSecurityMvcTest {
     @Test
     void customerCannotUpdateAServiceOrderStatus() throws Exception {
         mvc.perform(patch("/api/v1/service-orders/{serviceOrderId}/status", SERVICE_ORDER_ID)
-                        .header("Authorization", "Bearer customer-token")
+                        .header("Authorization", CUSTOMER_BEARER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"COMPLETED\"}"))
                 .andExpect(status().isForbidden())
@@ -128,17 +121,13 @@ class ServiceOrderSecurityMvcTest {
         verify(auditTrail, never()).record(org.mockito.ArgumentMatchers.any());
     }
 
-    private static UserAccount account(String username, Role role, UUID customerId) {
-        return UserAccount.restore(UUID.randomUUID(), username, "hash", Set.of(role), customerId, true);
-    }
-
     private static ServiceOrder inProgressOrder() {
-        ServiceOrder order = ServiceOrder.open(
-                SERVICE_ORDER_ID, UUID.randomUUID(), UUID.randomUUID(), "Engine noise", "advisor", CLOCK);
-        order.startDiagnosis("advisor", CLOCK);
-        order.generateEstimate("advisor", CLOCK);
+        ServiceOrder order =
+                ServiceOrder.open(SERVICE_ORDER_ID, CUSTOMER_ID, UUID.randomUUID(), "Engine noise", "employee", CLOCK);
+        order.startDiagnosis("employee", CLOCK);
+        order.generateEstimate("employee", CLOCK);
         order.decideEstimate(
-                order.estimates().getFirst().id(), EstimateDecision.APPROVE, "approval-1", "advisor", CLOCK);
+                order.estimates().getFirst().id(), EstimateDecision.APPROVE, "approval-1", "employee", CLOCK);
         return order;
     }
 }

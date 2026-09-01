@@ -32,7 +32,7 @@ public class UpdateServiceCatalogItemService {
 
     @Transactional
     public ServiceCatalogItem update(UUID id, String name, String description, BigDecimal basePrice) {
-        access.requireManagementAccess();
+        access.requireEmployee();
         ServiceCatalogItem item = items.findActiveById(id).orElseThrow(ServiceCatalogItemNotFoundException::new);
         item.update(name, description, basePrice, clock);
         if (items.existsActiveWithNameExcluding(item.name(), item.id())) {

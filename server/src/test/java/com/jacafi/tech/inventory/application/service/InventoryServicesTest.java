@@ -17,10 +17,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.jacafi.tech.auth.application.port.AuthenticatedUser;
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
-import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
 import com.jacafi.tech.inventory.application.port.InventoryAuditLedgerPort;
 import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
 import com.jacafi.tech.inventory.domain.entity.InventoryAuditEntry;
@@ -29,6 +25,10 @@ import com.jacafi.tech.inventory.domain.entity.MaterialType;
 import com.jacafi.tech.inventory.domain.entity.Stock;
 import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
+import com.jacafi.tech.shared.security.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.AuthenticatedUser;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 
 class InventoryServicesTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-27T10:00:00Z"), ZoneOffset.UTC);
@@ -70,7 +70,7 @@ class InventoryServicesTest {
         Trail trail = new Trail();
         InventoryItem item = InventoryItem.register(
                 UUID.randomUUID(), "Bolt", MaterialType.PART, BigDecimal.ONE, Stock.of(3), CLOCK);
-        items.save(item, "advisor");
+        items.save(item, "employee");
         UUID order = UUID.randomUUID();
         new ReserveInventoryStockService(items, ledger, trail, operational(), CLOCK).reserve(item.id(), order, 2);
         new ReleaseInventoryReservationService(items, ledger, trail, operational(), CLOCK).release(item.id(), order);
@@ -87,7 +87,7 @@ class InventoryServicesTest {
     }
 
     private static InventoryAccessPolicy operational() {
-        return new InventoryAccessPolicy(user("advisor", Set.of(Role.SERVICE_ADVISOR)));
+        return new InventoryAccessPolicy(user("employee", Set.of(Role.EMPLOYEE)));
     }
 
     private static InventoryAccessPolicy customer() {
@@ -95,7 +95,7 @@ class InventoryServicesTest {
     }
 
     private static CurrentAuthenticatedUserPort user(String name, Set<Role> roles) {
-        return () -> new AuthenticatedUser(UUID.randomUUID(), name, roles, null);
+        return () -> new AuthenticatedUser(UUID.randomUUID().toString(), name, roles, null);
     }
 
     private static final class Ledger implements InventoryAuditLedgerPort {

@@ -57,7 +57,7 @@ public class OpenServiceOrderService {
 
     @Transactional
     public ServiceOrder open(OpenServiceOrderCommand command) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         var vehicle = vehicles.findActiveById(command.vehicleId()).orElseThrow(VehicleNotFoundException::new);
         if (!vehicle.customerId().equals(command.customerId())) {
             throw new IllegalArgumentException("vehicle must belong to customer");

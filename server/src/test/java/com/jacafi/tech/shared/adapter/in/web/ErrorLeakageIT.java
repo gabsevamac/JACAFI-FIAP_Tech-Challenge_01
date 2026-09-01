@@ -19,8 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.jacafi.tech.auth.adapter.out.security.JwtTokenAdapter;
 import com.jacafi.tech.support.AbstractIntegrationTest;
+import com.jacafi.tech.support.TestTokens;
 
 @AutoConfigureMockMvc
 @DisplayName("what an error response must not leak")
@@ -34,9 +34,6 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private JwtTokenAdapter jwtTokenAdapter;
-
-    @Autowired
     private JdbcTemplate jdbc;
 
     private String bearer;
@@ -45,7 +42,7 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         jdbc.execute("TRUNCATE TABLE vehicles, audit_trail CASCADE");
-        bearer = "Bearer " + jwtTokenAdapter.issue("dev-admin");
+        bearer = TestTokens.employeeBearer("dev-admin");
         customerId = CUSTOMER_ID;
         jdbc.update("""
                 INSERT INTO customers (id, tax_id, name, email, phone, active, created_at, created_by, updated_at, updated_by, version)

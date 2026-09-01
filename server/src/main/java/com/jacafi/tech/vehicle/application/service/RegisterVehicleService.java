@@ -29,7 +29,7 @@ public class RegisterVehicleService {
 
     @Transactional
     public Vehicle register(String licensePlate, String make, String model, int modelYear, UUID customerId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         LicensePlate parsedPlate = new LicensePlate(licensePlate);
         if (vehicles.existsActiveByLicensePlate(parsedPlate)) {
             throw new DuplicateLicensePlateException();

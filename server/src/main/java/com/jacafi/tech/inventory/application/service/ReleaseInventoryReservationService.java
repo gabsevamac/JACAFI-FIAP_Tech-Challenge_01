@@ -36,7 +36,7 @@ public class ReleaseInventoryReservationService {
 
     @Transactional
     public Reservation release(UUID id, UUID serviceOrderId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         var item = items.findActiveByIdForUpdate(id).orElseThrow(InventoryItemNotFoundException::new);
         Reservation released = item.releaseReservation(serviceOrderId, clock);
         String actor = access.currentActor();

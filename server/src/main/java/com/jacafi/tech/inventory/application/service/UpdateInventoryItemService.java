@@ -38,7 +38,7 @@ public class UpdateInventoryItemService {
 
     @Transactional
     public InventoryItem update(UUID id, String name, BigDecimal unitPrice) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         InventoryItem item = items.findActiveByIdForUpdate(id).orElseThrow(InventoryItemNotFoundException::new);
         item.update(name, unitPrice, clock);
         if (items.existsActiveWithNameExcluding(item.name(), id)) throw new DuplicateMaterialException();

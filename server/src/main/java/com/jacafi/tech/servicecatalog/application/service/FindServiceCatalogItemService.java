@@ -16,7 +16,7 @@ public class FindServiceCatalogItemService {
     }
 
     public ServiceCatalogItem findById(UUID id) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return items.findActiveById(id).orElseThrow(ServiceCatalogItemNotFoundException::new);
     }
 }

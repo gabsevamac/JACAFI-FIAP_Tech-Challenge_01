@@ -14,9 +14,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.jacafi.tech.auth.application.port.AuthenticatedUser;
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
 import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.domain.entity.Estimate;
@@ -28,6 +25,9 @@ import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.security.AuthenticatedUser;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 
 class DecideEstimateServiceTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-28T10:00:00Z"), ZoneOffset.UTC);
@@ -54,7 +54,7 @@ class DecideEstimateServiceTest {
 
     private static ServiceOrderAccessPolicy operational() {
         CurrentAuthenticatedUserPort user =
-                () -> new AuthenticatedUser(UUID.randomUUID(), "advisor", Set.of(Role.SERVICE_ADVISOR), null);
+                () -> new AuthenticatedUser(UUID.randomUUID().toString(), "advisor", Set.of(Role.EMPLOYEE), null);
         return new ServiceOrderAccessPolicy(user);
     }
 

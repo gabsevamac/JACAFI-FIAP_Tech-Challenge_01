@@ -5,7 +5,6 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.servicecatalog.application.port.ServiceCatalogRepositoryPort;
 import com.jacafi.tech.servicecatalog.application.service.DeactivateServiceCatalogItemService;
 import com.jacafi.tech.servicecatalog.application.service.FindServiceCatalogItemService;
@@ -14,6 +13,7 @@ import com.jacafi.tech.servicecatalog.application.service.RegisterServiceCatalog
 import com.jacafi.tech.servicecatalog.application.service.ServiceCatalogAccessPolicy;
 import com.jacafi.tech.servicecatalog.application.service.UpdateServiceCatalogItemService;
 import com.jacafi.tech.shared.application.AuditTrailPort;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
 
 @Configuration
 public class ServiceCatalogConfiguration {

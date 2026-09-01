@@ -28,7 +28,7 @@ public class RemoveVehicleService {
 
     @Transactional
     public void remove(UUID vehicleId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         Vehicle vehicle = vehicles.findActiveById(vehicleId).orElseThrow(VehicleNotFoundException::new);
         String actor = access.currentActor();
         vehicle.remove(clock.instant());

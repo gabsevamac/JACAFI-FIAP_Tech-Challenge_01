@@ -30,7 +30,7 @@ public class GenerateServiceOrderEstimateService {
 
     @Transactional
     public Estimate generate(UUID serviceOrderId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         var order = orders.findById(serviceOrderId).orElseThrow(ServiceOrderNotFoundException::new);
         String actor = access.currentActor();
         Estimate estimate = order.generateEstimate(actor, clock);

@@ -15,7 +15,7 @@ public class ListOperationalServiceOrdersService {
     }
 
     public PageResult<ServiceOrder> list(PageQuery query) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return orders.findOperationalQueue(query);
     }
 }

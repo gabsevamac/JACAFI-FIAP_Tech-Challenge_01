@@ -18,10 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.jacafi.tech.auth.application.port.AuthenticatedUser;
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
-import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
 import com.jacafi.tech.customer.application.port.CustomerRepositoryPort;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.customer.domain.entity.TaxId;
@@ -29,6 +25,10 @@ import com.jacafi.tech.customer.domain.exception.CustomerAlreadyExistsException;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
 import com.jacafi.tech.shared.application.SortCriterion;
+import com.jacafi.tech.shared.security.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.AuthenticatedUser;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 
 @ExtendWith(MockitoExtension.class)
 class CustomerServicesTest {
@@ -117,12 +117,14 @@ class CustomerServicesTest {
 
     private void operationalUser() {
         when(currentUser.currentUser())
-                .thenReturn(new AuthenticatedUser(UUID.randomUUID(), Set.of(Role.SERVICE_ADVISOR), null));
+                .thenReturn(
+                        new AuthenticatedUser(UUID.randomUUID().toString(), "employee", Set.of(Role.EMPLOYEE), null));
     }
 
     private void customerUser(UUID customerId) {
         when(currentUser.currentUser())
-                .thenReturn(new AuthenticatedUser(UUID.randomUUID(), Set.of(Role.CUSTOMER), customerId));
+                .thenReturn(new AuthenticatedUser(
+                        UUID.randomUUID().toString(), "customer", Set.of(Role.CUSTOMER), customerId));
     }
 
     private static Customer customer(UUID id) {

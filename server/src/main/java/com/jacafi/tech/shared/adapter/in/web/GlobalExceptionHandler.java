@@ -195,7 +195,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case DATA_CONFLICT,
                     DUPLICATE_LICENSE_PLATE,
                     CUSTOMER_ALREADY_EXISTS,
-                    USERNAME_ALREADY_EXISTS,
                     DUPLICATE_MATERIAL,
                     DUPLICATE_SERVICE_CATALOG_ITEM,
                     INSUFFICIENT_STOCK -> HttpStatus.CONFLICT;
@@ -204,7 +203,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case RESOURCE_NOT_FOUND,
                     VEHICLE_NOT_FOUND,
                     CUSTOMER_NOT_FOUND,
-                    USER_ACCOUNT_NOT_FOUND,
                     INVENTORY_ITEM_NOT_FOUND,
                     RESERVATION_NOT_FOUND,
                     SERVICE_CATALOG_ITEM_NOT_FOUND,
