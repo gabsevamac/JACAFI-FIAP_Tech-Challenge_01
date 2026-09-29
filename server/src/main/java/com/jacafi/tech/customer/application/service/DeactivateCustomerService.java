@@ -17,7 +17,7 @@ public final class DeactivateCustomerService {
     }
 
     public void deactivate(UUID customerId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         var customer = customers
                 .findById(Objects.requireNonNull(customerId, "customerId must not be null"))
                 .orElseThrow(CustomerNotFoundException::new);

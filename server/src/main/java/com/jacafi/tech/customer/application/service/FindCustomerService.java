@@ -18,7 +18,7 @@ public final class FindCustomerService {
     }
 
     public Customer find(UUID customerId) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return customers
                 .findById(Objects.requireNonNull(customerId, "customerId must not be null"))
                 .orElseThrow(CustomerNotFoundException::new);

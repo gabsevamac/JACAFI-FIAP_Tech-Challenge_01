@@ -16,15 +16,15 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.jacafi.tech.auth.application.port.AuthenticatedUser;
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
-import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
 import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
 import com.jacafi.tech.shared.application.SortCriterion;
+import com.jacafi.tech.shared.security.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.AuthenticatedUser;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
@@ -49,15 +49,15 @@ class VehicleServicesTest {
         assertThat(trail.events()).singleElement().satisfies(event -> {
             assertThat(event.aggregateType()).isEqualTo("Vehicle");
             assertThat(event.action()).isEqualTo("REGISTERED");
-            assertThat(event.actor()).isEqualTo("advisor");
+            assertThat(event.actor()).isEqualTo("employee");
         });
     }
 
     @Test
     void customerListUsesOnlyTheCustomerIdentifierFromTheAuthenticatedPrincipal() {
         InMemoryVehicles vehicles = new InMemoryVehicles();
-        vehicles.save(vehicle("ABC1D23", CUSTOMER_A_ID), "advisor");
-        vehicles.save(vehicle("DEF2G34", CUSTOMER_B_ID), "advisor");
+        vehicles.save(vehicle("ABC1D23", CUSTOMER_A_ID), "employee");
+        vehicles.save(vehicle("DEF2G34", CUSTOMER_B_ID), "employee");
         ListCurrentCustomerVehiclesService service =
                 new ListCurrentCustomerVehiclesService(vehicles, customerAccess(CUSTOMER_A_ID));
 
@@ -79,7 +79,7 @@ class VehicleServicesTest {
     @Test
     void duplicateActivePlateIsRejectedBeforeRegistration() {
         InMemoryVehicles vehicles = new InMemoryVehicles();
-        vehicles.save(vehicle("ABC1D23", CUSTOMER_A_ID), "advisor");
+        vehicles.save(vehicle("ABC1D23", CUSTOMER_A_ID), "employee");
         RegisterVehicleService service =
                 new RegisterVehicleService(vehicles, new RecordedAuditTrail(), operationalAccess(), CLOCK);
 
@@ -91,7 +91,7 @@ class VehicleServicesTest {
     void successfulUpdateRecordsOneUpdatedAction() {
         InMemoryVehicles vehicles = new InMemoryVehicles();
         Vehicle vehicle = vehicle("ABC1D23", CUSTOMER_A_ID);
-        vehicles.save(vehicle, "advisor");
+        vehicles.save(vehicle, "employee");
         RecordedAuditTrail trail = new RecordedAuditTrail();
 
         new UpdateVehicleService(vehicles, trail, operationalAccess(), CLOCK).update(vehicle.id(), "Ford", "Ka", 2020);
@@ -105,16 +105,16 @@ class VehicleServicesTest {
     void removalUsesTheAuthenticatedActorForLogicalDeletionAndAudit() {
         InMemoryVehicles vehicles = new InMemoryVehicles();
         Vehicle vehicle = vehicle("ABC1D23", CUSTOMER_A_ID);
-        vehicles.save(vehicle, "advisor");
+        vehicles.save(vehicle, "employee");
         RecordedAuditTrail trail = new RecordedAuditTrail();
 
         new RemoveVehicleService(vehicles, trail, operationalAccess(), CLOCK).remove(vehicle.id());
 
         assertThat(vehicle.active()).isFalse();
-        assertThat(vehicles.lastSaveActor()).isEqualTo("advisor");
+        assertThat(vehicles.lastSaveActor()).isEqualTo("employee");
         assertThat(trail.events()).singleElement().satisfies(event -> {
             assertThat(event.action()).isEqualTo("REMOVED");
-            assertThat(event.actor()).isEqualTo("advisor");
+            assertThat(event.actor()).isEqualTo("employee");
         });
     }
 
@@ -132,7 +132,7 @@ class VehicleServicesTest {
     }
 
     private static VehicleAccessPolicy operationalAccess() {
-        return new VehicleAccessPolicy(user("advisor", Set.of(Role.SERVICE_ADVISOR), null));
+        return new VehicleAccessPolicy(user("employee", Set.of(Role.EMPLOYEE), null));
     }
 
     private static VehicleAccessPolicy customerAccess(UUID customerId) {
@@ -140,7 +140,7 @@ class VehicleServicesTest {
     }
 
     private static CurrentAuthenticatedUserPort user(String username, Set<Role> roles, UUID customerId) {
-        return () -> new AuthenticatedUser(UUID.randomUUID(), username, roles, customerId);
+        return () -> new AuthenticatedUser(UUID.randomUUID().toString(), username, roles, customerId);
     }
 
     private static Vehicle vehicle(String plate, UUID customerId) {

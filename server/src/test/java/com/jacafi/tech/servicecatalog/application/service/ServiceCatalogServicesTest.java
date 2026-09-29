@@ -17,10 +17,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.jacafi.tech.auth.application.port.AuthenticatedUser;
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
-import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
 import com.jacafi.tech.servicecatalog.application.port.ServiceCatalogRepositoryPort;
 import com.jacafi.tech.servicecatalog.domain.entity.ServiceCatalogItem;
 import com.jacafi.tech.servicecatalog.domain.exception.DuplicateServiceCatalogItemException;
@@ -28,16 +24,20 @@ import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.security.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.AuthenticatedUser;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 
 class ServiceCatalogServicesTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-27T10:00:00Z"), ZoneOffset.UTC);
 
     @Test
-    void managerRegistrationPersistsThenRecordsTheSharedAuditEvent() {
+    void employeeRegistrationPersistsThenRecordsTheSharedAuditEvent() {
         Items items = new Items();
         Trail trail = new Trail();
 
-        ServiceCatalogItem item = new RegisterServiceCatalogItemService(items, trail, manager(), CLOCK)
+        ServiceCatalogItem item = new RegisterServiceCatalogItemService(items, trail, employee(), CLOCK)
                 .register("Oil change", "Replace engine oil.", new BigDecimal("89.90"));
 
         assertThat(items.byId).containsKey(item.id());
@@ -49,7 +49,7 @@ class ServiceCatalogServicesTest {
         Items items = new Items();
         items.save(ServiceCatalogItem.register(UUID.randomUUID(), "Oil change", null, new BigDecimal("89.90"), CLOCK));
 
-        assertThatThrownBy(() -> new RegisterServiceCatalogItemService(items, new Trail(), manager(), CLOCK)
+        assertThatThrownBy(() -> new RegisterServiceCatalogItemService(items, new Trail(), employee(), CLOCK)
                         .register("  Oil change  ", null, new BigDecimal("99.90")))
                 .isInstanceOf(DuplicateServiceCatalogItemException.class);
         assertThat(items.byId).hasSize(1);
@@ -67,8 +67,8 @@ class ServiceCatalogServicesTest {
                 .isInstanceOf(AccountAccessDeniedException.class);
     }
 
-    private static ServiceCatalogAccessPolicy manager() {
-        return policy("manager", Set.of(Role.MANAGER));
+    private static ServiceCatalogAccessPolicy employee() {
+        return policy("employee", Set.of(Role.EMPLOYEE));
     }
 
     private static ServiceCatalogAccessPolicy customer() {
@@ -76,7 +76,8 @@ class ServiceCatalogServicesTest {
     }
 
     private static ServiceCatalogAccessPolicy policy(String username, Set<Role> roles) {
-        CurrentAuthenticatedUserPort user = () -> new AuthenticatedUser(UUID.randomUUID(), username, roles, null);
+        CurrentAuthenticatedUserPort user =
+                () -> new AuthenticatedUser(UUID.randomUUID().toString(), username, roles, null);
         return new ServiceCatalogAccessPolicy(user);
     }
 

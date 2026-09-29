@@ -18,7 +18,7 @@ public final class UpdateCustomerService {
     }
 
     public Customer update(UUID customerId, String name, String tradeName, String email, String phone) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         Customer customer = customers
                 .findById(Objects.requireNonNull(customerId, "customerId must not be null"))
                 .orElseThrow(CustomerNotFoundException::new);

@@ -14,9 +14,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.jacafi.tech.auth.application.port.AuthenticatedUser;
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
 import com.jacafi.tech.inventory.application.service.InventoryAccessPolicy;
 import com.jacafi.tech.inventory.application.service.ReserveInventoryStockService;
@@ -33,6 +30,9 @@ import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.security.AuthenticatedUser;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
@@ -53,7 +53,7 @@ class OpenServiceOrderServiceTest {
         Inventory inventory = new Inventory(material);
         Trail trail = new Trail();
         CurrentAuthenticatedUserPort user =
-                () -> new AuthenticatedUser(UUID.randomUUID(), "advisor", Set.of(Role.SERVICE_ADVISOR), customerId);
+                () -> new AuthenticatedUser(UUID.randomUUID().toString(), "advisor", Set.of(Role.EMPLOYEE), customerId);
         ReserveInventoryStockService reserve =
                 new ReserveInventoryStockService(inventory, entry -> {}, trail, new InventoryAccessPolicy(user), CLOCK);
         OpenServiceOrderService serviceOrder = new OpenServiceOrderService(

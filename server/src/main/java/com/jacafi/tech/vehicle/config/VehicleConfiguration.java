@@ -5,8 +5,8 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.shared.application.AuditTrailPort;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
 import com.jacafi.tech.vehicle.application.service.FindVehicleService;
 import com.jacafi.tech.vehicle.application.service.ListCurrentCustomerVehiclesService;

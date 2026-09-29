@@ -29,7 +29,7 @@ public class DeactivateServiceCatalogItemService {
 
     @Transactional
     public void deactivate(UUID id) {
-        access.requireManagementAccess();
+        access.requireEmployee();
         var item = items.findActiveById(id).orElseThrow(ServiceCatalogItemNotFoundException::new);
         item.deactivate(clock);
         items.save(item);

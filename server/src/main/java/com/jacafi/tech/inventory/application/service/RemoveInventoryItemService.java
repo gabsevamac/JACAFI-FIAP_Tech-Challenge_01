@@ -35,7 +35,7 @@ public class RemoveInventoryItemService {
 
     @Transactional
     public void remove(UUID id) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         var item = items.findActiveByIdForUpdate(id).orElseThrow(InventoryItemNotFoundException::new);
         item.remove(clock);
         String actor = access.currentActor();

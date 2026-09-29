@@ -18,7 +18,7 @@ public final class ListCustomerVehiclesService {
     }
 
     public PageResult<Vehicle> list(UUID customerId, PageQuery query) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return vehicles.findActiveByCustomerId(customerId, query);
     }
 }

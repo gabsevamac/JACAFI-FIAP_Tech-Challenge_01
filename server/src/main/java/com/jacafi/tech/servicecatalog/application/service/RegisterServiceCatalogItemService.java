@@ -31,7 +31,7 @@ public class RegisterServiceCatalogItemService {
 
     @Transactional
     public ServiceCatalogItem register(String name, String description, BigDecimal basePrice) {
-        access.requireManagementAccess();
+        access.requireEmployee();
         ServiceCatalogItem item = ServiceCatalogItem.register(UUID.randomUUID(), name, description, basePrice, clock);
         if (items.existsActiveWithName(item.name())) {
             throw new DuplicateServiceCatalogItemException();

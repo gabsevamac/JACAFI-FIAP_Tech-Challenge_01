@@ -21,5 +21,5 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
         scheme = "bearer",
         bearerFormat = "JWT",
         in = SecuritySchemeIn.HEADER,
-        description = "Token obtained from POST /api/v1/auth/login")
+        description = "Access token issued by the Keycloak realm configured in the resource server")
 public class OpenApiConfig {}

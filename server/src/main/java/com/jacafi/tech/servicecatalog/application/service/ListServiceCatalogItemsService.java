@@ -15,7 +15,7 @@ public class ListServiceCatalogItemsService {
     }
 
     public PageResult<ServiceCatalogItem> list(PageQuery query) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return items.findActive(query);
     }
 }
