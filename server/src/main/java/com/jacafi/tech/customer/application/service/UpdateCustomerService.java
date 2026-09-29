@@ -3,16 +3,16 @@ package com.jacafi.tech.customer.application.service;
 import java.util.Objects;
 import java.util.UUID;
 
-import com.jacafi.tech.customer.application.port.CustomerRepositoryPort;
+import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.customer.domain.exception.CustomerNotFoundException;
 
 public final class UpdateCustomerService {
 
-    private final CustomerRepositoryPort customers;
+    private final CustomerRepository customers;
     private final CustomerAccessPolicy access;
 
-    public UpdateCustomerService(CustomerRepositoryPort customers, CustomerAccessPolicy access) {
+    public UpdateCustomerService(CustomerRepository customers, CustomerAccessPolicy access) {
         this.customers = customers;
         this.access = access;
     }

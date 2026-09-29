@@ -62,14 +62,16 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers("/api/v1/vehicles", "/api/v1/vehicles/**")
                         .hasAnyRole("ADMIN", "MANAGER", "SERVICE_ADVISOR")
-                        .requestMatchers(
-                                HttpMethod.GET, "/api/v1/service-catalog-items", "/api/v1/service-catalog-items/**")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/labor-operations", "/api/v1/labor-operations/**")
                         .hasAnyRole("ADMIN", "MANAGER", "SERVICE_ADVISOR")
-                        .requestMatchers("/api/v1/service-catalog-items", "/api/v1/service-catalog-items/**")
+                        .requestMatchers("/api/v1/labor-operations", "/api/v1/labor-operations/**")
                         .hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/service-orders/*/status")
                         .authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/service-orders/*/estimates/*/decision")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/service-orders/*/estimates/*/approval",
+                                "/api/v1/service-orders/*/estimates/*/rejection")
                         .authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/service-orders/*/status")
                         .hasAnyRole("ADMIN", "MANAGER", "SERVICE_ADVISOR", "TECHNICIAN")

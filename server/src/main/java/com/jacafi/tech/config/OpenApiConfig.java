@@ -10,11 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 
 @Configuration
 @OpenAPIDefinition(
-        info =
-                @Info(
-                        title = "SINATES",
-                        version = "v1",
-                        description = "Sistema Integrado de Atendimento e Execucao de Servicos"))
+        info = @Info(title = "SINATES", version = "v1", description = "Integrated Service Intake and Execution System"))
 @SecurityScheme(
         name = "bearer-jwt",
         type = SecuritySchemeType.HTTP,

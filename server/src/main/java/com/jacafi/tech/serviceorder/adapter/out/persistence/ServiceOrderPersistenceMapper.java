@@ -2,12 +2,13 @@ package com.jacafi.tech.serviceorder.adapter.out.persistence;
 
 import java.util.List;
 
+import com.jacafi.tech.serviceorder.domain.entity.Approval;
 import com.jacafi.tech.serviceorder.domain.entity.Estimate;
+import com.jacafi.tech.serviceorder.domain.entity.LaborLineItem;
 import com.jacafi.tech.serviceorder.domain.entity.MaterialLineItem;
-import com.jacafi.tech.serviceorder.domain.entity.RecordedEstimateDecision;
-import com.jacafi.tech.serviceorder.domain.entity.ServiceLineItem;
+import com.jacafi.tech.serviceorder.domain.entity.Rejection;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
-import com.jacafi.tech.serviceorder.domain.entity.StatusHistory;
+import com.jacafi.tech.serviceorder.domain.entity.StatusChange;
 
 final class ServiceOrderPersistenceMapper {
     private ServiceOrderPersistenceMapper() {}
@@ -17,12 +18,12 @@ final class ServiceOrderPersistenceMapper {
                 order.id(), order.customerId(), order.vehicleId(), order.status(), order.reportedIssue());
     }
 
-    static ServiceOrderServiceLineJpaEntity toJpa(ServiceOrder order, ServiceLineItem line) {
-        return new ServiceOrderServiceLineJpaEntity(
+    static ServiceOrderLaborLineJpaEntity toJpa(ServiceOrder order, LaborLineItem line) {
+        return new ServiceOrderLaborLineJpaEntity(
                 line.id(),
                 order.id(),
-                line.serviceCatalogItemId(),
-                line.serviceNameSnapshot(),
+                line.laborOperationId(),
+                line.laborOperationNameSnapshot(),
                 line.unitPriceSnapshot(),
                 line.quantity());
     }
@@ -42,27 +43,29 @@ final class ServiceOrderPersistenceMapper {
                 estimate.id(), order.id(), estimate.status(), estimate.totalAmount(), estimate.respondedAt());
     }
 
-    static ServiceOrderEstimateDecisionJpaEntity toJpa(ServiceOrder order, RecordedEstimateDecision decision) {
-        return new ServiceOrderEstimateDecisionJpaEntity(
-                order.id(),
-                decision.estimateId(),
-                decision.decision(),
-                decision.idempotencyKey(),
-                decision.decidedAt());
+    static ServiceOrderEstimateApprovalJpaEntity toJpa(ServiceOrder order, Approval approval) {
+        return new ServiceOrderEstimateApprovalJpaEntity(
+                order.id(), approval.estimateId(), approval.idempotencyKey(), approval.approvedAt());
     }
 
-    static ServiceOrderStatusHistoryJpaEntity toJpa(ServiceOrder order, StatusHistory history) {
-        return new ServiceOrderStatusHistoryJpaEntity(
+    static ServiceOrderEstimateRejectionJpaEntity toJpa(ServiceOrder order, Rejection rejection) {
+        return new ServiceOrderEstimateRejectionJpaEntity(
+                order.id(), rejection.estimateId(), rejection.idempotencyKey(), rejection.rejectedAt());
+    }
+
+    static ServiceOrderStatusChangeJpaEntity toJpa(ServiceOrder order, StatusChange history) {
+        return new ServiceOrderStatusChangeJpaEntity(
                 order.id(), history.previousStatus(), history.status(), history.actor(), history.occurredAt());
     }
 
     static ServiceOrder toDomain(
             ServiceOrderJpaEntity order,
-            List<ServiceOrderServiceLineJpaEntity> serviceLines,
+            List<ServiceOrderLaborLineJpaEntity> laborLines,
             List<ServiceOrderMaterialLineJpaEntity> materialLines,
             List<ServiceOrderEstimateJpaEntity> estimates,
-            List<ServiceOrderStatusHistoryJpaEntity> statusHistory,
-            List<ServiceOrderEstimateDecisionJpaEntity> decisions) {
+            List<ServiceOrderStatusChangeJpaEntity> statusHistory,
+            List<ServiceOrderEstimateApprovalJpaEntity> approvals,
+            List<ServiceOrderEstimateRejectionJpaEntity> rejections) {
         return ServiceOrder.restore(
                 order.id(),
                 order.customerId(),
@@ -72,11 +75,11 @@ final class ServiceOrderPersistenceMapper {
                 order.getVersion(),
                 order.getCreatedAt(),
                 order.getUpdatedAt(),
-                serviceLines.stream()
-                        .map(line -> ServiceLineItem.of(
+                laborLines.stream()
+                        .map(line -> LaborLineItem.of(
                                 line.id(),
-                                line.serviceCatalogItemId(),
-                                line.serviceNameSnapshot(),
+                                line.laborOperationId(),
+                                line.laborOperationNameSnapshot(),
                                 line.unitPriceSnapshot(),
                                 line.quantity()))
                         .toList(),
@@ -97,15 +100,16 @@ final class ServiceOrderPersistenceMapper {
                                 estimate.respondedAt()))
                         .toList(),
                 statusHistory.stream()
-                        .map(history -> new StatusHistory(
+                        .map(history -> new StatusChange(
                                 history.previousStatus(), history.status(), history.actor(), history.occurredAt()))
                         .toList(),
-                decisions.stream()
-                        .map(decision -> new RecordedEstimateDecision(
-                                decision.idempotencyKey(),
-                                decision.estimateId(),
-                                decision.decision(),
-                                decision.occurredAt()))
+                approvals.stream()
+                        .map(approval ->
+                                new Approval(approval.idempotencyKey(), approval.estimateId(), approval.approvedAt()))
+                        .toList(),
+                rejections.stream()
+                        .map(rejection -> new Rejection(
+                                rejection.idempotencyKey(), rejection.estimateId(), rejection.rejectedAt()))
                         .toList());
     }
 }

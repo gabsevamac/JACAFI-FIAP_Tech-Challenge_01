@@ -7,11 +7,11 @@ import java.util.UUID;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 
 @Component
-public class UserAccountPersistenceAdapter implements UserAccountRepositoryPort {
+public class UserAccountPersistenceAdapter implements UserAccountRepository {
 
     private final UserAccountJpaRepository repository;
 

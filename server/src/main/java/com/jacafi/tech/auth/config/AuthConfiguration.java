@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import com.jacafi.tech.auth.application.port.AccessTokenPort;
 import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.auth.application.port.PasswordHashPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.application.service.AuthenticateUserService;
 import com.jacafi.tech.auth.application.service.CreateUserAccountService;
 import com.jacafi.tech.auth.application.service.DeactivateUserAccountService;
@@ -20,7 +20,7 @@ public class AuthConfiguration {
 
     @Bean
     AuthenticateUserService authenticateUserService(
-            UserAccountRepositoryPort accounts, PasswordHashPort passwordHash, AccessTokenPort accessTokens) {
+            UserAccountRepository accounts, PasswordHashPort passwordHash, AccessTokenPort accessTokens) {
         return new AuthenticateUserService(accounts, passwordHash, accessTokens);
     }
 
@@ -31,7 +31,7 @@ public class AuthConfiguration {
 
     @Bean
     CreateUserAccountService createUserAccountService(
-            UserAccountRepositoryPort accounts,
+            UserAccountRepository accounts,
             PasswordHashPort passwordHash,
             UserAccountAuthorizationPolicy authorization) {
         return new CreateUserAccountService(accounts, passwordHash, authorization);
@@ -39,25 +39,25 @@ public class AuthConfiguration {
 
     @Bean
     ListUserAccountsService listUserAccountsService(
-            UserAccountRepositoryPort accounts, UserAccountAuthorizationPolicy authorization) {
+            UserAccountRepository accounts, UserAccountAuthorizationPolicy authorization) {
         return new ListUserAccountsService(accounts, authorization);
     }
 
     @Bean
     FindUserAccountService findUserAccountService(
-            UserAccountRepositoryPort accounts, UserAccountAuthorizationPolicy authorization) {
+            UserAccountRepository accounts, UserAccountAuthorizationPolicy authorization) {
         return new FindUserAccountService(accounts, authorization);
     }
 
     @Bean
     GetCurrentUserAccountService getCurrentUserAccountService(
-            UserAccountRepositoryPort accounts, CurrentAuthenticatedUserPort currentUser) {
+            UserAccountRepository accounts, CurrentAuthenticatedUserPort currentUser) {
         return new GetCurrentUserAccountService(accounts, currentUser);
     }
 
     @Bean
     DeactivateUserAccountService deactivateUserAccountService(
-            UserAccountRepositoryPort accounts, UserAccountAuthorizationPolicy authorization) {
+            UserAccountRepository accounts, UserAccountAuthorizationPolicy authorization) {
         return new DeactivateUserAccountService(accounts, authorization);
     }
 }

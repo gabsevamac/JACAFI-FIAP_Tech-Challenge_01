@@ -25,7 +25,7 @@ import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
 import com.jacafi.tech.shared.application.SortCriterion;
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
 import com.jacafi.tech.vehicle.domain.exception.DuplicateLicensePlateException;
@@ -162,7 +162,7 @@ class VehicleServicesTest {
         }
     }
 
-    private static final class InMemoryVehicles implements VehicleRepositoryPort {
+    private static final class InMemoryVehicles implements VehicleRepository {
 
         private final Map<UUID, Vehicle> storage = new LinkedHashMap<>();
         private UUID lastListedCustomerId;

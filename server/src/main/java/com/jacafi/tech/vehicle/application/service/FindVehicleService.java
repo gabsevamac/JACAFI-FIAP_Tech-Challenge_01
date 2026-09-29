@@ -2,17 +2,17 @@ package com.jacafi.tech.vehicle.application.service;
 
 import java.util.UUID;
 
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
 import com.jacafi.tech.vehicle.domain.exception.VehicleNotFoundException;
 
 public final class FindVehicleService {
 
-    private final VehicleRepositoryPort vehicles;
+    private final VehicleRepository vehicles;
     private final VehicleAccessPolicy access;
 
-    public FindVehicleService(VehicleRepositoryPort vehicles, VehicleAccessPolicy access) {
+    public FindVehicleService(VehicleRepository vehicles, VehicleAccessPolicy access) {
         this.vehicles = vehicles;
         this.access = access;
     }

@@ -15,7 +15,7 @@ com.jacafi.tech/<slice>/
 └── config/       # composição da fatia quando necessária
 ```
 
-Fatias atuais: `auth`, `customer`, `vehicle`, `inventory`, `servicecatalog` e `serviceorder`. Itens compartilhados são limitados a preocupações transversais, como segurança, auditoria, erros, paginação e tempo.
+Fatias atuais: `auth`, `customer`, `vehicle`, `inventory`, `laboroperation` e `serviceorder`. Itens compartilhados são limitados a preocupações transversais, como segurança, auditoria, erros, paginação e tempo.
 
 As decisões arquiteturais estão em [docs/adr](docs/adr), os termos do domínio em [docs/linguagem-ubiqua.md](docs/linguagem-ubiqua.md), os fluxos em [docs/event-storming.md](docs/event-storming.md) e as visões de arquitetura em [docs/c4-model.md](docs/c4-model.md).
 
@@ -76,17 +76,17 @@ Use `docker compose down --volumes` apenas quando for necessário recriar o banc
 | Contas | CRUD administrativo em `/api/v1/user-accounts` e perfil em `/me` |
 | Clientes | CRUD em `/api/v1/customers`, busca por documento e perfil em `/me` |
 | Veículos | CRUD em `/api/v1/vehicles`, busca por placa e veículos do cliente em `/me` |
-| Catálogo | CRUD em `/api/v1/service-catalog-items` |
+| Catálogo de serviços | CRUD em `/api/v1/labor-operations` |
 | Estoque | CRUD e reposição, reserva e baixa em `/api/v1/inventory/items` |
-| Ordens de serviço | abertura, consulta de status, decisão de orçamento, atualização de status e fila em `/api/v1/service-orders` |
+| Ordens de serviço | abertura, consulta de status, aprovação e reprovação de orçamento, atualização de status e fila em `/api/v1/service-orders` |
 
 As operações administrativas exigem JWT. Clientes só podem consultar seus próprios dados, veículos e ordens de serviço. As permissões são definidas pelas roles `ADMIN`, `MANAGER`, `SERVICE_ADVISOR`, `TECHNICIAN` e `CUSTOMER`.
 
 ## Ordem de serviço
 
-Uma abertura recebe cliente, veículo, serviços e itens de estoque e retorna a identificação da OS. A estimativa é calculada com o preço capturado no momento da abertura. A aprovação ou recusa é idempotente e protege a transição para execução.
+Uma abertura recebe cliente, veículo, serviços e itens de estoque e retorna a identificação da OS. O orçamento é calculado com o preço capturado no momento da abertura. A aprovação (`POST .../estimates/{estimateId}/approval`) e a reprovação (`POST .../estimates/{estimateId}/rejection`) são idempotentes e protegem a transição para execução.
 
-Estados: `RECEIVED`, `UNDER_DIAGNOSIS`, `AWAITING_APPROVAL`, `IN_PROGRESS`, `COMPLETED` e `DELIVERED`. A fila operacional prioriza `IN_PROGRESS`, `AWAITING_APPROVAL`, `UNDER_DIAGNOSIS` e `RECEIVED`, da mais antiga para a mais nova, excluindo OS concluídas e entregues.
+Estados: `RECEIVED`, `UNDER_DIAGNOSIS`, `AWAITING_APPROVAL`, `IN_PROGRESS`, `COMPLETED`, `DELIVERED` e `REJECTED`. `REJECTED` já existe no modelo e no banco, mas nenhuma transição leva a ele enquanto a questão Q1 da [linguagem ubíqua](docs/linguagem-ubiqua.md) estiver em aberto: a reprovação devolve a OS para `UNDER_DIAGNOSIS`. A fila operacional prioriza `IN_PROGRESS`, `AWAITING_APPROVAL`, `UNDER_DIAGNOSIS` e `RECEIVED`, da mais antiga para a mais nova, excluindo OS concluídas e entregues.
 
 ## Persistência e qualidade
 

@@ -21,13 +21,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.jacafi.tech.auth.adapter.in.security.JwtAuthenticationFilter;
 import com.jacafi.tech.auth.adapter.in.security.SpringSecurityCurrentAuthenticatedUserAdapter;
 import com.jacafi.tech.auth.application.port.AccessTokenPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.config.SecurityConfig;
 import com.jacafi.tech.inventory.adapter.in.web.controller.InventoryController;
 import com.jacafi.tech.inventory.application.port.InventoryAuditLedgerPort;
-import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
+import com.jacafi.tech.inventory.application.port.InventoryItemRepository;
 import com.jacafi.tech.inventory.application.port.InventoryQueryPort;
 import com.jacafi.tech.inventory.config.InventoryConfiguration;
 import com.jacafi.tech.shared.adapter.in.web.GlobalExceptionHandler;
@@ -53,10 +53,10 @@ class InventorySecurityMvcTest {
     private AccessTokenPort accessTokens;
 
     @MockitoBean
-    private UserAccountRepositoryPort accounts;
+    private UserAccountRepository accounts;
 
     @MockitoBean
-    private InventoryItemRepositoryPort items;
+    private InventoryItemRepository items;
 
     @MockitoBean
     private InventoryQueryPort queries;
@@ -79,7 +79,7 @@ class InventorySecurityMvcTest {
     void customerCannotAccessInventoryCatalogue() throws Exception {
         mvc.perform(get("/api/v1/inventory/items").header("Authorization", "Bearer customer-token"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
         verifyNoInteractions(items, queries, ledger, auditTrail);
     }
 }

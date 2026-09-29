@@ -67,7 +67,7 @@ class UnhandledExceptionTest {
                 .andExpect(jsonPath("$.status").value(500))
                 .andExpect(jsonPath("$.code").value("GEN-001"))
                 .andExpect(jsonPath("$.title").value("Internal Server Error"))
-                .andExpect(jsonPath("$.detail").value("Erro interno. Informe o identificador de rastreio."))
+                .andExpect(jsonPath("$.detail").value("Internal error. Please provide the trace identifier."))
                 .andExpect(jsonPath("$.traceId").exists());
     }
 
@@ -109,7 +109,7 @@ class UnhandledExceptionTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.code").value("GEN-005"))
-                .andExpect(jsonPath("$.detail").value("A operação conflita com dados já registrados."))
+                .andExpect(jsonPath("$.detail").value("The operation conflicts with existing data."))
                 .andExpect(jsonPath("$.traceId").exists())
                 .andReturn()
                 .getResponse()
@@ -125,7 +125,7 @@ class UnhandledExceptionTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.code").value("GEN-005"))
-                .andExpect(jsonPath("$.detail").value("A operação conflita com dados já registrados."))
+                .andExpect(jsonPath("$.detail").value("The operation conflicts with existing data."))
                 .andExpect(jsonPath("$.traceId").exists())
                 .andReturn()
                 .getResponse()

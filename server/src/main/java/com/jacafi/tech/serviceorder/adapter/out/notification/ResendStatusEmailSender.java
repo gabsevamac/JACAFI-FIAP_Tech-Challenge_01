@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import com.jacafi.tech.customer.application.port.CustomerRepositoryPort;
+import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
 
@@ -19,14 +19,14 @@ import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
 public class ResendStatusEmailSender {
     private static final Logger LOGGER = LoggerFactory.getLogger(ResendStatusEmailSender.class);
 
-    private final CustomerRepositoryPort customers;
+    private final CustomerRepository customers;
     private final RestClient client;
     private final boolean enabled;
     private final String apiKey;
     private final String from;
 
     ResendStatusEmailSender(
-            CustomerRepositoryPort customers,
+            CustomerRepository customers,
             @Value("${resend.enabled:false}") boolean enabled,
             @Value("${resend.api-key:}") String apiKey,
             @Value("${resend.from:}") String from) {
@@ -63,9 +63,9 @@ public class ResendStatusEmailSender {
                         "to",
                         List.of(customer.email()),
                         "subject",
-                        "Atualização da ordem de serviço " + serviceOrderId,
+                        "Service order update " + serviceOrderId,
                         "text",
-                        "A sua ordem de serviço " + serviceOrderId + " está com o status: " + status + "."))
+                        "Your service order " + serviceOrderId + " is now in status " + status + "."))
                 .retrieve()
                 .toBodilessEntity();
     }

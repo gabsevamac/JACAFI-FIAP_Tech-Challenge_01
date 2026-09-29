@@ -16,7 +16,7 @@ public final class Masker {
         return maskAllBut(value, KEPT, true);
     }
 
-    public static String document(String value) {
+    public static String taxId(String value) {
         return maskAllBut(value, KEPT, false);
     }
 

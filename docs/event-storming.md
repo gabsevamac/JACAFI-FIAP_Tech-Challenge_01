@@ -14,9 +14,9 @@ flowchart LR
     F --> G[Estimate Generated]
     G --> H[Estimate Sent]
     H --> I[Customer]
-    I --> J{Estimate decision}
-    J -->|Approved| K[Start Execution]
-    J -->|Rejected| L[Return to Diagnosis]
+    I --> J{Approval or Rejection}
+    J -->|Estimate Approved| K[Start Execution]
+    J -->|Estimate Rejected| L[Return to Diagnosis]
     K --> M[Complete Service Order]
     M --> N[Deliver Vehicle]
 ```
@@ -24,7 +24,8 @@ flowchart LR
 | Comando | Evento/resultado | Política |
 |---|---|---|
 | `OpenServiceOrder` | OS criada e orçamento gerado | Move a OS para `AWAITING_APPROVAL`. |
-| `DecideEstimate` | Aprovação ou recusa registrada | Aprovação move para `IN_PROGRESS`; recusa retorna para `UNDER_DIAGNOSIS`. |
+| `ApproveEstimate` | Aprovação registrada | Move a OS para `IN_PROGRESS`. |
+| `RejectEstimate` | Reprovação registrada | Retorna a OS para `UNDER_DIAGNOSIS`. |
 | `UpdateServiceOrderStatus(COMPLETED)` | OS finalizada | Só é aceito durante execução. |
 | `UpdateServiceOrderStatus(DELIVERED)` | Veículo entregue | Só é aceito após finalização. |
 | `ReplenishStock`, `ReserveStock`, `WithdrawStock` | Estoque alterado | A quantidade nunca pode ficar negativa. |

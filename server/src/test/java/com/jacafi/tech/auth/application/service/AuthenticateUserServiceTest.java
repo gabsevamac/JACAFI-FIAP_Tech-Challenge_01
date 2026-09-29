@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.jacafi.tech.auth.application.port.AccessTokenPort;
 import com.jacafi.tech.auth.application.port.PasswordHashPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.auth.domain.exception.AuthenticationFailedException;
@@ -106,7 +106,7 @@ class AuthenticateUserServiceTest {
         }
     }
 
-    private static final class SingleAccountRepository implements UserAccountRepositoryPort {
+    private static final class SingleAccountRepository implements UserAccountRepository {
         private final UserAccount account;
 
         private SingleAccountRepository(UserAccount account) {

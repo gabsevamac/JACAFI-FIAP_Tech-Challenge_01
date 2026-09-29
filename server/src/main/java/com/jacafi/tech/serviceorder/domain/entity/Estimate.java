@@ -35,14 +35,22 @@ public final class Estimate {
         return new Estimate(id, totalAmount, status, createdAt, respondedAt);
     }
 
-    void decide(EstimateDecision decision, Instant respondedAt) {
+    void approve(Instant approvedAt) {
+        respond(EstimateStatus.APPROVED, approvedAt);
+    }
+
+    void reject(Instant rejectedAt) {
+        respond(EstimateStatus.REJECTED, rejectedAt);
+    }
+
+    private void respond(EstimateStatus response, Instant respondedAt) {
         if (status != EstimateStatus.PENDING) {
-            throw new IllegalStateException("An estimate can only be decided once");
+            throw new IllegalStateException("An estimate can only be approved or rejected once");
         }
-        if (decision == null || respondedAt == null) {
-            throw new IllegalArgumentException("decision fields must not be null");
+        if (respondedAt == null) {
+            throw new IllegalArgumentException("respondedAt must not be null");
         }
-        status = decision == EstimateDecision.APPROVE ? EstimateStatus.APPROVED : EstimateStatus.REJECTED;
+        status = response;
         this.respondedAt = respondedAt;
     }
 

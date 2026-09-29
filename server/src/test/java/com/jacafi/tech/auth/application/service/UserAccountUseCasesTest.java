@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import com.jacafi.tech.auth.application.port.AuthenticatedUser;
 import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.auth.application.port.PasswordHashPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
@@ -114,7 +114,7 @@ class UserAccountUseCasesTest {
         }
     }
 
-    private static final class InMemoryAccounts implements UserAccountRepositoryPort {
+    private static final class InMemoryAccounts implements UserAccountRepository {
         private final Map<UUID, UserAccount> accounts = new LinkedHashMap<>();
 
         @Override

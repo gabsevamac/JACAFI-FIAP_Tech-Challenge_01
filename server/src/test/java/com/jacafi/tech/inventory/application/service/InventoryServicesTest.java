@@ -22,7 +22,7 @@ import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
 import com.jacafi.tech.inventory.application.port.InventoryAuditLedgerPort;
-import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
+import com.jacafi.tech.inventory.application.port.InventoryItemRepository;
 import com.jacafi.tech.inventory.domain.entity.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.entity.InventoryItem;
 import com.jacafi.tech.inventory.domain.entity.MaterialType;
@@ -114,7 +114,7 @@ class InventoryServicesTest {
         }
     }
 
-    private static final class Items implements InventoryItemRepositoryPort {
+    private static final class Items implements InventoryItemRepository {
         private final Map<UUID, InventoryItem> storage = new LinkedHashMap<>();
         private boolean fail;
 

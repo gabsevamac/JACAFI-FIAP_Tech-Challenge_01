@@ -24,12 +24,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.jacafi.tech.auth.adapter.in.security.JwtAuthenticationFilter;
 import com.jacafi.tech.auth.adapter.in.security.SpringSecurityCurrentAuthenticatedUserAdapter;
 import com.jacafi.tech.auth.application.port.AccessTokenPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.config.SecurityConfig;
 import com.jacafi.tech.customer.adapter.in.web.controller.CustomerController;
-import com.jacafi.tech.customer.application.port.CustomerRepositoryPort;
+import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.config.CustomerConfiguration;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.customer.domain.entity.TaxId;
@@ -72,10 +72,10 @@ class CustomerSecurityMvcTest {
     private AccessTokenPort accessTokens;
 
     @MockitoBean
-    private UserAccountRepositoryPort accounts;
+    private UserAccountRepository accounts;
 
     @MockitoBean
-    private CustomerRepositoryPort customers;
+    private CustomerRepository customers;
 
     @BeforeEach
     void setUp() {
@@ -89,7 +89,7 @@ class CustomerSecurityMvcTest {
     void customerCannotReadOrUpdateAnotherCustomerById() throws Exception {
         mvc.perform(get("/api/v1/customers/{id}", CUSTOMER_B_ID).header("Authorization", "Bearer customer-a-token"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         mvc.perform(patch("/api/v1/customers/{id}", CUSTOMER_B_ID)
                         .header("Authorization", "Bearer customer-a-token")
@@ -98,7 +98,7 @@ class CustomerSecurityMvcTest {
                                 {"name":"Customer B","email":"b@example.com","phone":"11999999999"}
                                 """))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         verifyNoInteractions(customers);
     }

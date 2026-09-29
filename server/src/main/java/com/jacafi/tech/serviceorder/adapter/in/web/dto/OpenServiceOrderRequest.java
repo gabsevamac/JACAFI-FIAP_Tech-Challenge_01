@@ -15,16 +15,16 @@ public record OpenServiceOrderRequest(
         @NotNull UUID customerId,
         @NotNull UUID vehicleId,
         @NotBlank @Size(max = 2000) String reportedIssue,
-        @NotEmpty List<@Valid RequestedServiceRequest> services,
+        @NotEmpty List<@Valid RequestedLaborOperationRequest> laborOperations,
         @NotNull List<@Valid RequestedMaterialRequest> materials) {
     public OpenServiceOrderCommand toCommand() {
         return new OpenServiceOrderCommand(
                 customerId,
                 vehicleId,
                 reportedIssue,
-                services.stream()
-                        .map(item -> new OpenServiceOrderCommand.RequestedService(
-                                item.serviceCatalogItemId(), item.quantity()))
+                laborOperations.stream()
+                        .map(item -> new OpenServiceOrderCommand.RequestedLaborOperation(
+                                item.laborOperationId(), item.quantity()))
                         .toList(),
                 materials.stream()
                         .map(item ->

@@ -113,7 +113,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                         "field",
                         error.getField(),
                         "message",
-                        error.getDefaultMessage() == null ? "Valor inválido." : error.getDefaultMessage()))
+                        error.getDefaultMessage() == null ? "Invalid value." : error.getDefaultMessage()))
                 .toList();
 
         logClientError(ErrorCode.VALIDATION_FAILED, e);
@@ -197,7 +197,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                     CUSTOMER_ALREADY_EXISTS,
                     USERNAME_ALREADY_EXISTS,
                     DUPLICATE_MATERIAL,
-                    DUPLICATE_SERVICE_CATALOG_ITEM,
+                    DUPLICATE_LABOR_OPERATION,
                     INSUFFICIENT_STOCK -> HttpStatus.CONFLICT;
             case METHOD_NOT_ALLOWED -> HttpStatus.METHOD_NOT_ALLOWED;
             case UNSUPPORTED_MEDIA_TYPE -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
@@ -207,7 +207,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                     USER_ACCOUNT_NOT_FOUND,
                     INVENTORY_ITEM_NOT_FOUND,
                     RESERVATION_NOT_FOUND,
-                    SERVICE_CATALOG_ITEM_NOT_FOUND,
+                    LABOR_OPERATION_NOT_FOUND,
                     SERVICE_ORDER_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case AUTHENTICATION_REQUIRED -> HttpStatus.UNAUTHORIZED;
             case ACCESS_DENIED -> HttpStatus.FORBIDDEN;

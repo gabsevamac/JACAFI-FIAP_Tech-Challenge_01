@@ -4,19 +4,19 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.jacafi.tech.auth.application.port.PasswordHashPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.auth.domain.exception.UsernameAlreadyExistsException;
 
 public final class CreateUserAccountService {
 
-    private final UserAccountRepositoryPort accounts;
+    private final UserAccountRepository accounts;
     private final PasswordHashPort passwordHash;
     private final UserAccountAuthorizationPolicy authorization;
 
     public CreateUserAccountService(
-            UserAccountRepositoryPort accounts,
+            UserAccountRepository accounts,
             PasswordHashPort passwordHash,
             UserAccountAuthorizationPolicy authorization) {
         this.accounts = accounts;

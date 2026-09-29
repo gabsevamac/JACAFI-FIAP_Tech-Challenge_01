@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.jacafi.tech.auth.adapter.in.security.JwtAuthenticationFilter;
 import com.jacafi.tech.auth.adapter.in.security.SpringSecurityCurrentAuthenticatedUserAdapter;
 import com.jacafi.tech.auth.application.port.AccessTokenPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.domain.entity.Role;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 import com.jacafi.tech.config.SecurityConfig;
@@ -36,7 +36,7 @@ import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageResult;
 import com.jacafi.tech.shared.config.TimeConfiguration;
 import com.jacafi.tech.vehicle.adapter.in.web.controller.VehicleController;
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 import com.jacafi.tech.vehicle.config.VehicleConfiguration;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
@@ -72,10 +72,10 @@ class VehicleSecurityMvcTest {
     private AccessTokenPort accessTokens;
 
     @MockitoBean
-    private UserAccountRepositoryPort accounts;
+    private UserAccountRepository accounts;
 
     @MockitoBean
-    private VehicleRepositoryPort vehicles;
+    private VehicleRepository vehicles;
 
     @MockitoBean
     private AuditTrailPort auditTrail;
@@ -90,7 +90,7 @@ class VehicleSecurityMvcTest {
     void customerCannotReadUpdateOrListAnotherCustomersVehicles() throws Exception {
         mvc.perform(get("/api/v1/vehicles/{id}", VEHICLE_B_ID).header("Authorization", "Bearer customer-a-token"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         mvc.perform(put("/api/v1/vehicles/{id}", VEHICLE_B_ID)
                         .header("Authorization", "Bearer customer-a-token")
@@ -99,13 +99,13 @@ class VehicleSecurityMvcTest {
                                 {"make":"Ford","model":"Ka","modelYear":2020}
                                 """))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         mvc.perform(get("/api/v1/vehicles")
                         .param("customerId", CUSTOMER_B_ID.toString())
                         .header("Authorization", "Bearer customer-a-token"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         verifyNoInteractions(vehicles);
     }

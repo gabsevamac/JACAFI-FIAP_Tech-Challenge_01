@@ -21,7 +21,7 @@ import com.jacafi.tech.auth.adapter.in.security.JwtAuthenticationFilter;
 import com.jacafi.tech.auth.adapter.in.web.controller.AuthController;
 import com.jacafi.tech.auth.adapter.in.web.controller.UserAccountController;
 import com.jacafi.tech.auth.application.port.AccessTokenPort;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.application.service.AuthenticateUserService;
 import com.jacafi.tech.auth.application.service.CreateUserAccountService;
 import com.jacafi.tech.auth.application.service.DeactivateUserAccountService;
@@ -80,7 +80,7 @@ class AuthSecurityMvcTest {
     private AccessTokenPort accessTokens;
 
     @MockitoBean
-    private UserAccountRepositoryPort accounts;
+    private UserAccountRepository accounts;
 
     @BeforeEach
     void setUp() {
@@ -108,14 +108,14 @@ class AuthSecurityMvcTest {
     void rejectsUnauthenticatedRequests() throws Exception {
         mvc.perform(get("/api/v1/user-accounts/me"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("SEG-001"));
+                .andExpect(jsonPath("$.code").value("SEC-001"));
     }
 
     @Test
     void deniesManagementToNonAdmin() throws Exception {
         mvc.perform(get("/api/v1/user-accounts").header("Authorization", "Bearer technician-token"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
     }
 
     @Test
@@ -154,7 +154,7 @@ class AuthSecurityMvcTest {
 
         mvc.perform(get("/api/v1/user-accounts").header("Authorization", "Bearer customer-service-advisor-token"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
     }
 
     @Test

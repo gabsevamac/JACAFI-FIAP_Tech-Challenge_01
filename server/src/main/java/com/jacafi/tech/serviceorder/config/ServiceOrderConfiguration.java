@@ -6,25 +6,26 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
+import com.jacafi.tech.inventory.application.port.InventoryItemRepository;
 import com.jacafi.tech.inventory.application.service.ReserveInventoryStockService;
-import com.jacafi.tech.servicecatalog.application.port.ServiceCatalogRepositoryPort;
+import com.jacafi.tech.laboroperation.application.port.LaborOperationRepository;
 import com.jacafi.tech.serviceorder.adapter.out.notification.OutboxStatusNotificationAdapter;
-import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepository;
 import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
+import com.jacafi.tech.serviceorder.application.service.ApproveEstimateService;
 import com.jacafi.tech.serviceorder.application.service.CompleteServiceOrderService;
-import com.jacafi.tech.serviceorder.application.service.DecideEstimateService;
 import com.jacafi.tech.serviceorder.application.service.DeliverServiceOrderService;
 import com.jacafi.tech.serviceorder.application.service.FindServiceOrderStatusService;
 import com.jacafi.tech.serviceorder.application.service.GenerateServiceOrderEstimateService;
 import com.jacafi.tech.serviceorder.application.service.ListOperationalServiceOrdersService;
 import com.jacafi.tech.serviceorder.application.service.OpenServiceOrderService;
+import com.jacafi.tech.serviceorder.application.service.RejectEstimateService;
 import com.jacafi.tech.serviceorder.application.service.ServiceOrderAccessPolicy;
 import com.jacafi.tech.serviceorder.application.service.StartServiceOrderDiagnosisService;
 import com.jacafi.tech.serviceorder.application.service.UpdateServiceOrderStatusService;
 import com.jacafi.tech.shared.adapter.out.persistence.EventOutboxPublisher;
 import com.jacafi.tech.shared.application.AuditTrailPort;
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 
 @Configuration
 public class ServiceOrderConfiguration {
@@ -35,74 +36,80 @@ public class ServiceOrderConfiguration {
 
     @Bean
     OpenServiceOrderService openServiceOrderService(
-            ServiceOrderRepositoryPort orders,
-            VehicleRepositoryPort vehicles,
-            ServiceCatalogRepositoryPort catalog,
-            InventoryItemRepositoryPort inventory,
+            ServiceOrderRepository orders,
+            VehicleRepository vehicles,
+            LaborOperationRepository laborOperations,
+            InventoryItemRepository inventory,
             ReserveInventoryStockService reserveInventory,
             StatusNotificationPort notifications,
             AuditTrailPort auditTrail,
             ServiceOrderAccessPolicy access,
             Clock clock) {
         return new OpenServiceOrderService(
-                orders, vehicles, catalog, inventory, reserveInventory, notifications, auditTrail, access, clock);
+                orders,
+                vehicles,
+                laborOperations,
+                inventory,
+                reserveInventory,
+                notifications,
+                auditTrail,
+                access,
+                clock);
     }
 
     @Bean
     FindServiceOrderStatusService findServiceOrderStatusService(
-            ServiceOrderRepositoryPort orders, ServiceOrderAccessPolicy access) {
+            ServiceOrderRepository orders, ServiceOrderAccessPolicy access) {
         return new FindServiceOrderStatusService(orders, access);
     }
 
     @Bean
     ListOperationalServiceOrdersService listOperationalServiceOrdersService(
-            ServiceOrderRepositoryPort orders, ServiceOrderAccessPolicy access) {
+            ServiceOrderRepository orders, ServiceOrderAccessPolicy access) {
         return new ListOperationalServiceOrdersService(orders, access);
     }
 
     @Bean
     StartServiceOrderDiagnosisService startServiceOrderDiagnosisService(
-            ServiceOrderRepositoryPort orders,
-            AuditTrailPort auditTrail,
-            ServiceOrderAccessPolicy access,
-            Clock clock) {
+            ServiceOrderRepository orders, AuditTrailPort auditTrail, ServiceOrderAccessPolicy access, Clock clock) {
         return new StartServiceOrderDiagnosisService(orders, auditTrail, access, clock);
     }
 
     @Bean
     GenerateServiceOrderEstimateService generateServiceOrderEstimateService(
-            ServiceOrderRepositoryPort orders,
-            AuditTrailPort auditTrail,
-            ServiceOrderAccessPolicy access,
-            Clock clock) {
+            ServiceOrderRepository orders, AuditTrailPort auditTrail, ServiceOrderAccessPolicy access, Clock clock) {
         return new GenerateServiceOrderEstimateService(orders, auditTrail, access, clock);
     }
 
     @Bean
-    DecideEstimateService decideEstimateService(
-            ServiceOrderRepositoryPort orders,
+    ApproveEstimateService approveEstimateService(
+            ServiceOrderRepository orders,
             StatusNotificationPort notifications,
             AuditTrailPort auditTrail,
             ServiceOrderAccessPolicy access,
             Clock clock) {
-        return new DecideEstimateService(orders, notifications, auditTrail, access, clock);
+        return new ApproveEstimateService(orders, notifications, auditTrail, access, clock);
+    }
+
+    @Bean
+    RejectEstimateService rejectEstimateService(
+            ServiceOrderRepository orders,
+            StatusNotificationPort notifications,
+            AuditTrailPort auditTrail,
+            ServiceOrderAccessPolicy access,
+            Clock clock) {
+        return new RejectEstimateService(orders, notifications, auditTrail, access, clock);
     }
 
     @Bean
     CompleteServiceOrderService completeServiceOrderService(
-            ServiceOrderRepositoryPort orders,
-            AuditTrailPort auditTrail,
-            ServiceOrderAccessPolicy access,
-            Clock clock) {
+            ServiceOrderRepository orders, AuditTrailPort auditTrail, ServiceOrderAccessPolicy access, Clock clock) {
         return new CompleteServiceOrderService(orders, auditTrail, access, clock);
     }
 
     @Bean
     DeliverServiceOrderService deliverServiceOrderService(
-            ServiceOrderRepositoryPort orders,
-            AuditTrailPort auditTrail,
-            ServiceOrderAccessPolicy access,
-            Clock clock) {
+            ServiceOrderRepository orders, AuditTrailPort auditTrail, ServiceOrderAccessPolicy access, Clock clock) {
         return new DeliverServiceOrderService(orders, auditTrail, access, clock);
     }
 
@@ -113,7 +120,7 @@ public class ServiceOrderConfiguration {
 
     @Bean
     UpdateServiceOrderStatusService updateServiceOrderStatusService(
-            ServiceOrderRepositoryPort orders,
+            ServiceOrderRepository orders,
             StatusNotificationPort notifications,
             AuditTrailPort auditTrail,
             ServiceOrderAccessPolicy access,

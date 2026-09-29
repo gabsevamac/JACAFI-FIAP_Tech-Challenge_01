@@ -22,11 +22,11 @@ class CustomerTest {
     @Test
     void allowsTradeNameOnlyForLegalEntities() {
         Customer legalEntity = Customer.register(
-                TaxId.of("12.ABC.345/01DE-35"), "Jacafi Ltda", "Jacafi", "contato@jacafi.com", "1133334444");
+                TaxId.of("12.ABC.345/01DE-35"), "Jacafi Ltda", "Jacafi", "contact@jacafi.com", "1133334444");
 
         assertThat(legalEntity.tradeName()).isEqualTo("Jacafi");
         assertThatThrownBy(() -> Customer.register(
-                        TaxId.of("52998224725"), "Maria", "Loja da Maria", "maria@example.com", "11999999999"))
+                        TaxId.of("52998224725"), "Maria", "Maria's Shop", "maria@example.com", "11999999999"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

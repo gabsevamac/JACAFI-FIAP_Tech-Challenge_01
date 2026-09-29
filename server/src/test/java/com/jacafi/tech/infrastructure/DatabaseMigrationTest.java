@@ -50,7 +50,9 @@ class DatabaseMigrationTest {
                         "V06_20260827__create_service_orders.sql",
                         "V07_20260827__create_audit_trail.sql",
                         "V08_20260827__seed_admin_account.sql",
-                        "V09_20260830__create_event_outbox.sql");
+                        "V09_20260830__create_event_outbox.sql",
+                        "V10_20260929__split_estimate_approvals_and_rejections.sql",
+                        "V11_20260929__rename_service_catalog_to_labor_operations.sql");
 
         assertThat(strings("""
                         SELECT table_name
@@ -65,16 +67,25 @@ class DatabaseMigrationTest {
                         "inventory_items",
                         "inventory_reservations",
                         "inventory_audit_entries",
-                        "service_catalog_items",
+                        "labor_operations",
                         "service_orders",
-                        "service_order_service_lines",
+                        "service_order_labor_lines",
                         "service_order_material_lines",
                         "service_order_estimates",
-                        "service_order_estimate_decisions",
+                        "service_order_estimate_approvals",
+                        "service_order_estimate_rejections",
                         "service_order_status_history",
                         "audit_trail",
                         "event_outbox")
-                .doesNotContain("users", "clients", "parties", "services", "service_orders_service");
+                .doesNotContain(
+                        "users",
+                        "clients",
+                        "parties",
+                        "services",
+                        "service_orders_service",
+                        "service_order_estimate_decisions",
+                        "service_catalog_items",
+                        "service_order_service_lines");
     }
 
     @Test
@@ -92,13 +103,15 @@ class DatabaseMigrationTest {
                         "fk_inventory_audit_entries_item",
                         "fk_service_orders_customer",
                         "fk_service_orders_vehicle",
-                        "fk_service_order_service_lines_order",
-                        "fk_service_order_service_lines_catalog_item",
+                        "fk_service_order_labor_lines_order",
+                        "fk_service_order_labor_lines_labor_operation",
                         "fk_service_order_material_lines_order",
                         "fk_service_order_material_lines_inventory_item",
                         "fk_service_order_estimates_order",
-                        "fk_service_order_estimate_decisions_order",
-                        "fk_service_order_estimate_decisions_estimate",
+                        "fk_service_order_estimate_approvals_order",
+                        "fk_service_order_estimate_approvals_estimate",
+                        "fk_service_order_estimate_rejections_order",
+                        "fk_service_order_estimate_rejections_estimate",
                         "fk_service_order_status_history_order",
                         "fk_user_account_roles_account");
 
@@ -116,8 +129,9 @@ class DatabaseMigrationTest {
                         "ix_vehicles_customer_id",
                         "uk_inventory_items_active_name",
                         "uk_inventory_reservations_item_order",
-                        "uk_service_catalog_items_active_name",
-                        "uk_service_order_estimate_decisions_idempotency_key",
+                        "uk_labor_operations_active_name",
+                        "uk_service_order_estimate_approvals_idempotency_key",
+                        "uk_service_order_estimate_rejections_idempotency_key",
                         "ix_service_orders_operational_queue");
 
         var operationalIndex = string("""
@@ -231,11 +245,11 @@ class DatabaseMigrationTest {
                         && definition.contains("AWAITING_APPROVAL")
                         && definition.contains("IN_PROGRESS")
                         && definition.contains("COMPLETED")
-                        && definition.contains("DELIVERED"))
+                        && definition.contains("DELIVERED")
+                        && definition.contains("REJECTED"))
                 .anyMatch(definition -> definition.contains("PENDING")
                         && definition.contains("APPROVED")
                         && definition.contains("REJECTED"))
-                .anyMatch(definition -> definition.contains("APPROVE") && definition.contains("REJECT"))
                 .anyMatch(definition -> definition.contains("tax_id")
                         && definition.contains("[0-9]{11}")
                         && definition.contains("[A-Z0-9]{12}[0-9]{2}"));
@@ -253,7 +267,13 @@ class DatabaseMigrationTest {
                         ORDER BY match[1]
                         """))
                 .containsExactly(
-                        "AWAITING_APPROVAL", "COMPLETED", "DELIVERED", "IN_PROGRESS", "RECEIVED", "UNDER_DIAGNOSIS");
+                        "AWAITING_APPROVAL",
+                        "COMPLETED",
+                        "DELIVERED",
+                        "IN_PROGRESS",
+                        "RECEIVED",
+                        "REJECTED",
+                        "UNDER_DIAGNOSIS");
         assertThat(strings("""
                         SELECT conname
                         FROM pg_constraint
@@ -263,9 +283,9 @@ class DatabaseMigrationTest {
                         "ck_inventory_items_unit_price",
                         "ck_inventory_items_stock_on_hand",
                         "ck_inventory_reservations_quantity",
-                        "ck_service_catalog_items_base_price",
-                        "ck_service_order_service_lines_price",
-                        "ck_service_order_service_lines_quantity",
+                        "ck_labor_operations_base_price",
+                        "ck_service_order_labor_lines_price",
+                        "ck_service_order_labor_lines_quantity",
                         "ck_service_order_material_lines_price",
                         "ck_service_order_material_lines_quantity",
                         "ck_service_order_estimates_total_amount");
@@ -323,9 +343,9 @@ class DatabaseMigrationTest {
                 "vehicles",
                 "inventory_items",
                 "inventory_reservations",
-                "service_catalog_items",
+                "labor_operations",
                 "service_orders",
-                "service_order_service_lines",
+                "service_order_labor_lines",
                 "service_order_material_lines",
                 "service_order_estimates")) {
             assertThat(strings("""

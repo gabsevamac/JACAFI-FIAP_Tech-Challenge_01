@@ -16,16 +16,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.jacafi.tech.auth.application.port.AccessTokenPort;
 import com.jacafi.tech.auth.application.port.InvalidAccessTokenException;
-import com.jacafi.tech.auth.application.port.UserAccountRepositoryPort;
+import com.jacafi.tech.auth.application.port.UserAccountRepository;
 import com.jacafi.tech.auth.domain.entity.UserAccount;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final AccessTokenPort accessTokens;
-    private final UserAccountRepositoryPort accounts;
+    private final UserAccountRepository accounts;
 
-    public JwtAuthenticationFilter(AccessTokenPort accessTokens, UserAccountRepositoryPort accounts) {
+    public JwtAuthenticationFilter(AccessTokenPort accessTokens, UserAccountRepository accounts) {
         this.accessTokens = accessTokens;
         this.accounts = accounts;
     }

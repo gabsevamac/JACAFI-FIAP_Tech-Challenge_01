@@ -1,43 +1,43 @@
 package com.jacafi.tech.shared.domain;
 
 public enum ErrorCode {
-    INTERNAL_ERROR("GEN-001", "Erro interno. Informe o identificador de rastreio."),
-    MALFORMED_BODY("GEN-002", "Corpo da requisição inválido."),
-    INVALID_PARAMETER("GEN-003", "Parâmetro da requisição inválido."),
-    VALIDATION_FAILED("GEN-004", "Um ou mais campos estão inválidos."),
-    DATA_CONFLICT("GEN-005", "A operação conflita com dados já registrados."),
-    METHOD_NOT_ALLOWED("GEN-006", "Método não suportado por este recurso."),
-    UNSUPPORTED_MEDIA_TYPE("GEN-007", "Formato de conteúdo não suportado."),
-    RESOURCE_NOT_FOUND("GEN-008", "Recurso não encontrado."),
+    INTERNAL_ERROR("GEN-001", "Internal error. Please provide the trace identifier."),
+    MALFORMED_BODY("GEN-002", "Malformed request body."),
+    INVALID_PARAMETER("GEN-003", "Invalid request parameter."),
+    VALIDATION_FAILED("GEN-004", "One or more fields are invalid."),
+    DATA_CONFLICT("GEN-005", "The operation conflicts with existing data."),
+    METHOD_NOT_ALLOWED("GEN-006", "Method not supported by this resource."),
+    UNSUPPORTED_MEDIA_TYPE("GEN-007", "Unsupported content type."),
+    RESOURCE_NOT_FOUND("GEN-008", "Resource not found."),
 
-    AUTHENTICATION_REQUIRED("SEG-001", "Autenticação necessária."),
-    ACCESS_DENIED("SEG-002", "Acesso negado para esta operação."),
+    AUTHENTICATION_REQUIRED("SEC-001", "Authentication required."),
+    ACCESS_DENIED("SEC-002", "Access denied for this operation."),
 
-    USER_ACCOUNT_NOT_FOUND("USU-001", "Conta de usuário não encontrada."),
-    USERNAME_ALREADY_EXISTS("USU-002", "Nome de usuário já cadastrado."),
+    USER_ACCOUNT_NOT_FOUND("USR-001", "User account not found."),
+    USERNAME_ALREADY_EXISTS("USR-002", "Username already registered."),
 
-    INVALID_PAGING("PAG-001", "Parâmetros de paginação ou ordenação inválidos."),
+    INVALID_PAGING("PAG-001", "Invalid paging or sorting parameters."),
 
-    VEHICLE_NOT_FOUND("VEI-001", "Veículo não encontrado."),
-    DUPLICATE_LICENSE_PLATE("VEI-002", "Placa já cadastrada para outro veículo ativo."),
+    VEHICLE_NOT_FOUND("VEH-001", "Vehicle not found."),
+    DUPLICATE_LICENSE_PLATE("VEH-002", "License plate already registered to another active vehicle."),
 
-    INVALID_LICENSE_PLATE("VEI-003", "Placa inválida: use o formato ABC1234 ou ABC1D23."),
-    VEHICLE_QUERY_AMBIGUOUS("VEI-004", "Informe exatamente um entre placa e identificador do cliente."),
+    INVALID_LICENSE_PLATE("VEH-003", "Invalid license plate: use the ABC1234 or ABC1D23 format."),
+    VEHICLE_QUERY_AMBIGUOUS("VEH-004", "Provide exactly one of license plate or customer identifier."),
 
-    CUSTOMER_NOT_FOUND("CLI-001", "Cliente não encontrado."),
-    CUSTOMER_ALREADY_EXISTS("CLI-002", "Já existe um cliente com este CPF ou CNPJ."),
+    CUSTOMER_NOT_FOUND("CUS-001", "Customer not found."),
+    CUSTOMER_ALREADY_EXISTS("CUS-002", "A customer with this CPF or CNPJ already exists."),
 
-    INVALID_TAX_ID("CLI-003", "CPF ou CNPJ inválido."),
+    INVALID_TAX_ID("CUS-003", "Invalid CPF or CNPJ."),
 
-    INVENTORY_ITEM_NOT_FOUND("INV-001", "Item de estoque não encontrado."),
-    RESERVATION_NOT_FOUND("INV-002", "Reserva de estoque não encontrada."),
-    DUPLICATE_MATERIAL("INV-003", "Material já cadastrado."),
-    INSUFFICIENT_STOCK("INV-004", "Estoque insuficiente."),
+    INVENTORY_ITEM_NOT_FOUND("INV-001", "Inventory item not found."),
+    RESERVATION_NOT_FOUND("INV-002", "Inventory reservation not found."),
+    DUPLICATE_MATERIAL("INV-003", "Material already registered."),
+    INSUFFICIENT_STOCK("INV-004", "Insufficient stock."),
 
-    SERVICE_CATALOG_ITEM_NOT_FOUND("CAT-001", "Item de catálogo não encontrado."),
-    DUPLICATE_SERVICE_CATALOG_ITEM("CAT-002", "Já existe um item ativo com este nome."),
+    LABOR_OPERATION_NOT_FOUND("LAB-001", "Labor operation not found."),
+    DUPLICATE_LABOR_OPERATION("LAB-002", "An active labor operation with this name already exists."),
 
-    SERVICE_ORDER_NOT_FOUND("OS-001", "Ordem de serviço não encontrada.");
+    SERVICE_ORDER_NOT_FOUND("SO-001", "Service order not found.");
 
     private final String code;
     private final String message;

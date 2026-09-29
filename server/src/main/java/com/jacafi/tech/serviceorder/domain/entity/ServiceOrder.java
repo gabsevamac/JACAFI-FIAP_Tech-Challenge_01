@@ -18,11 +18,12 @@ public final class ServiceOrder {
     private final UUID vehicleId;
     private final Instant createdAt;
     private final long version;
-    private final List<ServiceLineItem> serviceLines;
+    private final List<LaborLineItem> laborLines;
     private final List<MaterialLineItem> materialLines;
     private final List<Estimate> estimates;
-    private final List<StatusHistory> statusHistory;
-    private final List<RecordedEstimateDecision> recordedDecisions;
+    private final List<StatusChange> statusHistory;
+    private final List<Approval> approvals;
+    private final List<Rejection> rejections;
     private String reportedIssue;
     private ServiceOrderStatus status;
     private Instant updatedAt;
@@ -36,11 +37,12 @@ public final class ServiceOrder {
             long version,
             Instant createdAt,
             Instant updatedAt,
-            Collection<ServiceLineItem> serviceLines,
+            Collection<LaborLineItem> laborLines,
             Collection<MaterialLineItem> materialLines,
             Collection<Estimate> estimates,
-            Collection<StatusHistory> statusHistory,
-            Collection<RecordedEstimateDecision> recordedDecisions) {
+            Collection<StatusChange> statusHistory,
+            Collection<Approval> approvals,
+            Collection<Rejection> rejections) {
         this.id = Objects.requireNonNull(id, "id must not be null");
         this.customerId = Objects.requireNonNull(customerId, "customerId must not be null");
         this.vehicleId = Objects.requireNonNull(vehicleId, "vehicleId must not be null");
@@ -52,11 +54,12 @@ public final class ServiceOrder {
         this.version = version;
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
         this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt must not be null");
-        this.serviceLines = new ArrayList<>(serviceLines);
+        this.laborLines = new ArrayList<>(laborLines);
         this.materialLines = new ArrayList<>(materialLines);
         this.estimates = new ArrayList<>(estimates);
         this.statusHistory = new ArrayList<>(statusHistory);
-        this.recordedDecisions = new ArrayList<>(recordedDecisions);
+        this.approvals = new ArrayList<>(approvals);
+        this.rejections = new ArrayList<>(rejections);
     }
 
     public static ServiceOrder open(
@@ -69,7 +72,7 @@ public final class ServiceOrder {
             UUID customerId,
             UUID vehicleId,
             String reportedIssue,
-            Collection<ServiceLineItem> serviceLines,
+            Collection<LaborLineItem> laborLines,
             Collection<MaterialLineItem> materialLines,
             String actor,
             Clock clock) {
@@ -83,10 +86,11 @@ public final class ServiceOrder {
                 0,
                 now,
                 now,
-                serviceLines,
+                laborLines,
                 materialLines,
                 List.of(),
-                List.of(new StatusHistory(null, ServiceOrderStatus.RECEIVED, requireActor(actor), now)),
+                List.of(new StatusChange(null, ServiceOrderStatus.RECEIVED, requireActor(actor), now)),
+                List.of(),
                 List.of());
     }
 
@@ -99,11 +103,12 @@ public final class ServiceOrder {
             long version,
             Instant createdAt,
             Instant updatedAt,
-            Collection<ServiceLineItem> serviceLines,
+            Collection<LaborLineItem> laborLines,
             Collection<MaterialLineItem> materialLines,
             Collection<Estimate> estimates,
-            Collection<StatusHistory> statusHistory,
-            Collection<RecordedEstimateDecision> recordedDecisions) {
+            Collection<StatusChange> statusHistory,
+            Collection<Approval> approvals,
+            Collection<Rejection> rejections) {
         return new ServiceOrder(
                 id,
                 customerId,
@@ -113,20 +118,21 @@ public final class ServiceOrder {
                 version,
                 createdAt,
                 updatedAt,
-                serviceLines,
+                laborLines,
                 materialLines,
                 estimates,
                 statusHistory,
-                recordedDecisions);
+                approvals,
+                rejections);
     }
 
     public void startDiagnosis(String actor, Clock clock) {
         transition(ServiceOrderStatus.RECEIVED, ServiceOrderStatus.UNDER_DIAGNOSIS, actor, clock);
     }
 
-    public void addServiceLine(ServiceLineItem line) {
+    public void addLaborLine(LaborLineItem line) {
         requireDiagnosis();
-        serviceLines.add(Objects.requireNonNull(line, "line must not be null"));
+        laborLines.add(Objects.requireNonNull(line, "line must not be null"));
     }
 
     public void addMaterialLine(MaterialLineItem line) {
@@ -143,31 +149,39 @@ public final class ServiceOrder {
         return estimate;
     }
 
-    public Estimate decideEstimate(
-            UUID estimateId, EstimateDecision decision, String idempotencyKey, String actor, Clock clock) {
+    public Estimate approveEstimate(UUID estimateId, String idempotencyKey, String actor, Clock clock) {
         Objects.requireNonNull(estimateId, "estimateId must not be null");
-        Objects.requireNonNull(decision, "decision must not be null");
         String key = requireIdempotencyKey(idempotencyKey);
-        for (RecordedEstimateDecision recorded : recordedDecisions) {
-            if (!recorded.idempotencyKey().equals(key)) {
-                continue;
-            }
-            if (recorded.estimateId().equals(estimateId) && recorded.decision() == decision) {
-                return estimateById(estimateId);
-            }
-            throw new IllegalStateException("Idempotency key was already used for a different decision");
+        if (approvals.stream()
+                .anyMatch(approval -> approval.idempotencyKey().equals(key)
+                        && approval.estimateId().equals(estimateId))) {
+            return estimateById(estimateId);
         }
+        requireUnusedIdempotencyKey(key);
         requireStatus(ServiceOrderStatus.AWAITING_APPROVAL);
         Estimate estimate = estimateById(estimateId);
         Instant now = requireClock(clock).instant();
-        estimate.decide(decision, now);
-        recordedDecisions.add(new RecordedEstimateDecision(key, estimateId, decision, now));
-        transitionTo(
-                decision == EstimateDecision.APPROVE
-                        ? ServiceOrderStatus.IN_PROGRESS
-                        : ServiceOrderStatus.UNDER_DIAGNOSIS,
-                actor,
-                now);
+        estimate.approve(now);
+        approvals.add(new Approval(key, estimateId, now));
+        transitionTo(ServiceOrderStatus.IN_PROGRESS, actor, now);
+        return estimate;
+    }
+
+    public Estimate rejectEstimate(UUID estimateId, String idempotencyKey, String actor, Clock clock) {
+        Objects.requireNonNull(estimateId, "estimateId must not be null");
+        String key = requireIdempotencyKey(idempotencyKey);
+        if (rejections.stream()
+                .anyMatch(rejection -> rejection.idempotencyKey().equals(key)
+                        && rejection.estimateId().equals(estimateId))) {
+            return estimateById(estimateId);
+        }
+        requireUnusedIdempotencyKey(key);
+        requireStatus(ServiceOrderStatus.AWAITING_APPROVAL);
+        Estimate estimate = estimateById(estimateId);
+        Instant now = requireClock(clock).instant();
+        estimate.reject(now);
+        rejections.add(new Rejection(key, estimateId, now));
+        transitionTo(ServiceOrderStatus.UNDER_DIAGNOSIS, actor, now);
         return estimate;
     }
 
@@ -211,8 +225,8 @@ public final class ServiceOrder {
         return updatedAt;
     }
 
-    public List<ServiceLineItem> serviceLines() {
-        return List.copyOf(serviceLines);
+    public List<LaborLineItem> laborLines() {
+        return List.copyOf(laborLines);
     }
 
     public List<MaterialLineItem> materialLines() {
@@ -223,17 +237,21 @@ public final class ServiceOrder {
         return List.copyOf(estimates);
     }
 
-    public List<StatusHistory> statusHistory() {
+    public List<StatusChange> statusHistory() {
         return List.copyOf(statusHistory);
     }
 
-    public List<RecordedEstimateDecision> recordedDecisions() {
-        return List.copyOf(recordedDecisions);
+    public List<Approval> approvals() {
+        return List.copyOf(approvals);
+    }
+
+    public List<Rejection> rejections() {
+        return List.copyOf(rejections);
     }
 
     private BigDecimal totalAmount() {
-        return serviceLines.stream()
-                .map(ServiceLineItem::totalAmount)
+        return laborLines.stream()
+                .map(LaborLineItem::totalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .add(materialLines.stream()
                         .map(MaterialLineItem::totalAmount)
@@ -253,7 +271,7 @@ public final class ServiceOrder {
     }
 
     private void transitionTo(ServiceOrderStatus next, String actor, Instant at) {
-        statusHistory.add(new StatusHistory(status, next, requireActor(actor), at));
+        statusHistory.add(new StatusChange(status, next, requireActor(actor), at));
         status = next;
         updatedAt = at;
     }
@@ -265,6 +283,16 @@ public final class ServiceOrder {
     private void requireStatus(ServiceOrderStatus expected) {
         if (status != expected) {
             throw new IllegalStateException("Illegal service order status transition");
+        }
+    }
+
+    private void requireUnusedIdempotencyKey(String key) {
+        boolean used = approvals.stream()
+                        .anyMatch(approval -> approval.idempotencyKey().equals(key))
+                || rejections.stream()
+                        .anyMatch(rejection -> rejection.idempotencyKey().equals(key));
+        if (used) {
+            throw new IllegalStateException("Idempotency key was already used for a different approval or rejection");
         }
     }
 

@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
-import com.jacafi.tech.customer.application.port.CustomerRepositoryPort;
+import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.customer.domain.entity.TaxId;
 import com.jacafi.tech.customer.domain.exception.CustomerUpdateConflictException;
@@ -16,7 +16,7 @@ import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
 
 @Component
-public class CustomerPersistenceAdapter implements CustomerRepositoryPort {
+public class CustomerPersistenceAdapter implements CustomerRepository {
 
     private final CustomerJpaRepository repository;
 

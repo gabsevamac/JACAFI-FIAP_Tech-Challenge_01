@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.jacafi.tech.support.AbstractIntegrationTest;
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
 
@@ -26,7 +26,7 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
     private static final UUID CUSTOMER_ID = UUID.fromString("a1d4e145-e3f8-4fdc-b84e-8584c564c927");
 
     @Autowired
-    private VehicleRepositoryPort repository;
+    private VehicleRepository repository;
 
     @Autowired
     private Clock clock;
@@ -75,7 +75,7 @@ class InstantRoundTripIT extends AbstractIntegrationTest {
         Instant reloaded = repository.findActiveById(id).orElseThrow().registeredAt();
 
         assertThat(reloaded.getNano() % 1_000)
-                .as("o Clock da aplicacao precisa produzir a precisao que o TIMESTAMPTZ guarda")
+                .as("the application Clock must produce the precision that TIMESTAMPTZ stores")
                 .isZero();
     }
 }

@@ -9,13 +9,13 @@ import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
-import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
+import com.jacafi.tech.inventory.application.port.InventoryItemRepository;
 import com.jacafi.tech.inventory.domain.entity.InventoryItem;
 import com.jacafi.tech.inventory.domain.entity.Reservation;
 import com.jacafi.tech.inventory.domain.exception.DuplicateMaterialException;
 
 @Component
-public class InventoryPersistenceAdapter implements InventoryItemRepositoryPort {
+public class InventoryPersistenceAdapter implements InventoryItemRepository {
     private static final String ACTIVE_NAME_INDEX = "uk_inventory_items_active_name";
     private final InventoryItemJpaRepository items;
     private final InventoryReservationJpaRepository reservations;

@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import org.springframework.transaction.annotation.Transactional;
 
-import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepository;
 import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
@@ -15,14 +15,14 @@ import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 
 public class UpdateServiceOrderStatusService {
-    private final ServiceOrderRepositoryPort orders;
+    private final ServiceOrderRepository orders;
     private final StatusNotificationPort notifications;
     private final AuditTrailPort auditTrail;
     private final ServiceOrderAccessPolicy access;
     private final Clock clock;
 
     public UpdateServiceOrderStatusService(
-            ServiceOrderRepositoryPort orders,
+            ServiceOrderRepository orders,
             StatusNotificationPort notifications,
             AuditTrailPort auditTrail,
             ServiceOrderAccessPolicy access,
