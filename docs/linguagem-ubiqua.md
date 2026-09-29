@@ -399,6 +399,8 @@ Vocabulário técnico e jurídico, não linguagem de domínio. Fica em subseçã
 | Trilha de auditoria | `AuditTrail` | termo técnico transversal |
 | Dado pessoal | `PersonalData` | LGPD Art. 5º I — nunca traduzir como "sensitive data" |
 | Anonimização | `Anonymization` | técnica de proteção, não evento de domínio |
+| Papel | `Role` | nível de acesso vindo do realm do Keycloak: `EMPLOYEE` (Funcionário), que alcança todos os recursos da oficina, ou `CUSTOMER` (Cliente), restrito aos próprios dados |
+| Identidade do cliente | `CustomerIdentity` | vínculo entre o `sub` de um usuário do Keycloak e o cadastro de cliente que ele representa. Identidade e cliente são distintos: um funcionário pode ter cadastro de cliente, e um cliente sem identidade vinculada não alcança os recursos `/me` |
 
 ### Comandos e eventos da fatia `Vehicle`
 

@@ -12,7 +12,6 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 class DatabaseMigrationTest {
@@ -51,8 +50,11 @@ class DatabaseMigrationTest {
                         "V07_20260827__create_audit_trail.sql",
                         "V08_20260827__seed_admin_account.sql",
                         "V09_20260830__create_event_outbox.sql",
-                        "V10_20260929__split_estimate_approvals_and_rejections.sql",
-                        "V11_20260929__rename_service_catalog_to_labor_operations.sql");
+                        "V10_20260901__consolidate_roles.sql",
+                        "V11_20260901__create_customer_identities.sql",
+                        "V12_20260901__drop_user_accounts.sql",
+                        "V13_20260929__split_estimate_approvals_and_rejections.sql",
+                        "V14_20260929__rename_service_catalog_to_labor_operations.sql");
 
         assertThat(strings("""
                         SELECT table_name
@@ -60,9 +62,8 @@ class DatabaseMigrationTest {
                         WHERE table_schema = 'public'
                         """))
                 .contains(
-                        "user_accounts",
-                        "user_account_roles",
                         "customers",
+                        "customer_identities",
                         "vehicles",
                         "inventory_items",
                         "inventory_reservations",
@@ -78,6 +79,8 @@ class DatabaseMigrationTest {
                         "audit_trail",
                         "event_outbox")
                 .doesNotContain(
+                        "user_accounts",
+                        "user_account_roles",
                         "users",
                         "clients",
                         "parties",
@@ -96,7 +99,7 @@ class DatabaseMigrationTest {
                         WHERE contype = 'f'
                         """))
                 .contains(
-                        "fk_user_accounts_customer",
+                        "fk_customer_identities_customer",
                         "fk_vehicles_customer",
                         "fk_inventory_reservations_item",
                         "fk_inventory_reservations_service_order",
@@ -112,8 +115,7 @@ class DatabaseMigrationTest {
                         "fk_service_order_estimate_approvals_estimate",
                         "fk_service_order_estimate_rejections_order",
                         "fk_service_order_estimate_rejections_estimate",
-                        "fk_service_order_status_history_order",
-                        "fk_user_account_roles_account");
+                        "fk_service_order_status_history_order");
 
         var indexes = strings("""
                 SELECT indexname
@@ -122,8 +124,7 @@ class DatabaseMigrationTest {
                 """);
         assertThat(indexes)
                 .contains(
-                        "uk_user_accounts_username",
-                        "uk_user_accounts_customer",
+                        "uk_customer_identities_customer",
                         "uk_customers_tax_id",
                         "uk_vehicles_active_license_plate",
                         "ix_vehicles_customer_id",
@@ -235,11 +236,6 @@ class DatabaseMigrationTest {
                 WHERE contype = 'c'
                 """);
         assertThat(checks)
-                .anyMatch(definition -> definition.contains("ADMIN")
-                        && definition.contains("MANAGER")
-                        && definition.contains("SERVICE_ADVISOR")
-                        && definition.contains("TECHNICIAN")
-                        && definition.contains("CUSTOMER"))
                 .anyMatch(definition -> definition.contains("RECEIVED")
                         && definition.contains("UNDER_DIAGNOSIS")
                         && definition.contains("AWAITING_APPROVAL")
@@ -312,19 +308,6 @@ class DatabaseMigrationTest {
                         "after_state")
                 .doesNotContain(
                         "metadata", "old_value", "new_value", "cpf", "cnpj", "tax_id", "plate", "password", "token");
-
-        assertThat(strings("""
-                        SELECT username || ':' || active || ':' || role
-                        FROM user_accounts
-                        JOIN user_account_roles ON user_account_id = user_accounts.id
-                        """)).containsExactly("dev-admin:true:ADMIN");
-        String seededPasswordHash = string("""
-                SELECT password_hash
-                FROM user_accounts
-                WHERE username = 'dev-admin'
-                """);
-        assertThat(seededPasswordHash).matches("^\\$2[aby]\\$[0-9]{2}\\$.{53}$");
-        assertThat(BCrypt.checkpw("admin123", seededPasswordHash)).isTrue();
     }
 
     @Test
@@ -338,8 +321,8 @@ class DatabaseMigrationTest {
                         """)).isEmpty();
 
         for (String table : List.of(
-                "user_accounts",
                 "customers",
+                "customer_identities",
                 "vehicles",
                 "inventory_items",
                 "inventory_reservations",

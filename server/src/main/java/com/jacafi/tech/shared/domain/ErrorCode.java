@@ -13,9 +13,6 @@ public enum ErrorCode {
     AUTHENTICATION_REQUIRED("SEC-001", "Authentication required."),
     ACCESS_DENIED("SEC-002", "Access denied for this operation."),
 
-    USER_ACCOUNT_NOT_FOUND("USR-001", "User account not found."),
-    USERNAME_ALREADY_EXISTS("USR-002", "Username already registered."),
-
     INVALID_PAGING("PAG-001", "Invalid paging or sorting parameters."),
 
     VEHICLE_NOT_FOUND("VEH-001", "Vehicle not found."),

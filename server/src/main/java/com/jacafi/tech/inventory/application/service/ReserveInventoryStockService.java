@@ -37,7 +37,7 @@ public class ReserveInventoryStockService {
 
     @Transactional
     public InventoryItem reserve(UUID id, UUID serviceOrderId, int quantity) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         var item = items.findActiveByIdForUpdate(id).orElseThrow(InventoryItemNotFoundException::new);
         Stock requested = Stock.of(quantity);
         item.reserve(serviceOrderId, requested, clock);

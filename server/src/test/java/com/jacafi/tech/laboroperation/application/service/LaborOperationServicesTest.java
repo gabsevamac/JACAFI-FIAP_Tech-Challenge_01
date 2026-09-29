@@ -17,10 +17,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.jacafi.tech.auth.application.port.AuthenticatedUser;
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
-import com.jacafi.tech.auth.domain.entity.Role;
-import com.jacafi.tech.auth.domain.exception.AccountAccessDeniedException;
 import com.jacafi.tech.laboroperation.application.port.LaborOperationRepository;
 import com.jacafi.tech.laboroperation.domain.entity.LaborOperation;
 import com.jacafi.tech.laboroperation.domain.exception.DuplicateLaborOperationException;
@@ -28,16 +24,20 @@ import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.security.AccountAccessDeniedException;
+import com.jacafi.tech.shared.security.AuthenticatedUser;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.shared.security.Role;
 
 class LaborOperationServicesTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-27T10:00:00Z"), ZoneOffset.UTC);
 
     @Test
-    void managerRegistrationPersistsThenRecordsTheSharedAuditEvent() {
+    void employeeRegistrationPersistsThenRecordsTheSharedAuditEvent() {
         Operations operations = new Operations();
         Trail trail = new Trail();
 
-        LaborOperation operation = new RegisterLaborOperationService(operations, trail, manager(), CLOCK)
+        LaborOperation operation = new RegisterLaborOperationService(operations, trail, employee(), CLOCK)
                 .register("Oil change", "Replace engine oil.", new BigDecimal("89.90"));
 
         assertThat(operations.byId).containsKey(operation.id());
@@ -49,7 +49,7 @@ class LaborOperationServicesTest {
         Operations operations = new Operations();
         operations.save(LaborOperation.register(UUID.randomUUID(), "Oil change", null, new BigDecimal("89.90"), CLOCK));
 
-        assertThatThrownBy(() -> new RegisterLaborOperationService(operations, new Trail(), manager(), CLOCK)
+        assertThatThrownBy(() -> new RegisterLaborOperationService(operations, new Trail(), employee(), CLOCK)
                         .register("  Oil change  ", null, new BigDecimal("99.90")))
                 .isInstanceOf(DuplicateLaborOperationException.class);
         assertThat(operations.byId).hasSize(1);
@@ -67,8 +67,8 @@ class LaborOperationServicesTest {
                 .isInstanceOf(AccountAccessDeniedException.class);
     }
 
-    private static LaborOperationAccessPolicy manager() {
-        return policy("manager", Set.of(Role.MANAGER));
+    private static LaborOperationAccessPolicy employee() {
+        return policy("employee", Set.of(Role.EMPLOYEE));
     }
 
     private static LaborOperationAccessPolicy customer() {
@@ -76,7 +76,8 @@ class LaborOperationServicesTest {
     }
 
     private static LaborOperationAccessPolicy policy(String username, Set<Role> roles) {
-        CurrentAuthenticatedUserPort user = () -> new AuthenticatedUser(UUID.randomUUID(), username, roles, null);
+        CurrentAuthenticatedUserPort user =
+                () -> new AuthenticatedUser(UUID.randomUUID().toString(), username, roles, null);
         return new LaborOperationAccessPolicy(user);
     }
 

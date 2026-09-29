@@ -26,7 +26,7 @@ public class DeliverServiceOrderService {
 
     @Transactional
     public void deliver(UUID serviceOrderId) {
-        access.requireStatusManagementAccess();
+        access.requireEmployee();
         var order = orders.findById(serviceOrderId).orElseThrow(ServiceOrderNotFoundException::new);
         String actor = access.currentActor();
         order.deliver(actor, clock);

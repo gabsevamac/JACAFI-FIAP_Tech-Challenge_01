@@ -1,0 +1,92 @@
+{
+  "realm": "jacafi",
+  "enabled": true,
+  "displayName": "JACAFI",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "passwordPolicy": "length(12) and notUsername(undefined) and upperCase(1) and lowerCase(1) and digits(1)",
+  "roles": {
+    "realm": [
+      {
+        "name": "employee",
+        "description": "Funcionario da oficina: alcanca todos os recursos da aplicacao"
+      },
+      {
+        "name": "customer",
+        "description": "Cliente da oficina: alcanca apenas os proprios dados"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "jacafi-api",
+      "name": "JACAFI API",
+      "description": "Resource server: valida os tokens deste realm",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "clientId": "jacafi-web",
+      "name": "JACAFI Web",
+      "description": "Cliente publico para obtencao de token pelo navegador ou pelo desenvolvimento local",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:8082/*", "http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:8082", "http://localhost:3000"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "id": "f0000000-0000-0000-0000-000000000001",
+      "username": "dev-employee",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "dev-employee@jacafi.local",
+      "firstName": "Dev",
+      "lastName": "Employee",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Dev-employee-2026",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["employee"]
+    },
+    {
+      "id": "f0000000-0000-0000-0000-000000000002",
+      "username": "dev-customer",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "dev-customer@jacafi.local",
+      "firstName": "Dev",
+      "lastName": "Customer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Dev-customer-2026",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["customer"]
+    }
+  ]
+}

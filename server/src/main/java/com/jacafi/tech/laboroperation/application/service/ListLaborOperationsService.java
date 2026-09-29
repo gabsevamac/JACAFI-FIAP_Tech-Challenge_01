@@ -15,7 +15,7 @@ public class ListLaborOperationsService {
     }
 
     public PageResult<LaborOperation> list(PageQuery query) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return operations.findActive(query);
     }
 }

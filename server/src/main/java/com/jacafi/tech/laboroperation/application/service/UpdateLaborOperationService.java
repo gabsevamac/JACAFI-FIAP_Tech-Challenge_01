@@ -32,7 +32,7 @@ public class UpdateLaborOperationService {
 
     @Transactional
     public LaborOperation update(UUID id, String name, String description, BigDecimal basePrice) {
-        access.requireManagementAccess();
+        access.requireEmployee();
         LaborOperation operation = operations.findActiveById(id).orElseThrow(LaborOperationNotFoundException::new);
         operation.update(name, description, basePrice, clock);
         if (operations.existsActiveWithNameExcluding(operation.name(), operation.id())) {

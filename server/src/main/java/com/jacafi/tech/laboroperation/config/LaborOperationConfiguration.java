@@ -5,7 +5,6 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.laboroperation.application.port.LaborOperationRepository;
 import com.jacafi.tech.laboroperation.application.service.DeactivateLaborOperationService;
 import com.jacafi.tech.laboroperation.application.service.FindLaborOperationService;
@@ -14,6 +13,7 @@ import com.jacafi.tech.laboroperation.application.service.ListLaborOperationsSer
 import com.jacafi.tech.laboroperation.application.service.RegisterLaborOperationService;
 import com.jacafi.tech.laboroperation.application.service.UpdateLaborOperationService;
 import com.jacafi.tech.shared.application.AuditTrailPort;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
 
 @Configuration
 public class LaborOperationConfiguration {

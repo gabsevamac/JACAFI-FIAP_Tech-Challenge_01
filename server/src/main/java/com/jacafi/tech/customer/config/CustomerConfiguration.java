@@ -3,17 +3,19 @@ package com.jacafi.tech.customer.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
+import com.jacafi.tech.customer.application.port.CustomerIdentityRepository;
 import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.application.service.CustomerAccessPolicy;
 import com.jacafi.tech.customer.application.service.DeactivateCustomerService;
 import com.jacafi.tech.customer.application.service.FindCustomerByTaxIdService;
 import com.jacafi.tech.customer.application.service.FindCustomerService;
 import com.jacafi.tech.customer.application.service.GetCurrentCustomerService;
+import com.jacafi.tech.customer.application.service.LinkCustomerIdentityService;
 import com.jacafi.tech.customer.application.service.ListCustomersService;
 import com.jacafi.tech.customer.application.service.RegisterCustomerService;
 import com.jacafi.tech.customer.application.service.UpdateCurrentCustomerService;
 import com.jacafi.tech.customer.application.service.UpdateCustomerService;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
 
 @Configuration
 public class CustomerConfiguration {
@@ -56,6 +58,12 @@ public class CustomerConfiguration {
     @Bean
     GetCurrentCustomerService getCurrentCustomerService(CustomerRepository customers, CustomerAccessPolicy access) {
         return new GetCurrentCustomerService(customers, access);
+    }
+
+    @Bean
+    LinkCustomerIdentityService linkCustomerIdentityService(
+            CustomerRepository customers, CustomerIdentityRepository identities, CustomerAccessPolicy access) {
+        return new LinkCustomerIdentityService(customers, identities, access);
     }
 
     @Bean

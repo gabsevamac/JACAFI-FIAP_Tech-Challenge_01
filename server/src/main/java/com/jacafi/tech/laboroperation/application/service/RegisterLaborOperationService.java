@@ -31,7 +31,7 @@ public class RegisterLaborOperationService {
 
     @Transactional
     public LaborOperation register(String name, String description, BigDecimal basePrice) {
-        access.requireManagementAccess();
+        access.requireEmployee();
         LaborOperation operation = LaborOperation.register(UUID.randomUUID(), name, description, basePrice, clock);
         if (operations.existsActiveWithName(operation.name())) {
             throw new DuplicateLaborOperationException();

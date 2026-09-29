@@ -21,6 +21,13 @@ spring:
   flyway:
     enabled: true
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI}
+
 server:
   port: ${SERVER_PORT:8082}
   error:
@@ -46,10 +53,6 @@ logging:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{traceId:-no-trace}] --- [%15.15t] %-40.40logger{39} : %m%n%wEx"
   level:
     org.hibernate.orm.jdbc.error: ERROR
-
-jwt:
-  secret: ${JWT_SECRET}
-  expiration-minutes: 60
 
 resend:
   enabled: ${RESEND_ENABLED:false}

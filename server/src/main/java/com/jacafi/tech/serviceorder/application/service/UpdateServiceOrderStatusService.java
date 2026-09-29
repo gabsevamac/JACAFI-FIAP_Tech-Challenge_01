@@ -36,7 +36,7 @@ public class UpdateServiceOrderStatusService {
 
     @Transactional
     public ServiceOrder update(UUID serviceOrderId, ServiceOrderStatus status) {
-        access.requireStatusManagementAccess();
+        access.requireEmployee();
         ServiceOrder order = orders.findById(serviceOrderId).orElseThrow(ServiceOrderNotFoundException::new);
         String actor = access.currentActor();
         ServiceOrderStatus previousStatus = order.status();

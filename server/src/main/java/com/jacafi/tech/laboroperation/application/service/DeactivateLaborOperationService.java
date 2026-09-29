@@ -29,7 +29,7 @@ public class DeactivateLaborOperationService {
 
     @Transactional
     public void deactivate(UUID id) {
-        access.requireManagementAccess();
+        access.requireEmployee();
         var operation = operations.findActiveById(id).orElseThrow(LaborOperationNotFoundException::new);
         operation.deactivate(clock);
         operations.save(operation);

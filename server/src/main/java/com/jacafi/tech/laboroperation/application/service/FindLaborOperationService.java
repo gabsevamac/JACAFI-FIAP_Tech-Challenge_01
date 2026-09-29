@@ -16,7 +16,7 @@ public class FindLaborOperationService {
     }
 
     public LaborOperation findById(UUID id) {
-        access.requireOperationalAccess();
+        access.requireEmployee();
         return operations.findActiveById(id).orElseThrow(LaborOperationNotFoundException::new);
     }
 }

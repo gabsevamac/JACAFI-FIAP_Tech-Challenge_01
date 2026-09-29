@@ -5,7 +5,6 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.jacafi.tech.auth.application.port.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.inventory.application.port.InventoryItemRepository;
 import com.jacafi.tech.inventory.application.service.ReserveInventoryStockService;
 import com.jacafi.tech.laboroperation.application.port.LaborOperationRepository;
@@ -25,6 +24,7 @@ import com.jacafi.tech.serviceorder.application.service.StartServiceOrderDiagnos
 import com.jacafi.tech.serviceorder.application.service.UpdateServiceOrderStatusService;
 import com.jacafi.tech.shared.adapter.out.persistence.EventOutboxPublisher;
 import com.jacafi.tech.shared.application.AuditTrailPort;
+import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 
 @Configuration
