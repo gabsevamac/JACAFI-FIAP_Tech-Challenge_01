@@ -42,6 +42,12 @@ O Compose sobe PostgreSQL, Keycloak e a API. O Keycloak importa o realm versiona
 
 `KEYCLOAK_ISSUER_URI` é o endereço público do realm, usado para validar o claim `iss` do token; `KEYCLOAK_JWK_SET_URI` é o endereço interno da rede do Compose, usado para obter as chaves de assinatura. Os dois são distintos de propósito, porque o navegador e a API alcançam o Keycloak por endereços diferentes.
 
+### Imagem da API
+
+O [Dockerfile](server/Dockerfile) tem três estágios: `build` compila com Maven e extrai as camadas do Spring Boot; `jre` gera com `jlink` um runtime Java só com os módulos do JDK que a aplicação usa; o estágio final, sobre Alpine, recebe apenas esse runtime e as camadas da aplicação e executa com o usuário sem privilégio `app` (UID 10001). A imagem não declara variáveis de configuração: todas chegam pelo Compose. Testes, Spotless, Checkstyle e Enforcer não rodam no build da imagem; ficam no `mvn verify`.
+
+As decisões de desempenho e segurança, a varredura de vulnerabilidades e a manutenção da lista de módulos do `jlink` estão em [docs/cicd/imagem-docker.md](docs/cicd/imagem-docker.md).
+
 ## Autenticação
 
 O Keycloak emite os tokens; a aplicação é apenas um *resource server* e não guarda senha nem lista de usuários. O realm de desenvolvimento traz o client público `jacafi-web` e dois usuários:
@@ -71,7 +77,7 @@ A gestão de usuários, roles, senhas e sessões é feita no console do Keycloak
 
 As credenciais do realm versionado e do console existem apenas para o ambiente local. Em outro ambiente, importe um realm próprio e defina as senhas por variável de ambiente.
 
-A imagem de runtime desabilita OpenAPI e Swagger por padrão. O Compose os habilita somente para desenvolvimento local; em outro ambiente, mantenha `SPRINGDOC_API_DOCS_ENABLED=false` e `SPRINGDOC_SWAGGER_UI_ENABLED=false`, ou proteja os endpoints por rede e autenticação.
+A aplicação desabilita OpenAPI e Swagger por padrão. O Compose os habilita somente para desenvolvimento local; em outro ambiente, mantenha `SPRINGDOC_API_DOCS_ENABLED=false` e `SPRINGDOC_SWAGGER_UI_ENABLED=false`, ou proteja os endpoints por rede e autenticação.
 
 ## Credenciais de demonstração
 
