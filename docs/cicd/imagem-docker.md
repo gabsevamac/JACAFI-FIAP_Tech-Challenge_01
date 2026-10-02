@@ -233,23 +233,23 @@ Resultado do Trivy 0.75.0 em 02/10/2026:
 |---|---|---|
 | Pacotes do sistema operacional | 243 (3 HIGH, 175 MEDIUM, 65 LOW) | 0 |
 | Binário `pebble` do Ubuntu | 8 HIGH | não existe |
-| Bibliotecas Java | 25 (3 CRITICAL, 11 HIGH, 11 MEDIUM) | 25, as mesmas |
+| Bibliotecas Java | 25 (3 CRITICAL, 11 HIGH, 11 MEDIUM) | 0, após a atualização das dependências (ver abaixo) |
 | Configuração da imagem | não avaliada | 1 LOW (DS-0026, ausência de `HEALTHCHECK`, aceito; ver [Healthcheck](#healthcheck)) |
 | Segredos | não avaliado | 0 |
 
 O hadolint 2.14.0 não fez apontamentos no Dockerfile.
 
-As vulnerabilidades das bibliotecas Java não dependem do Dockerfile: vêm das versões gerenciadas pelo Spring Boot 4.1.0.
+As vulnerabilidades das bibliotecas Java não dependiam do Dockerfile: vinham das versões gerenciadas pelo Spring Boot 4.1.0. Foram corrigidas atualizando o Spring Boot para 4.1.1 e sobrescrevendo no `pom.xml` as versões que ele ainda não corrige:
 
-| Biblioteca | Versão instalada | Corrigida em |
-|---|---|---|
-| `org.apache.tomcat.embed:tomcat-embed-core` (3 CRITICAL) | 11.0.22 | 11.0.25 |
-| `tools.jackson.core:jackson-databind` e `jackson-core` | 3.1.4 | 3.1.7 |
-| `com.fasterxml.jackson.core:jackson-databind` e `jackson-core` | 2.21.4 | 2.21.7 |
-| `org.postgresql:postgresql` | 42.7.11 | 42.7.12 |
-| `org.apache.logging.log4j:log4j-api` | 2.25.4 | 2.25.5 |
+| Biblioteca | Antes | Depois | Origem da versão |
+|---|---|---|---|
+| `org.apache.tomcat.embed:tomcat-embed-core` | 11.0.22 (3 CRITICAL) | 11.0.26 | `tomcat.version` no `pom.xml` |
+| `tools.jackson.core:jackson-databind` e `jackson-core` | 3.1.4 | 3.1.7 | `jackson-bom.version` no `pom.xml` |
+| `com.fasterxml.jackson.core:jackson-databind` e `jackson-core` | 2.21.4 | 2.21.7 | `jackson-2-bom.version` no `pom.xml` |
+| `org.postgresql:postgresql` | 42.7.11 | 42.7.13 | Spring Boot 4.1.1 |
+| `org.apache.logging.log4j:log4j-api` | 2.25.4 | 2.25.5 | Spring Boot 4.1.1 |
 
-O Spring Boot 4.1.1 já traz o driver do PostgreSQL e o log4j corrigidos, mas ainda gerencia o Tomcat 11.0.24 e o Jackson 3.1.5 e 2.21.5. Fechar todas exige também sobrescrever `tomcat.version`, `jackson-bom.version` e `jackson-2-bom.version` no `pom.xml`, numa mudança própria.
+As sobrescritas ficam nas mesmas linhas de versão que o Spring Boot 4.1 gerencia (Tomcat 11.0, Jackson 3.1 e 2.21), apenas com patches. Elas devem sair do `pom.xml` quando uma nova versão do Spring Boot passar a gerenciar versões iguais ou mais novas; se ficarem, passam a prender a aplicação em versões antigas. As versões gerenciadas estão nas propriedades `tomcat.version`, `jackson-bom.version` e `jackson-2-bom.version` do `spring-boot-dependencies-<versão>.pom`, no Maven Central.
 
 Ferramentas que analisam o Dockerfile inteiro, como a extensão Docker da IDE, também apontam vulnerabilidades nas bases `maven` e `eclipse-temurin` JDK. Elas existem apenas durante o build e não chegam à imagem final.
 
@@ -268,7 +268,7 @@ docker run --rm -i hadolint/hadolint:v2.14.0 < server/Dockerfile
 rm jacafi-server.tar
 ```
 
-A imagem é exportada para um `.tar` em vez de montar `/var/run/docker.sock` no container do Trivy: acesso ao socket dá ao container controle total do Docker, o equivalente a root no host. No pipeline, `--exit-code 1 --severity HIGH,CRITICAL` faz o Trivy reprovar o job; com as bibliotecas atuais, ele reprovaria.
+A imagem é exportada para um `.tar` em vez de montar `/var/run/docker.sock` no container do Trivy: acesso ao socket dá ao container controle total do Docker, o equivalente a root no host. No pipeline, `--exit-code 1 --severity HIGH,CRITICAL` faz o Trivy reprovar o job quando houver vulnerabilidade dessas severidades.
 
 ## Alternativas consideradas
 
