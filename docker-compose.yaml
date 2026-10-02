@@ -50,6 +50,13 @@ services:
   server:
     build:
       context: ./server
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "${APP_PORT:-8082}:${SERVER_PORT:-8082}"
     networks:
@@ -66,13 +73,14 @@ services:
       RESEND_ENABLED: ${RESEND_ENABLED:-false}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM: ${RESEND_FROM:-}
+      TZ: UTC
     depends_on:
       database:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --silent http://localhost:$$SERVER_PORT/actuator/health/readiness"]
+      test: ["CMD-SHELL", "wget --quiet --spider http://localhost:$$SERVER_PORT/actuator/health/readiness || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5

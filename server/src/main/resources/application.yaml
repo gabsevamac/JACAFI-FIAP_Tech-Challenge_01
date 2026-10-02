@@ -48,6 +48,12 @@ management:
       probes:
         enabled: true
 
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:false}
+
 logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{traceId:-no-trace}] --- [%15.15t] %-40.40logger{39} : %m%n%wEx"
