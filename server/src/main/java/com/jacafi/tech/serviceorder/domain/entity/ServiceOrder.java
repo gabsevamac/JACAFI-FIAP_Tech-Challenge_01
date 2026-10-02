@@ -127,7 +127,7 @@ public final class ServiceOrder {
     }
 
     public void startDiagnosis(String actor, Clock clock) {
-        transition(ServiceOrderStatus.RECEIVED, ServiceOrderStatus.UNDER_DIAGNOSIS, actor, clock);
+        changeStatus(ServiceOrderStatus.RECEIVED, ServiceOrderStatus.UNDER_DIAGNOSIS, actor, clock);
     }
 
     public void addLaborLine(LaborLineItem line) {
@@ -145,7 +145,7 @@ public final class ServiceOrder {
         Instant now = requireClock(clock).instant();
         Estimate estimate = Estimate.pending(UUID.randomUUID(), totalAmount(), now);
         estimates.add(estimate);
-        transitionTo(ServiceOrderStatus.AWAITING_APPROVAL, actor, now);
+        changeStatusTo(ServiceOrderStatus.AWAITING_APPROVAL, actor, now);
         return estimate;
     }
 
@@ -163,7 +163,7 @@ public final class ServiceOrder {
         Instant now = requireClock(clock).instant();
         estimate.approve(now);
         approvals.add(new Approval(key, estimateId, now));
-        transitionTo(ServiceOrderStatus.IN_PROGRESS, actor, now);
+        changeStatusTo(ServiceOrderStatus.IN_PROGRESS, actor, now);
         return estimate;
     }
 
@@ -181,16 +181,16 @@ public final class ServiceOrder {
         Instant now = requireClock(clock).instant();
         estimate.reject(now);
         rejections.add(new Rejection(key, estimateId, now));
-        transitionTo(ServiceOrderStatus.UNDER_DIAGNOSIS, actor, now);
+        changeStatusTo(ServiceOrderStatus.UNDER_DIAGNOSIS, actor, now);
         return estimate;
     }
 
     public void complete(String actor, Clock clock) {
-        transition(ServiceOrderStatus.IN_PROGRESS, ServiceOrderStatus.COMPLETED, actor, clock);
+        changeStatus(ServiceOrderStatus.IN_PROGRESS, ServiceOrderStatus.COMPLETED, actor, clock);
     }
 
     public void deliver(String actor, Clock clock) {
-        transition(ServiceOrderStatus.COMPLETED, ServiceOrderStatus.DELIVERED, actor, clock);
+        changeStatus(ServiceOrderStatus.COMPLETED, ServiceOrderStatus.DELIVERED, actor, clock);
     }
 
     public UUID id() {
@@ -265,12 +265,12 @@ public final class ServiceOrder {
                 .orElseThrow(() -> new IllegalArgumentException("estimateId does not belong to this service order"));
     }
 
-    private void transition(ServiceOrderStatus expected, ServiceOrderStatus next, String actor, Clock clock) {
+    private void changeStatus(ServiceOrderStatus expected, ServiceOrderStatus next, String actor, Clock clock) {
         requireStatus(expected);
-        transitionTo(next, actor, requireClock(clock).instant());
+        changeStatusTo(next, actor, requireClock(clock).instant());
     }
 
-    private void transitionTo(ServiceOrderStatus next, String actor, Instant at) {
+    private void changeStatusTo(ServiceOrderStatus next, String actor, Instant at) {
         statusHistory.add(new StatusChange(status, next, requireActor(actor), at));
         status = next;
         updatedAt = at;
@@ -282,7 +282,7 @@ public final class ServiceOrder {
 
     private void requireStatus(ServiceOrderStatus expected) {
         if (status != expected) {
-            throw new IllegalStateException("Illegal service order status transition");
+            throw new IllegalStateException("Illegal service order status change");
         }
     }
 

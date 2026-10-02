@@ -114,7 +114,7 @@ Toda operação exige JWT. As permissões são definidas por duas roles: `EMPLOY
 
 ## Ordem de serviço
 
-Uma abertura recebe cliente, veículo, serviços e itens de estoque e retorna a identificação da OS. O orçamento é calculado com o preço capturado no momento da abertura. A aprovação (`POST .../estimates/{estimateId}/approval`) e a reprovação (`POST .../estimates/{estimateId}/rejection`) são idempotentes e protegem a transição para execução.
+Uma abertura recebe cliente, veículo, serviços e itens de estoque e retorna a identificação da OS. O orçamento é calculado com o preço capturado no momento da abertura. A aprovação (`POST .../estimates/{estimateId}/approval`) e a reprovação (`POST .../estimates/{estimateId}/rejection`) são idempotentes e protegem a mudança de status para execução.
 
 Estados: `RECEIVED`, `UNDER_DIAGNOSIS`, `AWAITING_APPROVAL`, `IN_PROGRESS`, `COMPLETED`, `DELIVERED` e `REJECTED`. `REJECTED` já existe no modelo e no banco, mas nenhuma transição leva a ele enquanto a questão Q1 da [linguagem ubíqua](docs/linguagem-ubiqua.md) estiver em aberto: a reprovação devolve a OS para `UNDER_DIAGNOSIS`. A fila operacional prioriza `IN_PROGRESS`, `AWAITING_APPROVAL`, `UNDER_DIAGNOSIS` e `RECEIVED`, da mais antiga para a mais nova, excluindo OS concluídas e entregues.
 

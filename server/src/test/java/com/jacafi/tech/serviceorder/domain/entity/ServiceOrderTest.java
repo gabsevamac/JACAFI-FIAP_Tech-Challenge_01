@@ -56,7 +56,7 @@ class ServiceOrderTest {
     }
 
     @Test
-    void rejectsStatusTransitionsThatBypassTheApprovalGate() {
+    void rejectsStatusChangesThatBypassTheApprovalGate() {
         ServiceOrder order = ServiceOrder.open(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Engine noise", ACTOR, CLOCK);
 

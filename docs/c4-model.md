@@ -123,7 +123,7 @@ flowchart TD
         end
 
         subgraph Dominio["Domain — Regras de Negócio"]
-            osAgg["ServiceOrder + Estimate<br/>[Agregado]<br/>Transições de status"]:::domain
+            osAgg["ServiceOrder + Estimate<br/>[Agregado]<br/>Mudanças de status"]:::domain
             clienteEnt["Customer + TaxId<br/>[Entidade + VO]<br/>Validação de CPF/CNPJ"]:::domain
             veiculoEnt["Vehicle + LicensePlate<br/>[Entidade + VO]<br/>Validação de placa"]:::domain
             catalogoEnt["LaborOperation<br/>[Entidade]"]:::domain

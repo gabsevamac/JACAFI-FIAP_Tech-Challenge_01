@@ -54,7 +54,7 @@ Este dicionário **só vale dentro deste contexto**. A advertência não é form
 
 O ciclo de vida da Ordem de Serviço com a aprovação funcionando como portão. É o que a oficina está comprando e onde os melhores esforços de modelagem devem ir.
 
-Pertencem ao núcleo: `Ordem de Serviço` · `Status` · `Transição` · `Regra de Transição` · `Histórico de Status` · `Diagnóstico` · `Orçamento` · `Aprovação` · `Reprovação` · `Reparo Adicional` · `Orçamento Complementar` · `Serviço Lançado` · `Item Lançado`
+Pertencem ao núcleo: `Ordem de Serviço` · `Status` · `Mudança de Status` · `Regra de Mudança de Status` · `Histórico de Status` · `Diagnóstico` · `Orçamento` · `Aprovação` · `Reprovação` · `Reparo Adicional` · `Orçamento Complementar` · `Serviço Lançado` · `Item Lançado`
 
 ### Subdomínios de apoio (Supporting)
 
@@ -103,23 +103,24 @@ Pertencem aos genéricos: `Cliente` · `Veículo` · `Placa` · `Identificação
 **Nota:** Os quatro "processos" da introdução do enunciado — atendimento, diagnóstico, execução de serviços, entrega — são este mesmo ciclo visto pela oficina em vez de pela OS. Manter os dois vocabulários criaria sinonímia interna, que é o defeito que a Ubiquitous Language existe para eliminar (cap. 2).
 **Fonte:** "Status da OS"
 
-### Transição
+### Mudança de Status
 **Estereótipo:** Objeto de Valor · candidato a Evento de Domínio
 **Definição:** Passagem de uma ordem de serviço de um status para outro, provocada por uma ação identificável, registrando origem, destino, instante e responsável.
-**Exemplo:** "A transição pra execução saiu 14h20, depois que o cliente aprovou."
+**Termo depreciado:** transição — vocabulário de máquina de estados, ausente do enunciado e da fala da oficina
+**Exemplo:** "O status mudou pra execução às 14h20, depois que o cliente aprovou."
 **Nota:** Ver §6 — conceito implícito promovido.
-**Fonte:** "Alteração automática dos status conforme ações no sistema"
+**Fonte:** "Alteração automática dos status conforme ações no sistema"; "trilha de auditoria para cada mudança de status na Ordem de Serviço" (`requisitos-v2.md`, Logs e Rastreabilidade)
 
-### Regra de Transição
+### Regra de Mudança de Status
 **Estereótipo:** Especificação (*Specification*, cap. 9)
-**Definição:** Condição que determina se uma transição específica é permitida no estado atual da ordem de serviço.
+**Definição:** Condição que determina se uma mudança de status específica é permitida no estado atual da ordem de serviço.
 **Exemplo:** "A regra não deixa ir pra execução sem aprovação."
 **Nota:** Evans trata restrições explícitas como conceitos de primeira classe no cap. 9. É aqui que as invariantes do agregado se tornam nomeáveis, e é este conjunto de regras que define a fronteira do agregado — a Aprovação precisa estar dentro da OS porque a restrição não admite janela de inconsistência.
 **Fonte:** derivado; ver §6
 
 ### Histórico de Status
 **Estereótipo:** parte interna do agregado Ordem de Serviço
-**Definição:** Sequência ordenada das transições já ocorridas em uma ordem de serviço.
+**Definição:** Sequência ordenada das mudanças de status já ocorridas em uma ordem de serviço.
 **Nota:** Sem ele o indicador de tempo médio de execução é incalculável — o status corrente informa onde a OS está, não quanto tempo levou para chegar. Relação com o campo `Status`: o mesmo que extrato para saldo.
 **Fonte:** derivado de "Monitoramento do tempo médio de execução dos serviços"
 
@@ -251,8 +252,8 @@ Pertencem aos genéricos: `Cliente` · `Veículo` · `Placa` · `Identificação
 
 Evans, cap. 9: ouvir a linguagem, examinar o que soa desajeitado no discurso e promover a conceito explícito o que estava escondido. Os casos abaixo seguem esse procedimento, com a categoria do capítulo indicada.
 
-### Transição e Regra de Transição — *Explicit Constraints*
-A frase "alteração automática dos status conforme ações no sistema" é o desconforto que denuncia o conceito ausente. Sem nomear a transição, não existe lugar para a restrição morar: ela se dispersa em condicionais espalhadas. O cap. 9 trata restrições explícitas como conceitos de primeira classe, e o padrão *Specification* dá a forma canônica.
+### Mudança de Status e Regra de Mudança de Status — *Explicit Constraints*
+A frase "alteração automática dos status conforme ações no sistema" é o desconforto que denuncia o conceito ausente. Sem nomear a mudança de status, não existe lugar para a restrição morar: ela se dispersa em condicionais espalhadas. O cap. 9 trata restrições explícitas como conceitos de primeira classe, e o padrão *Specification* dá a forma canônica.
 
 **O que a promoção rende:** a invariante "não se executa sem aprovação" passa a ser um objeto interrogável em vez de um `if`, e o conjunto das regras passa a **definir a fronteira do agregado** — o que é consistência imediata fica dentro, o que tolera atraso fica fora.
 
@@ -326,7 +327,7 @@ O código-fonte do projeto é escrito em inglês. Esta seção fixa a tradução
 |---|---|---|
 | Ordem de Serviço | `ServiceOrder` | |
 | Status | `ServiceOrderStatus` | enum |
-| Mudança de Status | `StatusChange` | substantivo ainda não validado com o domínio |
+| Mudança de Status | `StatusChange` | preferido a "transição", ausente do enunciado e da fala da oficina |
 | Histórico de Status | `StatusHistory` | |
 | Diagnóstico | `Diagnosis` | |
 | Orçamento | `Estimate` | termo padrão em oficina anglófona; `Quote` é alternativa |
@@ -414,11 +415,31 @@ Vocabulário técnico e jurídico, não linguagem de domínio. Fica em subseçã
 
 `RemoveVehicle` nomeia a intenção, não a técnica: o veículo sai do cadastro ativo. A anonimização é **como** essa saída é executada preservando o histórico exigido por obrigação legal e por garantia (Art. 16 I) — logo é termo transversal, e não evento de domínio. Ninguém na oficina aciona uma função chamada "anonimizar".
 
+### Termos que não estão no enunciado original do trabalho
+
+Termos que o código usa e que não aparecem no enunciado nem nos verbetes deste documento. Surgiram durante a implementação, ainda não foram validados com a oficina e ficam registrados aqui para cumprir a nota de fidelidade do início desta seção: nenhuma tradução existe no código sem constar neste documento. O enunciado original não está no repositório, então a verificação usou as citações dos campos *Fonte* e o resumo em `requisitos-v2.md`. Quando o resumo traz um termo próximo, a nota indica.
+
+| Português | Inglês | Onde aparece | Nota |
+|---|---|---|---|
+| Problema relatado | `reportedIssue` | `ServiceOrder` | o que o cliente relata na abertura da OS. Não confundir com `Diagnóstico`, que é a constatação do mecânico |
+| Abertura da OS | `open`, `OpenServiceOrder` | `ServiceOrder` | o enunciado fala em "Criação da Ordem de Serviço"; o código usa "abrir", como os exemplos da §4 |
+| Fila operacional | `OperationalQueue`, `ListOperationalServiceOrders` | `ServiceOrder` | OS em andamento, ordenadas por status (`IN_PROGRESS`, `AWAITING_APPROVAL`, `UNDER_DIAGNOSIS`, `RECEIVED`) e, dentro de cada um, da mais antiga para a mais nova. Responde à dor "erros na priorização" (§7) |
+| Situação do orçamento | `EstimateStatus` | `Estimate` | `PENDING` (aguardando resposta do cliente), `APPROVED` ou `REJECTED`. Não confundir com o `Status` da OS |
+| Momento da resposta | `respondedAt` | `Estimate` | instante da aprovação ou da reprovação |
+| Chave de idempotência | `idempotencyKey` | `Approval`, `Rejection` | termo técnico: impede que a mesma resposta do cliente seja registrada duas vezes |
+| Nome fantasia | `tradeName` | `Customer` | só para pessoa jurídica (CNPJ) |
+| Tipo de material | `MaterialType` (`PART`, `SUPPLY`) | `InventoryItem` | resposta provisória à Q4: peça e insumo tratados como um único conceito com atributo de tipo |
+| Saldo em estoque | `stockOnHand` | `InventoryItem` | quantidade fisicamente na oficina, incluindo a reservada. O disponível é o saldo menos o reservado (`stockAvailable`, `stockReserved`) |
+| Reposição | `replenish`, `ReplenishInventoryStock` | `InventoryItem` | entrada de peças ou insumos no estoque |
+| Liberação de reserva | `releaseReservation`, `ReleaseInventoryReservation` | `InventoryItem` | desfaz uma reserva sem baixa. O resumo em `requisitos-v2.md` fala em "cancelamento automático de reservas" |
+| Movimentação | `movement` | `InventoryAuditEntry` | reserva, liberação e baixa, sempre vinculadas a uma OS; a reposição é registrada à parte |
+| Desativação | `deactivate`, `DeactivateCustomer`, `DeactivateLaborOperation` | `Customer`, `LaborOperation` | o registro sai de uso, mas permanece. `Veículo` e `Item de Estoque` usam `remove` para a mesma intenção (ver `RemoveVehicle`): são dois verbos para o mesmo ato, a unificar |
+
 ---
 
 ## §10 Índice alfabético
 
-Aprovação §4 · Baixa §5 · Cliente §5 · Diagnóstico §4 · Estoque §5 · Histórico de Status §4 · Identificação §5 · Insumo §5 · Item de Estoque §5 · Item Lançado §4 · Ordem de Serviço §4 · Orçamento §4 · Orçamento Complementar §4 · Peça §5 · Placa §5 · Reparo Adicional §4 · Reprovação §4 · Regra de Transição §4 · Serviço §5 · Serviço Lançado §4 · Status §4 · Transição §4 · Veículo §5
+Aprovação §4 · Baixa §5 · Cliente §5 · Diagnóstico §4 · Estoque §5 · Histórico de Status §4 · Identificação §5 · Insumo §5 · Item de Estoque §5 · Item Lançado §4 · Mudança de Status §4 · Ordem de Serviço §4 · Orçamento §4 · Orçamento Complementar §4 · Peça §5 · Placa §5 · Regra de Mudança de Status §4 · Reparo Adicional §4 · Reprovação §4 · Serviço §5 · Serviço Lançado §4 · Status §4 · Veículo §5
 
 ---
 

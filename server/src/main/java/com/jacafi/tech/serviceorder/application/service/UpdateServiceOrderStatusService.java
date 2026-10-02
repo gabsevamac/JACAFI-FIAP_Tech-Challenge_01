@@ -40,7 +40,7 @@ public class UpdateServiceOrderStatusService {
         ServiceOrder order = orders.findById(serviceOrderId).orElseThrow(ServiceOrderNotFoundException::new);
         String actor = access.currentActor();
         ServiceOrderStatus previousStatus = order.status();
-        applyTransition(order, status, actor);
+        applyStatusChange(order, status, actor);
         orders.save(order);
         notifications.notifyStatusChanged(order.id(), order.customerId(), status);
         auditTrail.record(new AuditEvent(
@@ -54,7 +54,7 @@ public class UpdateServiceOrderStatusService {
         return order;
     }
 
-    private void applyTransition(ServiceOrder order, ServiceOrderStatus status, String actor) {
+    private void applyStatusChange(ServiceOrder order, ServiceOrderStatus status, String actor) {
         switch (status) {
             case UNDER_DIAGNOSIS -> order.startDiagnosis(actor, clock);
             case COMPLETED -> order.complete(actor, clock);
