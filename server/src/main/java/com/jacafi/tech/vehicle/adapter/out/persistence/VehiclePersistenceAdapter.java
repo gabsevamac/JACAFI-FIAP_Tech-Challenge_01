@@ -10,13 +10,13 @@ import org.springframework.stereotype.Component;
 import com.jacafi.tech.shared.adapter.out.persistence.SpringDataPaging;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
 import com.jacafi.tech.vehicle.domain.exception.VehicleUpdateConflictException;
 
 @Component
-public class VehiclePersistenceAdapter implements VehicleRepositoryPort {
+public class VehiclePersistenceAdapter implements VehicleRepository {
 
     private final VehicleJpaRepository repository;
 

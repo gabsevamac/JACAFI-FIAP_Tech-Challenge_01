@@ -34,7 +34,7 @@ flowchart TD
 ```
 
 O cliente é um usuário autenticado do sistema: consulta o status da própria OS e registra a
-aprovação ou recusa do orçamento pela API. A notificação de mudança de status sai por e-mail
+aprovação ou reprovação do orçamento pela API. A notificação de mudança de status sai por e-mail
 através do Resend e é opcional — fica desabilitada quando não há credenciais configuradas.
 
 A autenticação não é responsabilidade do sistema. O Keycloak emite os tokens, e a aplicação
@@ -108,25 +108,25 @@ flowchart TD
             osCtrl["ServiceOrder Controller<br/>[Controller]<br/>Endpoints de Ordem de Serviço"]:::controller
             clienteCtrl["Customer Controller<br/>[Controller]<br/>Cadastro, perfil e vínculo<br/>de identidade"]:::controller
             veiculoCtrl["Vehicle Controller<br/>[Controller]"]:::controller
-            catalogoCtrl["ServiceCatalog Controller<br/>[Controller]"]:::controller
+            catalogoCtrl["LaborOperation Controller<br/>[Controller]"]:::controller
             estoqueCtrl["Inventory Controller<br/>[Controller]"]:::controller
         end
 
         subgraph Aplicacao["Application — Casos de Uso"]
             policies["Access Policies<br/>[Componente: uma por fatia]<br/>Consultada por todos os casos de uso<br/>da fatia: exige o papel e, para o<br/>cliente, a posse do dado"]:::service
             osSvc["ServiceOrder Services<br/>[Componente]<br/>Abertura, status e fila operacional"]:::service
-            orcamentoSvc["DecideEstimateService<br/>[Componente]<br/>Aprovação ou recusa idempotente"]:::service
+            orcamentoSvc["ApproveEstimateService /<br/>RejectEstimateService<br/>[Componente]<br/>Aprovação ou reprovação idempotente"]:::service
             clienteSvc["Customer Services<br/>[Componente]<br/>Inclui o vínculo identidade–cliente"]:::service
             veiculoSvc["Vehicle Services<br/>[Componente]"]:::service
-            catalogoSvc["ServiceCatalog Services<br/>[Componente]"]:::service
+            catalogoSvc["LaborOperation Services<br/>[Componente]"]:::service
             estoqueSvc["Inventory Services<br/>[Componente]<br/>Reposição, reserva e baixa"]:::service
         end
 
         subgraph Dominio["Domain — Regras de Negócio"]
-            osAgg["ServiceOrder + Estimate<br/>[Agregado]<br/>Transições de status"]:::domain
+            osAgg["ServiceOrder + Estimate<br/>[Agregado]<br/>Mudanças de status"]:::domain
             clienteEnt["Customer + TaxId<br/>[Entidade + VO]<br/>Validação de CPF/CNPJ"]:::domain
             veiculoEnt["Vehicle + LicensePlate<br/>[Entidade + VO]<br/>Validação de placa"]:::domain
-            catalogoEnt["ServiceCatalogItem<br/>[Entidade]"]:::domain
+            catalogoEnt["LaborOperation<br/>[Entidade]"]:::domain
             pecaEnt["InventoryItem + Stock<br/>[Entidade + VO]<br/>Quantidade nunca negativa"]:::domain
         end
 

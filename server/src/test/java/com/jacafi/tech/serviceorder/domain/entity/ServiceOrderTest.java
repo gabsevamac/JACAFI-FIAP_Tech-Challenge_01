@@ -23,7 +23,7 @@ class ServiceOrderTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 "Engine noise",
-                List.of(ServiceLineItem.of(
+                List.of(LaborLineItem.of(
                         UUID.randomUUID(), UUID.randomUUID(), "Oil change", new BigDecimal("89.90"), 1)),
                 List.of(MaterialLineItem.of(
                         UUID.randomUUID(), UUID.randomUUID(), "Engine oil", new BigDecimal("39.90"), 2)),
@@ -31,15 +31,15 @@ class ServiceOrderTest {
                 CLOCK);
 
         assertThat(order.status()).isEqualTo(ServiceOrderStatus.RECEIVED);
-        assertThat(order.serviceLines()).hasSize(1);
+        assertThat(order.laborLines()).hasSize(1);
         assertThat(order.materialLines()).hasSize(1);
     }
 
     @Test
     void calculatesAnEstimateFromFrozenServiceAndMaterialLines() {
         ServiceOrder order = diagnosedOrder();
-        order.addServiceLine(
-                ServiceLineItem.of(UUID.randomUUID(), UUID.randomUUID(), "Oil change", new BigDecimal("89.90"), 1));
+        order.addLaborLine(
+                LaborLineItem.of(UUID.randomUUID(), UUID.randomUUID(), "Oil change", new BigDecimal("89.90"), 1));
         order.addMaterialLine(
                 MaterialLineItem.of(UUID.randomUUID(), UUID.randomUUID(), "Engine oil", new BigDecimal("20.00"), 3));
 
@@ -48,7 +48,7 @@ class ServiceOrderTest {
         assertThat(estimate.totalAmount()).isEqualByComparingTo("149.90");
         assertThat(order.status()).isEqualTo(ServiceOrderStatus.AWAITING_APPROVAL);
         assertThat(order.statusHistory())
-                .extracting(StatusHistory::status)
+                .extracting(StatusChange::status)
                 .containsExactly(
                         ServiceOrderStatus.RECEIVED,
                         ServiceOrderStatus.UNDER_DIAGNOSIS,
@@ -56,7 +56,7 @@ class ServiceOrderTest {
     }
 
     @Test
-    void rejectsStatusTransitionsThatBypassTheApprovalGate() {
+    void rejectsStatusChangesThatBypassTheApprovalGate() {
         ServiceOrder order = ServiceOrder.open(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Engine noise", ACTOR, CLOCK);
 
@@ -65,38 +65,38 @@ class ServiceOrderTest {
     }
 
     @Test
-    void repeatsTheSameEstimateDecisionButRejectsAConflictingReplay() {
+    void repeatsTheSameApprovalButRefusesItsKeyForARejection() {
         ServiceOrder order = diagnosedOrder();
-        order.addServiceLine(
-                ServiceLineItem.of(UUID.randomUUID(), UUID.randomUUID(), "Oil change", new BigDecimal("89.90"), 1));
+        order.addLaborLine(
+                LaborLineItem.of(UUID.randomUUID(), UUID.randomUUID(), "Oil change", new BigDecimal("89.90"), 1));
         Estimate pending = order.generateEstimate(ACTOR, CLOCK);
-        String key = "external-decision-1";
+        String key = "external-approval-1";
 
-        Estimate approved = order.decideEstimate(pending.id(), EstimateDecision.APPROVE, key, ACTOR, CLOCK);
+        Estimate approved = order.approveEstimate(pending.id(), key, ACTOR, CLOCK);
 
-        assertThat(order.decideEstimate(pending.id(), EstimateDecision.APPROVE, key, ACTOR, CLOCK))
-                .isSameAs(approved);
+        assertThat(order.approveEstimate(pending.id(), key, ACTOR, CLOCK)).isSameAs(approved);
         assertThat(order.status()).isEqualTo(ServiceOrderStatus.IN_PROGRESS);
-        assertThatThrownBy(() -> order.decideEstimate(pending.id(), EstimateDecision.REJECT, key, ACTOR, CLOCK))
+        assertThat(order.approvals()).hasSize(1);
+        assertThatThrownBy(() -> order.rejectEstimate(pending.id(), key, ACTOR, CLOCK))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
-    void rejectionReturnsToDiagnosisAndAllowsASupplementaryEstimate() {
+    void rejectionReturnsToDiagnosisAndAllowsANewEstimate() {
         ServiceOrder order = diagnosedOrder();
-        order.addServiceLine(
-                ServiceLineItem.of(UUID.randomUUID(), UUID.randomUUID(), "Oil change", new BigDecimal("89.90"), 1));
+        order.addLaborLine(
+                LaborLineItem.of(UUID.randomUUID(), UUID.randomUUID(), "Oil change", new BigDecimal("89.90"), 1));
         Estimate rejected = order.generateEstimate(ACTOR, CLOCK);
 
-        order.decideEstimate(rejected.id(), EstimateDecision.REJECT, "external-decision-2", ACTOR, CLOCK);
+        order.rejectEstimate(rejected.id(), "external-rejection-1", ACTOR, CLOCK);
         order.addMaterialLine(
                 MaterialLineItem.of(UUID.randomUUID(), UUID.randomUUID(), "Engine oil", new BigDecimal("20.00"), 1));
-        Estimate supplementary = order.generateEstimate(ACTOR, CLOCK);
+        Estimate next = order.generateEstimate(ACTOR, CLOCK);
 
         assertThat(rejected.status()).isEqualTo(EstimateStatus.REJECTED);
         assertThat(order.status()).isEqualTo(ServiceOrderStatus.AWAITING_APPROVAL);
-        assertThat(supplementary.id()).isNotEqualTo(rejected.id());
-        assertThat(supplementary.totalAmount()).isEqualByComparingTo("109.90");
+        assertThat(next.id()).isNotEqualTo(rejected.id());
+        assertThat(next.totalAmount()).isEqualByComparingTo("109.90");
     }
 
     private static ServiceOrder diagnosedOrder() {

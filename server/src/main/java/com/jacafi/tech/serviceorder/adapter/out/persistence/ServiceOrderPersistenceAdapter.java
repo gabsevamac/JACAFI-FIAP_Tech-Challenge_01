@@ -11,34 +11,37 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepository;
 import com.jacafi.tech.serviceorder.domain.entity.Estimate;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
 
 @Component
-public class ServiceOrderPersistenceAdapter implements ServiceOrderRepositoryPort {
+public class ServiceOrderPersistenceAdapter implements ServiceOrderRepository {
     private final ServiceOrderJpaRepository orders;
-    private final ServiceOrderServiceLineJpaRepository serviceLines;
+    private final ServiceOrderLaborLineJpaRepository laborLines;
     private final ServiceOrderMaterialLineJpaRepository materialLines;
     private final ServiceOrderEstimateJpaRepository estimates;
-    private final ServiceOrderStatusHistoryJpaRepository statusHistory;
-    private final ServiceOrderEstimateDecisionJpaRepository decisions;
+    private final ServiceOrderStatusChangeJpaRepository statusHistory;
+    private final ServiceOrderEstimateApprovalJpaRepository approvals;
+    private final ServiceOrderEstimateRejectionJpaRepository rejections;
 
     public ServiceOrderPersistenceAdapter(
             ServiceOrderJpaRepository orders,
-            ServiceOrderServiceLineJpaRepository serviceLines,
+            ServiceOrderLaborLineJpaRepository laborLines,
             ServiceOrderMaterialLineJpaRepository materialLines,
             ServiceOrderEstimateJpaRepository estimates,
-            ServiceOrderStatusHistoryJpaRepository statusHistory,
-            ServiceOrderEstimateDecisionJpaRepository decisions) {
+            ServiceOrderStatusChangeJpaRepository statusHistory,
+            ServiceOrderEstimateApprovalJpaRepository approvals,
+            ServiceOrderEstimateRejectionJpaRepository rejections) {
         this.orders = orders;
-        this.serviceLines = serviceLines;
+        this.laborLines = laborLines;
         this.materialLines = materialLines;
         this.estimates = estimates;
         this.statusHistory = statusHistory;
-        this.decisions = decisions;
+        this.approvals = approvals;
+        this.rejections = rejections;
     }
 
     @Override
@@ -47,11 +50,12 @@ public class ServiceOrderPersistenceAdapter implements ServiceOrderRepositoryPor
                 .map(stored -> update(stored, order))
                 .orElseGet(() -> ServiceOrderPersistenceMapper.toJpa(order));
         ServiceOrderJpaEntity saved = orders.saveAndFlush(entity);
-        synchronizeServiceLines(order);
+        synchronizeLaborLines(order);
         synchronizeMaterialLines(order);
         synchronizeEstimates(order);
         synchronizeStatusHistory(order);
-        synchronizeDecisions(order);
+        synchronizeApprovals(order);
+        synchronizeRejections(order);
         return toDomain(saved);
     }
 
@@ -78,16 +82,16 @@ public class ServiceOrderPersistenceAdapter implements ServiceOrderRepositoryPor
         return stored;
     }
 
-    private void synchronizeServiceLines(ServiceOrder order) {
-        Map<UUID, ServiceOrderServiceLineJpaEntity> stored = indexed(
-                serviceLines.findByServiceOrderIdAndDeletedAtIsNull(order.id()), ServiceOrderServiceLineJpaEntity::id);
-        List<ServiceOrderServiceLineJpaEntity> created = order.serviceLines().stream()
+    private void synchronizeLaborLines(ServiceOrder order) {
+        Map<UUID, ServiceOrderLaborLineJpaEntity> stored = indexed(
+                laborLines.findByServiceOrderIdAndDeletedAtIsNull(order.id()), ServiceOrderLaborLineJpaEntity::id);
+        List<ServiceOrderLaborLineJpaEntity> created = order.laborLines().stream()
                 .filter(line -> !stored.containsKey(line.id()))
                 .map(line -> ServiceOrderPersistenceMapper.toJpa(order, line))
                 .toList();
-        requireAppendOnly(stored.size(), order.serviceLines().size());
-        serviceLines.saveAll(created);
-        serviceLines.flush();
+        requireAppendOnly(stored.size(), order.laborLines().size());
+        laborLines.saveAll(created);
+        laborLines.flush();
     }
 
     private void synchronizeMaterialLines(ServiceOrder order) {
@@ -122,7 +126,7 @@ public class ServiceOrderPersistenceAdapter implements ServiceOrderRepositoryPor
     }
 
     private void synchronizeStatusHistory(ServiceOrder order) {
-        List<ServiceOrderStatusHistoryJpaEntity> stored = statusHistory.findByServiceOrderIdOrderById(order.id());
+        List<ServiceOrderStatusChangeJpaEntity> stored = statusHistory.findByServiceOrderIdOrderById(order.id());
         requireAppendOnly(stored.size(), order.statusHistory().size());
         statusHistory.saveAll(order
                 .statusHistory()
@@ -133,26 +137,35 @@ public class ServiceOrderPersistenceAdapter implements ServiceOrderRepositoryPor
         statusHistory.flush();
     }
 
-    private void synchronizeDecisions(ServiceOrder order) {
-        List<ServiceOrderEstimateDecisionJpaEntity> stored = decisions.findByServiceOrderIdOrderById(order.id());
-        requireAppendOnly(stored.size(), order.recordedDecisions().size());
-        decisions.saveAll(order
-                .recordedDecisions()
-                .subList(stored.size(), order.recordedDecisions().size())
-                .stream()
-                .map(decision -> ServiceOrderPersistenceMapper.toJpa(order, decision))
-                .toList());
-        decisions.flush();
+    private void synchronizeApprovals(ServiceOrder order) {
+        List<ServiceOrderEstimateApprovalJpaEntity> stored = approvals.findByServiceOrderIdOrderById(order.id());
+        requireAppendOnly(stored.size(), order.approvals().size());
+        approvals.saveAll(
+                order.approvals().subList(stored.size(), order.approvals().size()).stream()
+                        .map(approval -> ServiceOrderPersistenceMapper.toJpa(order, approval))
+                        .toList());
+        approvals.flush();
+    }
+
+    private void synchronizeRejections(ServiceOrder order) {
+        List<ServiceOrderEstimateRejectionJpaEntity> stored = rejections.findByServiceOrderIdOrderById(order.id());
+        requireAppendOnly(stored.size(), order.rejections().size());
+        rejections.saveAll(
+                order.rejections().subList(stored.size(), order.rejections().size()).stream()
+                        .map(rejection -> ServiceOrderPersistenceMapper.toJpa(order, rejection))
+                        .toList());
+        rejections.flush();
     }
 
     private ServiceOrder toDomain(ServiceOrderJpaEntity order) {
         return ServiceOrderPersistenceMapper.toDomain(
                 order,
-                serviceLines.findByServiceOrderIdAndDeletedAtIsNull(order.id()),
+                laborLines.findByServiceOrderIdAndDeletedAtIsNull(order.id()),
                 materialLines.findByServiceOrderIdAndDeletedAtIsNull(order.id()),
                 estimates.findByServiceOrderIdAndDeletedAtIsNull(order.id()),
                 statusHistory.findByServiceOrderIdOrderById(order.id()),
-                decisions.findByServiceOrderIdOrderById(order.id()));
+                approvals.findByServiceOrderIdOrderById(order.id()),
+                rejections.findByServiceOrderIdOrderById(order.id()));
     }
 
     private static <T> Map<UUID, T> indexed(List<T> values, java.util.function.Function<T, UUID> id) {

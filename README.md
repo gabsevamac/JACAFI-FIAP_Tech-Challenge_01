@@ -15,7 +15,7 @@ com.jacafi.tech/<slice>/
 └── config/       # composição da fatia quando necessária
 ```
 
-Fatias atuais: `customer`, `vehicle`, `inventory`, `servicecatalog` e `serviceorder`. Itens compartilhados são limitados a preocupações transversais, como segurança, auditoria, erros, paginação e tempo. A autenticação não é uma fatia: fica no Keycloak, e a aplicação apenas valida o token (ver [ADR-005](docs/adr/ADR-005-keycloak-identity-provider.md)).
+Fatias atuais: `customer`, `vehicle`, `inventory`, `laboroperation` e `serviceorder`. Itens compartilhados são limitados a preocupações transversais, como segurança, auditoria, erros, paginação e tempo. A autenticação não é uma fatia: fica no Keycloak, e a aplicação apenas valida o token (ver [ADR-005](docs/adr/ADR-005-keycloak-identity-provider.md)).
 
 As decisões arquiteturais estão em [docs/adr](docs/adr), os termos do domínio em [docs/linguagem-ubiqua.md](docs/linguagem-ubiqua.md), os fluxos em [docs/event-storming.md](docs/event-storming.md) e as visões de arquitetura em [docs/c4-model.md](docs/c4-model.md).
 
@@ -106,17 +106,17 @@ Use `docker compose down --volumes` apenas quando for necessário recriar o banc
 |---|---|
 | Clientes | CRUD em `/api/v1/customers`, busca por documento, vínculo de identidade em `/{id}/identity` e perfil em `/me` |
 | Veículos | CRUD em `/api/v1/vehicles`, busca por placa e veículos do cliente em `/me` |
-| Catálogo | CRUD em `/api/v1/service-catalog-items` |
+| Catálogo de serviços | CRUD em `/api/v1/labor-operations` |
 | Estoque | CRUD e reposição, reserva e baixa em `/api/v1/inventory/items` |
-| Ordens de serviço | abertura, consulta de status, decisão de orçamento, atualização de status e fila em `/api/v1/service-orders` |
+| Ordens de serviço | abertura, consulta de status, aprovação e reprovação de orçamento, atualização de status e fila em `/api/v1/service-orders` |
 
 Toda operação exige JWT. As permissões são definidas por duas roles: `EMPLOYEE` alcança todos os recursos da oficina; `CUSTOMER` só alcança os próprios dados, veículos e ordens de serviço, sempre pelos recursos `/me` e pela consulta da própria OS.
 
 ## Ordem de serviço
 
-Uma abertura recebe cliente, veículo, serviços e itens de estoque e retorna a identificação da OS. A estimativa é calculada com o preço capturado no momento da abertura. A aprovação ou recusa é idempotente e protege a transição para execução.
+Uma abertura recebe cliente, veículo, serviços e itens de estoque e retorna a identificação da OS. O orçamento é calculado com o preço capturado no momento da abertura. A aprovação (`POST .../estimates/{estimateId}/approval`) e a reprovação (`POST .../estimates/{estimateId}/rejection`) são idempotentes e protegem a mudança de status para execução.
 
-Estados: `RECEIVED`, `UNDER_DIAGNOSIS`, `AWAITING_APPROVAL`, `IN_PROGRESS`, `COMPLETED` e `DELIVERED`. A fila operacional prioriza `IN_PROGRESS`, `AWAITING_APPROVAL`, `UNDER_DIAGNOSIS` e `RECEIVED`, da mais antiga para a mais nova, excluindo OS concluídas e entregues.
+Estados: `RECEIVED`, `UNDER_DIAGNOSIS`, `AWAITING_APPROVAL`, `IN_PROGRESS`, `COMPLETED`, `DELIVERED` e `REJECTED`. `REJECTED` já existe no modelo e no banco, mas nenhuma transição leva a ele enquanto a questão Q1 da [linguagem ubíqua](docs/linguagem-ubiqua.md) estiver em aberto: a reprovação devolve a OS para `UNDER_DIAGNOSIS`. A fila operacional prioriza `IN_PROGRESS`, `AWAITING_APPROVAL`, `UNDER_DIAGNOSIS` e `RECEIVED`, da mais antiga para a mais nova, excluindo OS concluídas e entregues.
 
 ## Persistência e qualidade
 

@@ -43,31 +43,31 @@ class MaskerTest {
 
     @Nested
     @DisplayName("a taxpayer registration")
-    class Documents {
+    class TaxIds {
 
         @Test
         @DisplayName("keeps the three trailing digits of a CPF")
         void masksACpf() {
-            assertThat(Masker.document("52998224725")).isEqualTo("********725");
+            assertThat(Masker.taxId("52998224725")).isEqualTo("********725");
         }
 
         @Test
         @DisplayName("keeps the three trailing characters of a CNPJ")
         void masksACnpj() {
-            assertThat(Masker.document("11222333000181")).isEqualTo("***********181");
+            assertThat(Masker.taxId("11222333000181")).isEqualTo("***********181");
         }
 
         @Test
         @DisplayName("hides the leading digits, which correlate with the issuing region")
         void hidesTheRegionalPrefix() {
-            assertThat(Masker.document("52998224725")).doesNotContain("529");
+            assertThat(Masker.taxId("52998224725")).doesNotContain("529");
         }
 
         @Test
         @DisplayName("keeps the length, which is what already distinguishes a CPF from a CNPJ")
         void preservesLength() {
-            assertThat(Masker.document("52998224725")).hasSize(11);
-            assertThat(Masker.document("11222333000181")).hasSize(14);
+            assertThat(Masker.taxId("52998224725")).hasSize(11);
+            assertThat(Masker.taxId("11222333000181")).hasSize(14);
         }
     }
 
@@ -90,7 +90,7 @@ class MaskerTest {
 
         @ParameterizedTest
         @DisplayName("masks entirely what is not a usable address")
-        @ValueSource(strings = {"nao-e-um-email", "@example.com", "mariana@"})
+        @ValueSource(strings = {"not-an-email", "@example.com", "mariana@"})
         void masksMalformedInputEntirely(String value) {
             assertThat(Masker.email(value)).isEqualTo("***");
         }
@@ -105,7 +105,7 @@ class MaskerTest {
         @NullAndEmptySource
         void survivesNullAndEmpty(String value) {
             assertThat(Masker.licensePlate(value)).isEqualTo("***");
-            assertThat(Masker.document(value)).isEqualTo("***");
+            assertThat(Masker.taxId(value)).isEqualTo("***");
             assertThat(Masker.email(value)).isEqualTo("***");
         }
 
@@ -114,7 +114,7 @@ class MaskerTest {
         @ValueSource(strings = {"A", "AB", "ABC", "ABCD", "ABCDE", " "})
         void masksShortValuesEntirely(String value) {
             assertThat(Masker.licensePlate(value)).isEqualTo("***");
-            assertThat(Masker.document(value)).isEqualTo("***");
+            assertThat(Masker.taxId(value)).isEqualTo("***");
         }
 
         @Test

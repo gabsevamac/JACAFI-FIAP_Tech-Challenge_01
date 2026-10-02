@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.jacafi.tech.customer.application.port.CustomerRepositoryPort;
+import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.customer.domain.entity.TaxId;
 import com.jacafi.tech.customer.domain.exception.CustomerAlreadyExistsException;
@@ -36,7 +36,7 @@ class CustomerServicesTest {
     private static final UUID CUSTOMER_ID = UUID.fromString("20000000-0000-0000-0000-000000000001");
 
     @Mock
-    private CustomerRepositoryPort customers;
+    private CustomerRepository customers;
 
     @Mock
     private CurrentAuthenticatedUserPort currentUser;

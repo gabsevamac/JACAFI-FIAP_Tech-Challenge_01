@@ -1,17 +1,19 @@
 package com.jacafi.tech.serviceorder.adapter.in.web.controller;
 
+import java.net.URI;
+import java.util.UUID;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import com.jacafi.tech.serviceorder.adapter.in.web.api.ServiceOrderApi;
 import com.jacafi.tech.serviceorder.adapter.in.web.dto.*;
 import com.jacafi.tech.serviceorder.application.service.*;
 import com.jacafi.tech.shared.adapter.in.web.PageParameters;
 import com.jacafi.tech.shared.adapter.in.web.SortableFields;
 import com.jacafi.tech.shared.application.PageResult;
-import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.net.URI;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/service-orders")
@@ -20,19 +22,22 @@ public class ServiceOrderController implements ServiceOrderApi {
 
     private final OpenServiceOrderService open;
     private final FindServiceOrderStatusService findStatus;
-    private final DecideEstimateService decideEstimate;
+    private final ApproveEstimateService approveEstimate;
+    private final RejectEstimateService rejectEstimate;
     private final ListOperationalServiceOrdersService listOperational;
     private final UpdateServiceOrderStatusService updateStatus;
 
     public ServiceOrderController(
             OpenServiceOrderService open,
             FindServiceOrderStatusService findStatus,
-            DecideEstimateService decideEstimate,
+            ApproveEstimateService approveEstimate,
+            RejectEstimateService rejectEstimate,
             ListOperationalServiceOrdersService listOperational,
             UpdateServiceOrderStatusService updateStatus) {
         this.open = open;
         this.findStatus = findStatus;
-        this.decideEstimate = decideEstimate;
+        this.approveEstimate = approveEstimate;
+        this.rejectEstimate = rejectEstimate;
         this.listOperational = listOperational;
         this.updateStatus = updateStatus;
     }
@@ -42,7 +47,8 @@ public class ServiceOrderController implements ServiceOrderApi {
     public ResponseEntity<ServiceOrderOpenedResponse> open(@Valid @RequestBody OpenServiceOrderRequest request) {
         var order = open.open(request.toCommand());
         return ResponseEntity.created(URI.create("/api/v1/service-orders/" + order.id()))
-                .body(new ServiceOrderOpenedResponse(order.id(), order.estimates().getFirst().id()));
+                .body(new ServiceOrderOpenedResponse(
+                        order.id(), order.estimates().getFirst().id()));
     }
 
     @Override
@@ -52,13 +58,21 @@ public class ServiceOrderController implements ServiceOrderApi {
     }
 
     @Override
-    @PostMapping("/{serviceOrderId}/estimates/{estimateId}/decision")
-    public EstimateResponse decide(
+    @PostMapping("/{serviceOrderId}/estimates/{estimateId}/approval")
+    public EstimateResponse approveEstimate(
             @PathVariable UUID serviceOrderId,
             @PathVariable UUID estimateId,
-            @Valid @RequestBody EstimateDecisionRequest request) {
-        return EstimateResponse.from(
-                decideEstimate.decide(serviceOrderId, estimateId, request.decision(), request.idempotencyKey()));
+            @Valid @RequestBody ApproveEstimateRequest request) {
+        return EstimateResponse.from(approveEstimate.approve(serviceOrderId, estimateId, request.idempotencyKey()));
+    }
+
+    @Override
+    @PostMapping("/{serviceOrderId}/estimates/{estimateId}/rejection")
+    public EstimateResponse rejectEstimate(
+            @PathVariable UUID serviceOrderId,
+            @PathVariable UUID estimateId,
+            @Valid @RequestBody RejectEstimateRequest request) {
+        return EstimateResponse.from(rejectEstimate.reject(serviceOrderId, estimateId, request.idempotencyKey()));
     }
 
     @Override

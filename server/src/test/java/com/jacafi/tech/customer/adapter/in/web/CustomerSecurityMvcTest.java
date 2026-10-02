@@ -24,8 +24,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.jacafi.tech.config.SecurityConfig;
 import com.jacafi.tech.customer.adapter.in.web.controller.CustomerController;
-import com.jacafi.tech.customer.application.port.CustomerIdentityRepositoryPort;
-import com.jacafi.tech.customer.application.port.CustomerRepositoryPort;
+import com.jacafi.tech.customer.application.port.CustomerIdentityRepository;
+import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.config.CustomerConfiguration;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.customer.domain.entity.TaxId;
@@ -59,10 +59,10 @@ class CustomerSecurityMvcTest {
     private CustomerIdentityPort customerIdentities;
 
     @MockitoBean
-    private CustomerIdentityRepositoryPort customerIdentityRepository;
+    private CustomerIdentityRepository customerIdentityRepository;
 
     @MockitoBean
-    private CustomerRepositoryPort customers;
+    private CustomerRepository customers;
 
     @BeforeEach
     void setUp() {
@@ -73,7 +73,7 @@ class CustomerSecurityMvcTest {
     void customerCannotReadOrUpdateAnotherCustomerById() throws Exception {
         mvc.perform(get("/api/v1/customers/{id}", CUSTOMER_B_ID).header("Authorization", CUSTOMER_A_BEARER))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         mvc.perform(patch("/api/v1/customers/{id}", CUSTOMER_B_ID)
                         .header("Authorization", CUSTOMER_A_BEARER)
@@ -82,7 +82,7 @@ class CustomerSecurityMvcTest {
                                 {"name":"Customer B","email":"b@example.com","phone":"11999999999"}
                                 """))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         verifyNoInteractions(customers);
     }
@@ -114,7 +114,7 @@ class CustomerSecurityMvcTest {
 
         mvc.perform(get("/api/v1/customers/me").header("Authorization", orphan))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         verifyNoInteractions(customers);
     }

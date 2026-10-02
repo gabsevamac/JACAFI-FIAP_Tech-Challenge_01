@@ -114,7 +114,8 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
         @Test
         @DisplayName("the /error route exposes neither trace nor message")
         void theErrorRouteIsHardened() throws Exception {
-            String body = mockMvc.perform(get("/api/v1/rota-que-nao-existe").header("Authorization", bearer))
+            String body = mockMvc.perform(
+                            get("/api/v1/route-that-does-not-exist").header("Authorization", bearer))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.trace").doesNotExist())
                     .andExpect(jsonPath("$.traceId").exists())
@@ -153,13 +154,13 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
             String body = mockMvc.perform(post("/api/v1/vehicles")
                             .header("Authorization", bearer)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(vehicleBody("NAO-E-PLACA")))
+                            .content(vehicleBody("NOT-A-PLATE")))
                     .andExpect(status().isBadRequest())
                     .andReturn()
                     .getResponse()
                     .getContentAsString();
 
-            assertThat(body).doesNotContain("NAO-E-PLACA");
+            assertThat(body).doesNotContain("NOT-A-PLATE");
         }
     }
 
@@ -170,8 +171,8 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
         @Test
         @DisplayName("a 401 says nothing about whether the user exists")
         void authenticationFailureIsOpaque() throws Exception {
-            String body = mockMvc.perform(get("/api/v1/vehicles/" + UUID.randomUUID())
-                            .header("Authorization", "Bearer nao-e-um-token"))
+            String body = mockMvc.perform(
+                            get("/api/v1/vehicles/" + UUID.randomUUID()).header("Authorization", "Bearer not-a-token"))
                     .andExpect(status().isUnauthorized())
                     .andReturn()
                     .getResponse()
@@ -198,7 +199,7 @@ class ErrorLeakageIT extends AbstractIntegrationTest {
             mockMvc.perform(get("/api/v1/vehicles/" + UUID.randomUUID()))
                     .andExpect(status().isUnauthorized())
                     .andExpect(header().exists(TraceIdFilter.HEADER))
-                    .andExpect(jsonPath("$.code").value("SEG-001"))
+                    .andExpect(jsonPath("$.code").value("SEC-001"))
                     .andExpect(jsonPath("$.traceId").exists());
         }
 

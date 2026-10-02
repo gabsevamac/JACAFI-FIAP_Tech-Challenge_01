@@ -66,8 +66,8 @@ estrutura de pacotes anterior.
 | `vehicle` | 89% |
 | `serviceorder` | 80% |
 | `inventory` | 77% |
-| `servicecatalog` | 71% |
+| `laboroperation` | 71% |
 
 O número global fica abaixo do de cada fatia porque inclui DTOs, adaptadores e controllers, fora
-do escopo do limite. As lacunas de `servicecatalog` e `inventory` são o alvo do próximo
+do escopo do limite. As lacunas de `laboroperation` e `inventory` são o alvo do próximo
 incremento de testes.

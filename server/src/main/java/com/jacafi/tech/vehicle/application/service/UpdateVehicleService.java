@@ -7,19 +7,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
 import com.jacafi.tech.vehicle.domain.exception.VehicleNotFoundException;
 
 public class UpdateVehicleService {
 
-    private final VehicleRepositoryPort vehicles;
+    private final VehicleRepository vehicles;
     private final AuditTrailPort auditTrail;
     private final VehicleAccessPolicy access;
     private final Clock clock;
 
     public UpdateVehicleService(
-            VehicleRepositoryPort vehicles, AuditTrailPort auditTrail, VehicleAccessPolicy access, Clock clock) {
+            VehicleRepository vehicles, AuditTrailPort auditTrail, VehicleAccessPolicy access, Clock clock) {
         this.vehicles = vehicles;
         this.auditTrail = auditTrail;
         this.access = access;

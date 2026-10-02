@@ -5,11 +5,11 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
-import com.jacafi.tech.customer.application.port.CustomerIdentityRepositoryPort;
+import com.jacafi.tech.customer.application.port.CustomerIdentityRepository;
 import com.jacafi.tech.shared.security.CustomerIdentityPort;
 
 @Component
-public class CustomerIdentityPersistenceAdapter implements CustomerIdentityPort, CustomerIdentityRepositoryPort {
+public class CustomerIdentityPersistenceAdapter implements CustomerIdentityPort, CustomerIdentityRepository {
 
     private final CustomerIdentityJpaRepository repository;
 

@@ -32,7 +32,7 @@ import com.jacafi.tech.shared.security.CustomerIdentityPort;
 import com.jacafi.tech.support.TestSecurityConfiguration;
 import com.jacafi.tech.support.TestTokens;
 import com.jacafi.tech.vehicle.adapter.in.web.controller.VehicleController;
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 import com.jacafi.tech.vehicle.config.VehicleConfiguration;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
@@ -62,7 +62,7 @@ class VehicleSecurityMvcTest {
     private CustomerIdentityPort customerIdentities;
 
     @MockitoBean
-    private VehicleRepositoryPort vehicles;
+    private VehicleRepository vehicles;
 
     @MockitoBean
     private AuditTrailPort auditTrail;
@@ -76,7 +76,7 @@ class VehicleSecurityMvcTest {
     void customerCannotReadUpdateOrListAnotherCustomersVehicles() throws Exception {
         mvc.perform(get("/api/v1/vehicles/{id}", VEHICLE_B_ID).header("Authorization", CUSTOMER_A_BEARER))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         mvc.perform(put("/api/v1/vehicles/{id}", VEHICLE_B_ID)
                         .header("Authorization", CUSTOMER_A_BEARER)
@@ -85,13 +85,13 @@ class VehicleSecurityMvcTest {
                                 {"make":"Ford","model":"Ka","modelYear":2020}
                                 """))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         mvc.perform(get("/api/v1/vehicles")
                         .param("customerId", CUSTOMER_B_ID.toString())
                         .header("Authorization", CUSTOMER_A_BEARER))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("SEG-002"));
+                .andExpect(jsonPath("$.code").value("SEC-002"));
 
         verifyNoInteractions(vehicles);
     }

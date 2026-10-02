@@ -14,15 +14,15 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
+import com.jacafi.tech.inventory.application.port.InventoryItemRepository;
 import com.jacafi.tech.inventory.application.service.InventoryAccessPolicy;
 import com.jacafi.tech.inventory.application.service.ReserveInventoryStockService;
 import com.jacafi.tech.inventory.domain.entity.InventoryItem;
 import com.jacafi.tech.inventory.domain.entity.MaterialType;
 import com.jacafi.tech.inventory.domain.entity.Stock;
-import com.jacafi.tech.servicecatalog.application.port.ServiceCatalogRepositoryPort;
-import com.jacafi.tech.servicecatalog.domain.entity.ServiceCatalogItem;
-import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.laboroperation.application.port.LaborOperationRepository;
+import com.jacafi.tech.laboroperation.domain.entity.LaborOperation;
+import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepository;
 import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
@@ -33,7 +33,7 @@ import com.jacafi.tech.shared.application.PageResult;
 import com.jacafi.tech.shared.security.AuthenticatedUser;
 import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.shared.security.Role;
-import com.jacafi.tech.vehicle.application.port.VehicleRepositoryPort;
+import com.jacafi.tech.vehicle.application.port.VehicleRepository;
 import com.jacafi.tech.vehicle.domain.entity.LicensePlate;
 import com.jacafi.tech.vehicle.domain.entity.Vehicle;
 
@@ -45,8 +45,8 @@ class OpenServiceOrderServiceTest {
         UUID customerId = UUID.randomUUID();
         Vehicle vehicle =
                 Vehicle.register(UUID.randomUUID(), new LicensePlate("ABC1D23"), "Ford", "Ka", 2025, customerId, CLOCK);
-        ServiceCatalogItem service =
-                ServiceCatalogItem.register(UUID.randomUUID(), "Oil change", null, new BigDecimal("89.90"), CLOCK);
+        LaborOperation oilChange =
+                LaborOperation.register(UUID.randomUUID(), "Oil change", null, new BigDecimal("89.90"), CLOCK);
         InventoryItem material = InventoryItem.register(
                 UUID.randomUUID(), "Engine oil", MaterialType.SUPPLY, new BigDecimal("39.90"), Stock.of(5), CLOCK);
         Orders orders = new Orders();
@@ -59,7 +59,7 @@ class OpenServiceOrderServiceTest {
         OpenServiceOrderService serviceOrder = new OpenServiceOrderService(
                 orders,
                 new Vehicles(vehicle),
-                new Catalog(service),
+                new LaborOperations(oilChange),
                 inventory,
                 reserve,
                 notifications(),
@@ -71,11 +71,11 @@ class OpenServiceOrderServiceTest {
                 customerId,
                 vehicle.id(),
                 "Engine noise",
-                List.of(new OpenServiceOrderCommand.RequestedService(service.id(), 2)),
+                List.of(new OpenServiceOrderCommand.RequestedLaborOperation(oilChange.id(), 2)),
                 List.of(new OpenServiceOrderCommand.RequestedMaterial(material.id(), 2))));
 
         assertThat(opened.status()).isEqualTo(ServiceOrderStatus.AWAITING_APPROVAL);
-        assertThat(opened.serviceLines())
+        assertThat(opened.laborLines())
                 .singleElement()
                 .extracting(line -> line.quantity())
                 .isEqualTo(2);
@@ -85,7 +85,7 @@ class OpenServiceOrderServiceTest {
         assertThat(trail.events).extracting(AuditEvent::action).contains("OPENED", "RESERVED");
     }
 
-    private static final class Orders implements ServiceOrderRepositoryPort {
+    private static final class Orders implements ServiceOrderRepository {
         private ServiceOrder saved;
 
         @Override
@@ -105,7 +105,7 @@ class OpenServiceOrderServiceTest {
         }
     }
 
-    private record Vehicles(Vehicle vehicle) implements VehicleRepositoryPort {
+    private record Vehicles(Vehicle vehicle) implements VehicleRepository {
         @Override
         public Vehicle save(Vehicle ignored, String actor) {
             throw new UnsupportedOperationException();
@@ -132,19 +132,19 @@ class OpenServiceOrderServiceTest {
         }
     }
 
-    private record Catalog(ServiceCatalogItem item) implements ServiceCatalogRepositoryPort {
+    private record LaborOperations(LaborOperation operation) implements LaborOperationRepository {
         @Override
-        public ServiceCatalogItem save(ServiceCatalogItem ignored) {
+        public LaborOperation save(LaborOperation ignored) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Optional<ServiceCatalogItem> findActiveById(UUID id) {
-            return item.id().equals(id) ? Optional.of(item) : Optional.empty();
+        public Optional<LaborOperation> findActiveById(UUID id) {
+            return operation.id().equals(id) ? Optional.of(operation) : Optional.empty();
         }
 
         @Override
-        public PageResult<ServiceCatalogItem> findActive(PageQuery query) {
+        public PageResult<LaborOperation> findActive(PageQuery query) {
             throw new UnsupportedOperationException();
         }
 
@@ -159,7 +159,7 @@ class OpenServiceOrderServiceTest {
         }
     }
 
-    private static final class Inventory implements InventoryItemRepositoryPort {
+    private static final class Inventory implements InventoryItemRepository {
         private final InventoryItem item;
 
         private Inventory(InventoryItem item) {

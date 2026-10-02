@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.jacafi.tech.inventory.application.port.InventoryAuditLedgerPort;
-import com.jacafi.tech.inventory.application.port.InventoryItemRepositoryPort;
+import com.jacafi.tech.inventory.application.port.InventoryItemRepository;
 import com.jacafi.tech.inventory.application.port.InventoryQueryPort;
 import com.jacafi.tech.inventory.application.service.FindInventoryItemService;
 import com.jacafi.tech.inventory.application.service.InventoryAccessPolicy;
@@ -30,7 +30,7 @@ public class InventoryConfiguration {
 
     @Bean
     RegisterInventoryItemService registerInventoryItemService(
-            InventoryItemRepositoryPort items,
+            InventoryItemRepository items,
             InventoryAuditLedgerPort ledger,
             AuditTrailPort audit,
             InventoryAccessPolicy access,
@@ -39,7 +39,7 @@ public class InventoryConfiguration {
     }
 
     @Bean
-    FindInventoryItemService findInventoryItemService(InventoryItemRepositoryPort items, InventoryAccessPolicy access) {
+    FindInventoryItemService findInventoryItemService(InventoryItemRepository items, InventoryAccessPolicy access) {
         return new FindInventoryItemService(items, access);
     }
 
@@ -50,7 +50,7 @@ public class InventoryConfiguration {
 
     @Bean
     UpdateInventoryItemService updateInventoryItemService(
-            InventoryItemRepositoryPort items,
+            InventoryItemRepository items,
             InventoryAuditLedgerPort ledger,
             AuditTrailPort audit,
             InventoryAccessPolicy access,
@@ -60,7 +60,7 @@ public class InventoryConfiguration {
 
     @Bean
     RemoveInventoryItemService removeInventoryItemService(
-            InventoryItemRepositoryPort items,
+            InventoryItemRepository items,
             InventoryAuditLedgerPort ledger,
             AuditTrailPort audit,
             InventoryAccessPolicy access,
@@ -70,7 +70,7 @@ public class InventoryConfiguration {
 
     @Bean
     ReplenishInventoryStockService replenishInventoryStockService(
-            InventoryItemRepositoryPort items,
+            InventoryItemRepository items,
             InventoryAuditLedgerPort ledger,
             AuditTrailPort audit,
             InventoryAccessPolicy access,
@@ -80,7 +80,7 @@ public class InventoryConfiguration {
 
     @Bean
     ReserveInventoryStockService reserveInventoryStockService(
-            InventoryItemRepositoryPort items,
+            InventoryItemRepository items,
             InventoryAuditLedgerPort ledger,
             AuditTrailPort audit,
             InventoryAccessPolicy access,
@@ -90,7 +90,7 @@ public class InventoryConfiguration {
 
     @Bean
     ReleaseInventoryReservationService releaseInventoryReservationService(
-            InventoryItemRepositoryPort items,
+            InventoryItemRepository items,
             InventoryAuditLedgerPort ledger,
             AuditTrailPort audit,
             InventoryAccessPolicy access,
@@ -100,7 +100,7 @@ public class InventoryConfiguration {
 
     @Bean
     WithdrawInventoryStockService withdrawInventoryStockService(
-            InventoryItemRepositoryPort items,
+            InventoryItemRepository items,
             InventoryAuditLedgerPort ledger,
             AuditTrailPort audit,
             InventoryAccessPolicy access,

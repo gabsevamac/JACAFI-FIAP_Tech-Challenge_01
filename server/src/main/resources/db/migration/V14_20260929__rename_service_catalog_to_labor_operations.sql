@@ -1,0 +1,24 @@
+ALTER TABLE service_catalog_items RENAME TO labor_operations;
+ALTER TABLE labor_operations RENAME CONSTRAINT service_catalog_items_pkey TO labor_operations_pkey;
+ALTER TABLE labor_operations
+    RENAME CONSTRAINT ck_service_catalog_items_base_price TO ck_labor_operations_base_price;
+ALTER TABLE labor_operations
+    RENAME CONSTRAINT ck_service_catalog_items_deletion_audit TO ck_labor_operations_deletion_audit;
+ALTER INDEX uk_service_catalog_items_active_name RENAME TO uk_labor_operations_active_name;
+
+ALTER TABLE service_order_service_lines RENAME TO service_order_labor_lines;
+ALTER TABLE service_order_labor_lines RENAME COLUMN service_catalog_item_id TO labor_operation_id;
+ALTER TABLE service_order_labor_lines RENAME COLUMN service_name_snapshot TO labor_operation_name_snapshot;
+ALTER TABLE service_order_labor_lines
+    RENAME CONSTRAINT service_order_service_lines_pkey TO service_order_labor_lines_pkey;
+ALTER TABLE service_order_labor_lines
+    RENAME CONSTRAINT fk_service_order_service_lines_order TO fk_service_order_labor_lines_order;
+ALTER TABLE service_order_labor_lines
+    RENAME CONSTRAINT fk_service_order_service_lines_catalog_item TO fk_service_order_labor_lines_labor_operation;
+ALTER TABLE service_order_labor_lines
+    RENAME CONSTRAINT ck_service_order_service_lines_price TO ck_service_order_labor_lines_price;
+ALTER TABLE service_order_labor_lines
+    RENAME CONSTRAINT ck_service_order_service_lines_quantity TO ck_service_order_labor_lines_quantity;
+ALTER TABLE service_order_labor_lines
+    RENAME CONSTRAINT ck_service_order_service_lines_deletion_audit TO ck_service_order_labor_lines_deletion_audit;
+ALTER INDEX ix_service_order_service_lines_order RENAME TO ix_service_order_labor_lines_order;

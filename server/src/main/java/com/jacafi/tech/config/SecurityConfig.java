@@ -64,7 +64,10 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/service-orders/*/status")
                         .authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/service-orders/*/estimates/*/decision")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/service-orders/*/estimates/*/approval",
+                                "/api/v1/service-orders/*/estimates/*/rejection")
                         .authenticated()
                         .anyRequest()
                         .hasRole(EMPLOYEE))

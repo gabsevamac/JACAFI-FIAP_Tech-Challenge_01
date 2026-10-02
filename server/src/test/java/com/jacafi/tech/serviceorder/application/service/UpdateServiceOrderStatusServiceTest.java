@@ -14,7 +14,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepository;
 import com.jacafi.tech.serviceorder.application.port.StatusNotificationPort;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
@@ -56,12 +56,7 @@ class UpdateServiceOrderStatusServiceTest {
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Engine noise", "advisor", CLOCK);
         order.startDiagnosis("advisor", CLOCK);
         order.generateEstimate("advisor", CLOCK);
-        order.decideEstimate(
-                order.estimates().getFirst().id(),
-                com.jacafi.tech.serviceorder.domain.entity.EstimateDecision.APPROVE,
-                "approval-1",
-                "advisor",
-                CLOCK);
+        order.approveEstimate(order.estimates().getFirst().id(), "approval-1", "advisor", CLOCK);
         return order;
     }
 
@@ -71,7 +66,7 @@ class UpdateServiceOrderStatusServiceTest {
         return new ServiceOrderAccessPolicy(user);
     }
 
-    private static final class Orders implements ServiceOrderRepositoryPort {
+    private static final class Orders implements ServiceOrderRepository {
         private final ServiceOrder order;
         private ServiceOrder saved;
 

@@ -8,20 +8,20 @@ public record OpenServiceOrderCommand(
         UUID customerId,
         UUID vehicleId,
         String reportedIssue,
-        List<RequestedService> services,
+        List<RequestedLaborOperation> laborOperations,
         List<RequestedMaterial> materials) {
     public OpenServiceOrderCommand {
         Objects.requireNonNull(customerId, "customerId must not be null");
         Objects.requireNonNull(vehicleId, "vehicleId must not be null");
-        Objects.requireNonNull(services, "services must not be null");
+        Objects.requireNonNull(laborOperations, "laborOperations must not be null");
         Objects.requireNonNull(materials, "materials must not be null");
-        services = List.copyOf(services);
+        laborOperations = List.copyOf(laborOperations);
         materials = List.copyOf(materials);
     }
 
-    public record RequestedService(UUID serviceCatalogItemId, int quantity) {
-        public RequestedService {
-            Objects.requireNonNull(serviceCatalogItemId, "serviceCatalogItemId must not be null");
+    public record RequestedLaborOperation(UUID laborOperationId, int quantity) {
+        public RequestedLaborOperation {
+            Objects.requireNonNull(laborOperationId, "laborOperationId must not be null");
             if (quantity < 1) throw new IllegalArgumentException("quantity must be at least one");
         }
     }

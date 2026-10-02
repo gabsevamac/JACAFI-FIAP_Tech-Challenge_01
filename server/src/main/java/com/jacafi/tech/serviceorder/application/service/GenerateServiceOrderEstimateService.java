@@ -5,23 +5,20 @@ import java.util.UUID;
 
 import org.springframework.transaction.annotation.Transactional;
 
-import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepositoryPort;
+import com.jacafi.tech.serviceorder.application.port.ServiceOrderRepository;
 import com.jacafi.tech.serviceorder.domain.entity.Estimate;
 import com.jacafi.tech.serviceorder.domain.exception.ServiceOrderNotFoundException;
 import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 
 public class GenerateServiceOrderEstimateService {
-    private final ServiceOrderRepositoryPort orders;
+    private final ServiceOrderRepository orders;
     private final AuditTrailPort auditTrail;
     private final ServiceOrderAccessPolicy access;
     private final Clock clock;
 
     public GenerateServiceOrderEstimateService(
-            ServiceOrderRepositoryPort orders,
-            AuditTrailPort auditTrail,
-            ServiceOrderAccessPolicy access,
-            Clock clock) {
+            ServiceOrderRepository orders, AuditTrailPort auditTrail, ServiceOrderAccessPolicy access, Clock clock) {
         this.orders = orders;
         this.auditTrail = auditTrail;
         this.access = access;
