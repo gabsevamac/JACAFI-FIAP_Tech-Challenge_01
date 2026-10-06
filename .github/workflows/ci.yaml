@@ -1,0 +1,61 @@
+name: Fluxo CI
+#===============
+# TRIGGER
+#===============
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  JAVA_VERSION: "25"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{  env.JAVA_VERSION  }}
+          distribution: "temurin"
+          cache: "maven"
+          cache-dependency-path: "server/pom.xml"
+
+      - name: Make Maven Wrapper Executable
+        working-directory: "./server"
+        run: chmod +x mvnw
+
+      - name: Run Lint and Build Validation
+        working-directory: "./server"
+        run: ./mvnw validate
+  
+  tests:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+    - name: Code checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v5
+      with:
+        java-version: ${{  env.JAVA_VERSION  }}
+        distribution: "temurin"
+        cache: "maven"
+        cache-dependency-path: "server/pom.xml"
+
+    - name: Make Maven Wrapper Executable
+      working-directory: "./server"
+      run: chmod +x mvnw
+
+    - name: Run Unit and Integration Tests
+      working-directory: "./server"
+      run: ./mvnw verify
