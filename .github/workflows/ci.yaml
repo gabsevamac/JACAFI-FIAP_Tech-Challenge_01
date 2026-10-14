@@ -8,8 +8,11 @@ on:
   pull_request:
     branches: [main]
 
+  workflow_dispatch:
+
 env:
   JAVA_VERSION: "25"
+  IMAGE_NAME: "jacafi/server:latest"
 
 permissions:
   contents: read
@@ -20,9 +23,11 @@ jobs:
     steps:
       - name: Code Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           java-version: ${{  env.JAVA_VERSION  }}
           distribution: "temurin"
@@ -35,27 +40,107 @@ jobs:
 
       - name: Run Lint and Build Validation
         working-directory: "./server"
-        run: ./mvnw validate
-  
-  tests:
-    needs: lint
+        run: ./mvnw spotless:check
+
+  fast_tests:
+    name: Light Weight Tests
     runs-on: ubuntu-latest
     steps:
-    - name: Code checkout
-      uses: actions/checkout@v4
+      - name: Code Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup Java
-      uses: actions/setup-java@v5
-      with:
-        java-version: ${{  env.JAVA_VERSION  }}
-        distribution: "temurin"
-        cache: "maven"
-        cache-dependency-path: "server/pom.xml"
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: "maven"
+          cache-dependency-path: "server/pom.xml"
 
-    - name: Make Maven Wrapper Executable
-      working-directory: "./server"
-      run: chmod +x mvnw
+      - name: Make Maven Wrapper Executable
+        working-directory: "./server"
+        run: chmod +x mvnw
 
-    - name: Run Unit and Integration Tests
-      working-directory: "./server"
-      run: ./mvnw verify
+      - name: Executar Lint e Validação de Estilo (Spotless, Checkstyle, Enforcer)
+        working-directory: "./server"
+        run: ./mvnw validate
+
+      - name: Run Unit Tests
+        working-directory: "./server"
+        run: ./mvnw test
+
+  slow_tests:
+    name: Testes Lentos (Integration & SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: "maven"
+          cache-dependency-path: "server/pom.xml"
+
+      - name: Make Maven Wrapper Executable
+        working-directory: "./server"
+        run: chmod +x mvnw
+
+      - name: Run Integration Tests
+        working-directory: "./server"
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: true
+        run: ./mvnw verify -Dskip.unit.tests=true
+
+      - name: Run SAST (SpotBugs)
+        working-directory: "./server"
+        run: ./mvnw spotbugs:check
+
+  build_image:
+    name: Build da Imagem Docker
+    needs: [fast_tests, slow_tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Docker Build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          tags: ${{ env.IMAGE_NAME }}
+          push: false
+          outputs: type=docker,dest=/tmp/server-image.tar
+
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/server-image.tar
+  
+  docker_image_scan:
+    name: Scan da imagem Docker
+    needs: build_image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+      
+      - name: Load Docker Image
+        run: docker load -i /tmp/server-image.tar
+      
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
