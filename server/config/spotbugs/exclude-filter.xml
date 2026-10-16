@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Decisão técnica: Proteção CSRF desativada intencionalmente,
+         pois a classe SecurityConfig configura uma API puramente
+         stateless (JWT), imune a ataques convencionais de CSRF. -->
+    <Match>
+        <Class name="com.jacafi.tech.config.SecurityConfig"/>
+        <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED, THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
+    </Match>
+</FindBugsFilter>

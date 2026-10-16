@@ -172,15 +172,20 @@
                                         <exclude>com.fasterxml.jackson.core:*:*:*:compile</exclude>
                                     </excludes>
                                     <message>
-Dependencia direta de com.fasterxml.jackson.core (Jackson 2) em escopo compile.
+                                        Dependencia direta de com.fasterxml.jackson.core (Jackson 2) em escopo compile.
 
-O Spring Boot 4 serializa com Jackson 3, no pacote tools.jackson. O Jackson 2 segue no
-classpath apenas por transitividade do springdoc e do jjwt, e nao deve ser declarado por nos.
+                                        O Spring Boot 4 serializa com Jackson 3, no pacote tools.jackson. O Jackson 2
+                                        segue no
+                                        classpath apenas por transitividade do springdoc e do jjwt, e nao deve ser
+                                        declarado por nos.
 
-Se voce adicionou esta dependencia para fazer um import compilar, o import e que esta errado:
-troque com.fasterxml.jackson.databind por tools.jackson.databind. As anotacoes de
-com.fasterxml.jackson.annotation sao compartilhadas pelas duas linhas e nao exigem
-dependencia nova.
+                                        Se voce adicionou esta dependencia para fazer um import compilar, o import e que
+                                        esta errado:
+                                        troque com.fasterxml.jackson.databind por tools.jackson.databind. As anotacoes
+                                        de
+                                        com.fasterxml.jackson.annotation sao compartilhadas pelas duas linhas e nao
+                                        exigem
+                                        dependencia nova.
                                     </message>
                                 </bannedDependencies>
                             </rules>
@@ -394,6 +399,7 @@ dependencia nova.
                             <version>${findsecbugs.version}</version>
                         </plugin>
                     </plugins>
+                    <excludeFilterFile>config/spotbugs/exclude-filter.xml</excludeFilterFile>
                 </configuration>
             </plugin>
 
