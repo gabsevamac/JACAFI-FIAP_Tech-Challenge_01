@@ -7,4 +7,18 @@
         <Class name="com.jacafi.tech.config.SecurityConfig"/>
         <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED, THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
     </Match>
+
+    <!--
+    SPRING_ENDPOINT: "Bug" de log da biblioteca, não é um erro em si.
+    CT_CONSTRUCTOR_THROW: Falso positivo ao lançar exceptions dentro de construtores, prática que segue o princípio do Fail-Fast (DDD)
+    -->
+    <Match>
+        <Bug pattern="SPRING_ENDPOINT, CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!-- Falso Positivo na injeção de Beans dentro dos construtores dos Controllers e Services -->
+    <Match>
+        <Class name="~.*\.(controller|service|dto)\..*"/>
+        <Bug pattern="EI_EXPOSE_REP, EI_EXPOSE_REP2"/>
+    </Match>
 </FindBugsFilter>

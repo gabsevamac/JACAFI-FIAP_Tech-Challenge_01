@@ -3,6 +3,8 @@ package com.jacafi.tech.customer.domain.entity;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.internal.annotation.SuppressFBWarnings;
+
 import com.jacafi.tech.customer.domain.exception.InvalidTaxIdException;
 
 public sealed interface TaxId permits Cpf, Cnpj {
@@ -26,6 +28,7 @@ public sealed interface TaxId permits Cpf, Cnpj {
         return "*".repeat(value.length() - visibleCharacters) + value.substring(value.length() - visibleCharacters);
     }
 
+    @SuppressFBWarnings("MODIFICATION_AFTER_VALIDATION")
     private static String normalize(String rawValue) {
         if (rawValue == null) {
             throw new InvalidTaxIdException();
