@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.jacafi.tech.shared.adapter.in.web.LogSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,7 +42,7 @@ public class ResendStatusEmailSender {
         if (!enabled) {
             LOGGER.info(
                     "Service order status e-mail skipped because Resend is disabled: serviceOrderId={}",
-                    serviceOrderId);
+                    LogSafe.value(serviceOrderId.toString()));
             return;
         }
 
