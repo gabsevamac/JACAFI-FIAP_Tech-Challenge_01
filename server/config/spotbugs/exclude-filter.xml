@@ -8,6 +8,14 @@
         <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED, THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
     </Match>
 
+    <Match>
+        <Or>
+            <Class name="com.jacafi.tech.serviceorder.adapter.out.notification.ResendStatusEmailSender"/>
+            <Class name="com.jacafi.tech.shared.adapter.in.web.GlobalExceptionHandler"/>
+        </Or>
+        <Bug pattern="CRLF_INJECTION_LOGS" />
+    </Match>
+
     <!--
     SPRING_ENDPOINT: "Bug" de log da biblioteca, não é um erro em si.
     CT_CONSTRUCTOR_THROW: Falso positivo ao lançar exceptions dentro de construtores, prática que segue o princípio do Fail-Fast (DDD)
