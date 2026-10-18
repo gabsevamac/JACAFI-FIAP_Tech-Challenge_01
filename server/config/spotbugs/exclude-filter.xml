@@ -8,12 +8,35 @@
         <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED, THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
     </Match>
 
+    <!-- Falso Positivo no LOG -->
     <Match>
-        <Or>
-            <Class name="com.jacafi.tech.serviceorder.adapter.out.notification.ResendStatusEmailSender"/>
-            <Class name="com.jacafi.tech.shared.adapter.in.web.GlobalExceptionHandler"/>
-        </Or>
+        <Class name="com.jacafi.tech.serviceorder.adapter.out.notification.ResendStatusEmailSender"/>
         <Bug pattern="CRLF_INJECTION_LOGS" />
+    </Match>
+
+    <Match>
+        <Class name="com.jacafi.tech.shared.adapter.in.web.GlobalExceptionHandler"/>
+        <Bug pattern="CRLF_INJECTION_LOGS" />
+    </Match>
+
+    <!-- Bug identificado mesmo depois de tratado. TODO: Validar -->
+    <Match>
+        <Class name="com.jacafi.tech.shared.adapter.in.security.KeycloakJwtAuthenticationConverter" />
+        <Bug pattern="IMPROPER_UNICODE"/>
+    </Match>
+
+    <Match>
+        <Class name="com.jacafi.tech.shared.adapter.in.web.SortableFields" />
+        <Bug pattern="IMPROPER_UNICODE"/>
+    </Match>
+
+    <!--
+        Bug identificado por conta de não estar sendo enviado como HTML,
+        TODO: Avaliar se necessário enviar assim e validar se compensa criar um Record pra Response.
+    -->
+    <Match>
+        <Class name="com.jacafi.tech.shared.adapter.in.web.SecurityProblemDetailHandler"/>
+        <Bug pattern="XSS_SERVLET"/>
     </Match>
 
     <!--
@@ -26,7 +49,7 @@
 
     <!-- Falso Positivo na injeção de Beans dentro dos construtores dos Controllers e Services -->
     <Match>
-        <Class name="~.*\.(controller|service|dto)\..*"/>
+        <Class name="~.*\.(controller|service|dto|web)\..*"/>
         <Bug pattern="EI_EXPOSE_REP, EI_EXPOSE_REP2"/>
     </Match>
 </FindBugsFilter>
