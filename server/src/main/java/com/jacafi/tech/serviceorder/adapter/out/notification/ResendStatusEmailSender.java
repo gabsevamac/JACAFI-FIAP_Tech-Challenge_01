@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import com.jacafi.tech.shared.adapter.in.web.LogSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
+import com.jacafi.tech.shared.adapter.in.web.LogSafe;
 
 @Component
 public class ResendStatusEmailSender {
