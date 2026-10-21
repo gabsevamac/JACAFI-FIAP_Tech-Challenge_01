@@ -28,6 +28,7 @@ build/
 
 .vscode/
 .env
+/k8s/secrets.env
 
 .worktrees/
 .superpowers/
