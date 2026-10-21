@@ -6,6 +6,8 @@ Este ambiente é de desenvolvimento: uma API, um PostgreSQL com volume local e u
 
 ## Preparação e instalação
 
+### 1. Conferir o cluster e construir a imagem
+
 Confira o contexto antes de alterar o cluster. Os comandos seguintes pressupõem `docker-desktop`:
 
 ```powershell
@@ -17,6 +19,10 @@ docker build -t jacafi/server:k8s-local ./server
 kubectl apply -f k8s/namespace.yaml
 ```
 
+O nó deve estar `Ready`. Interrompa a sequência se o build falhar; a imagem `jacafi/server:k8s-local` precisa existir antes do deploy. Se o Compose estiver usando as portas 8081/8082, execute `docker compose stop server keycloak` para liberá-las sem remover volumes.
+
+### 2. Definir as credenciais locais
+
 Crie o arquivo local de credenciais uma única vez e substitua todos os valores `replace-with-...` no editor. O arquivo `k8s/secrets.env` é ignorado pelo Git; não versione credenciais nem salve o YAML gerado do Secret. Mantenha `RESEND_API_KEY` vazio se não usar e-mail.
 
 ```powershell
@@ -25,6 +31,10 @@ if (-not (Test-Path k8s/secrets.env)) {
 }
 notepad k8s/secrets.env
 ```
+
+`DB_USERNAME` e `DB_PASSWORD` serão as credenciais do novo PostgreSQL; `KEYCLOAK_ADMIN` e `KEYCLOAK_ADMIN_PASSWORD` permitem entrar no console administrativo. Elas não substituem as contas de teste importadas pelo realm. Use valores próprios e não deixe os placeholders do exemplo.
+
+### 3. Aplicar os recursos e aguardar a inicialização
 
 Depois de salvar e fechar o editor, crie o Secret e importe o JSON existente como ConfigMap. O pipeline envia o YAML diretamente ao Kubernetes:
 
@@ -38,11 +48,15 @@ kubectl -n jacafi rollout status deployment/api --timeout=300s
 kubectl -n jacafi get pods,services,pvc
 ```
 
+O resultado esperado é um Pod `Running` e `1/1` para cada Deployment (`api`, `database`, `keycloak`), três Services e o PVC `database-data` em `Bound`. Se um rollout atingir o timeout, consulte os eventos e logs na seção de diagnóstico antes de prosseguir. Downloads de imagens e o primeiro startup podem exigir mais de cinco minutos em uma máquina com poucos recursos.
+
 O Kustomize aplica Namespace, configuração pública, Deployments, Services e PVC; não cria o Secret nem o ConfigMap do realm e não habilita HPA. A API aguarda o banco e executa as migrações Flyway na inicialização. Os Services são internos (`ClusterIP`).
 
 Se a API apresentar `ImagePullBackOff`/`ErrImagePull`, confira `kubectl -n jacafi describe pod <nome-do-pod>` e se o build usou o Docker Engine do Desktop. A disponibilidade de imagens locais varia com o provisionador (kubeadm ou kind) e o armazenamento de imagens do Desktop. Com kind, pode ser necessário carregar a imagem nos nós ou usar um registry acessível; verifique a configuração efetiva antes de assumir que a imagem construída está disponível. Caso seu cluster seja gerenciável pelo CLI `kind`, use `kind get clusters` para identificar o nome e `kind load docker-image jacafi/server:k8s-local --name <nome-do-cluster>`. Não presuma que o nome do contexto seja o nome do cluster kind.
 
 ## Acesso e smoke test
+
+### 4. Abrir os acessos locais
 
 Libere as portas 8081 e 8082 caso o Compose esteja em execução. Em dois terminais separados, mantenha os encaminhamentos ativos:
 
@@ -55,6 +69,8 @@ kubectl -n jacafi port-forward service/keycloak 8081:8080
 ```
 
 Em um terceiro terminal, verifique a saúde e obtenha um token do usuário de desenvolvimento presente no realm:
+
+### 5. Validar saúde e autenticação
 
 ```powershell
 Invoke-RestMethod http://localhost:8082/actuator/health/liveness
@@ -71,6 +87,90 @@ Invoke-RestMethod -Uri http://localhost:8082/api/v1/customers -Headers @{ Author
 Espere `UP` nas duas sondas e uma resposta paginada de clientes (possivelmente vazia) na API autenticada. Essas credenciais e o password grant servem somente para desenvolvimento. O Swagger fica em `http://localhost:8082/swagger-ui/index.html`; o console do Keycloak, em `http://localhost:8081`, usa as credenciais administrativas do arquivo local.
 
 O issuer público é `http://localhost:8081/realms/jacafi`; a API busca as chaves por `http://keycloak:8080/realms/jacafi/protocol/openid-connect/certs`. A diferença é intencional. Ao mudar a porta pública ou hostname do Keycloak, ajuste também `KC_HOSTNAME` em `keycloak.yaml` e `KEYCLOAK_ISSUER_URI` em `configmap.yaml`. Reinicie o port-forward se o Pod encaminhado for substituído.
+
+### 6. Testar escrita e leitura no banco
+
+No mesmo terceiro terminal, use o token anterior e dados exclusivos de demonstração:
+
+```powershell
+$employeeHeaders = @{ Authorization = "Bearer $($tokenResponse.access_token)" }
+$customerBody = @{
+    taxId = '52998224725'
+    name = 'Cliente Teste Kubernetes'
+    email = 'kubernetes@example.com'
+    phone = '11999999999'
+} | ConvertTo-Json
+$customer = Invoke-RestMethod -Method Post -Uri http://localhost:8082/api/v1/customers -Headers $employeeHeaders -ContentType 'application/json' -Body $customerBody
+$customerId = $customer.id
+Invoke-RestMethod -Uri "http://localhost:8082/api/v1/customers/$customerId" -Headers $employeeHeaders
+```
+
+O cadastro deve retornar um `id`, e a consulta deve retornar o mesmo cliente. Se esse CPF de exemplo já existir, não repita o cadastro: recupere-o com o comando abaixo e continue o teste com o ID existente.
+
+```powershell
+$customer = Invoke-RestMethod -Uri 'http://localhost:8082/api/v1/customers/lookup?taxId=52998224725' -Headers $employeeHeaders
+$customerId = $customer.id
+```
+
+### 7. Confirmar bloqueios de acesso
+
+Sem autenticação, a listagem deve responder `401`. Os comandos abaixo imprimem o status esperado e falham se a API permitir acesso ou devolver outro erro:
+
+```powershell
+try {
+    Invoke-RestMethod http://localhost:8082/api/v1/customers
+    throw 'A API permitiu acesso sem token.'
+} catch {
+    if ($null -eq $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 401) { throw }
+    '401 confirmado: token ausente.'
+}
+$customerTokenResponse = Invoke-RestMethod -Method Post -Uri http://localhost:8081/realms/jacafi/protocol/openid-connect/token -ContentType 'application/x-www-form-urlencoded' -Body @{
+    client_id = 'jacafi-web'
+    grant_type = 'password'
+    username = 'dev-customer'
+    password = 'Dev-customer-2026'
+}
+try {
+    Invoke-RestMethod -Uri http://localhost:8082/api/v1/customers -Headers @{ Authorization = "Bearer $($customerTokenResponse.access_token)" }
+    throw 'A API permitiu a listagem administrativa ao cliente.'
+} catch {
+    if ($null -eq $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 403) { throw }
+    '403 confirmado: role customer sem acesso administrativo.'
+}
+```
+
+Para testar `/customers/me`, primeiro vincule a identidade do cliente conforme o [README principal](../README.md#autenticação). O login por si só não cria um cadastro de cliente na oficina.
+
+### 8. Confirmar persistência após recriação do Pod
+
+Em ambiente local de teste, reinicie apenas o Deployment do PostgreSQL. Isso causa uma interrupção breve de acesso ao banco, mas mantém o PVC:
+
+```powershell
+kubectl -n jacafi rollout restart deployment/database
+kubectl -n jacafi rollout status deployment/database --timeout=300s
+kubectl -n jacafi get pvc database-data
+Invoke-RestMethod http://localhost:8082/actuator/health/readiness
+Invoke-RestMethod -Uri "http://localhost:8082/api/v1/customers/$customerId" -Headers $employeeHeaders
+```
+
+Espere a readiness voltar a `UP` antes da consulta. O cliente deve manter o mesmo ID e dados. Se o token expirar, repita o login do funcionário e atualize `$employeeHeaders`. Se o port-forward encerrar, abra-o novamente. Esse teste comprova retenção no PVC durante substituição do Pod; não comprova recuperação de desastre.
+
+### 9. Conferir pelo Swagger
+
+Abra `http://localhost:8082/swagger-ui/index.html`. No terminal, consulte `$tokenResponse.access_token`, copie o token do funcionário e cole no campo bearer do botão **Authorize**. Execute a listagem e a consulta por ID dos testes anteriores. Não use a antiga conta `dev-admin`: a autenticação atual usa Keycloak.
+
+| Verificação | Resultado esperado |
+|---|---|
+| Deployments e PVC | Três Pods prontos e PVC `Bound` |
+| Liveness e readiness | `UP` |
+| Login de funcionário | Token emitido pelo realm `jacafi` |
+| Listagem com funcionário | HTTP 200 |
+| Cadastro e consulta | Mesmo ID e dados |
+| Listagem sem token | HTTP 401 |
+| Listagem com cliente | HTTP 403 |
+| Reinício do PostgreSQL | Dados do cliente preservados |
+
+O HPA é uma verificação separada: os testes acima não comprovam escalonamento. Siga os pré-requisitos da seção seguinte antes de habilitá-lo.
 
 ## Atualizações e diagnóstico
 
