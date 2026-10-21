@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jacafi-config
+data:
+  DB_HOST: database.example.invalid
+  DB_URL: jdbc:postgresql://database.example.invalid:5432/jacafi?sslmode=verify-full&sslrootcert=/etc/postgresql/certs/global-bundle.pem
+  KEYCLOAK_ISSUER_URI: https://auth.example.invalid/realms/jacafi
+  KEYCLOAK_JWK_SET_URI: https://auth.example.invalid/realms/jacafi/protocol/openid-connect/certs
+  SPRINGDOC_API_DOCS_ENABLED: "false"
+  SPRINGDOC_SWAGGER_UI_ENABLED: "false"

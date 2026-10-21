@@ -1,0 +1,8 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+spec:
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60
