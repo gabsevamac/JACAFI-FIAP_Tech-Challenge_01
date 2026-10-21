@@ -23,6 +23,8 @@ As decisões arquiteturais estão em [docs/adr](docs/adr), os termos do domínio
 
 Pré-requisitos: Docker e Docker Compose. Para executar fora do container, use Java 25 e Maven 3.9+.
 
+Para executar no Kubernetes do Docker Desktop, siga [k8s/README.md](k8s/README.md), incluindo a criação dos Secrets, importação do realm e limitações do escalonamento.
+
 ```powershell
 docker compose --env-file .env.example up -d --build
 ```
@@ -79,22 +81,7 @@ As credenciais do realm versionado e do console existem apenas para o ambiente l
 
 A aplicação desabilita OpenAPI e Swagger por padrão. O Compose os habilita somente para desenvolvimento local; em outro ambiente, mantenha `SPRINGDOC_API_DOCS_ENABLED=false` e `SPRINGDOC_SWAGGER_UI_ENABLED=false`, ou proteja os endpoints por rede e autenticação.
 
-## Credenciais de demonstração
-
-O banco criado do zero inclui uma conta administrativa apenas para demonstração:
-
-| Usuário | Senha | Role |
-|---|---|---|
-| `dev-admin` | `admin123` | `ADMIN` |
-
-Para aplicar essa credencial após uma execução anterior, recrie o banco local antes de subir o Compose:
-
-```powershell
-docker compose down --volumes
-docker compose up --build
-```
-
-Não use essa senha fora do ambiente local de demonstração.
+## E-mails e encerramento local
 
 Para habilitar os e-mails de mudança de status da OS, preencha somente o seu `.env` local com `RESEND_ENABLED=true`, `RESEND_API_KEY` e `RESEND_FROM`. A chave não é versionada nem registrada em logs. O remetente deve pertencer a um domínio verificado no Resend; mantenha o recurso desabilitado quando não houver credenciais.
 
