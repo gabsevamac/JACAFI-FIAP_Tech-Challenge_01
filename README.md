@@ -23,7 +23,7 @@ As decisões arquiteturais estão em [docs/adr](docs/adr), os termos do domínio
 
 Pré-requisitos: Docker e Docker Compose. Para executar fora do container, use Java 25 e Maven 3.9+.
 
-Para executar no Kubernetes do Docker Desktop, siga [k8s/README.md](k8s/README.md), incluindo a criação dos Secrets, importação do realm e limitações do escalonamento.
+Para Kubernetes, siga [k8s/README.md](k8s/README.md): execução no Docker Desktop, teste de carga isolado e preparação para AWS EKS. O guia inclui Secrets, autenticação, pré-requisitos de infraestrutura e o bloqueio de concorrência da outbox antes de liberar múltiplas réplicas com escritas.
 
 ```powershell
 docker compose --env-file .env.example up -d --build
