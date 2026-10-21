@@ -32,3 +32,9 @@ build/
 .worktrees/
 .superpowers/
 docs/superpowers/
+
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+bootstrap/
