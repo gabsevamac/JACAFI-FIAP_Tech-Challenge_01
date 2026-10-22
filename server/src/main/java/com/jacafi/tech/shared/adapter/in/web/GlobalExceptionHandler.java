@@ -37,7 +37,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Business rule violated [{}] traceId={} {}",
                 e.errorCode().code(),
                 TraceIdFilter.currentTraceId(),
-                LogSafe.value(e.logContext().orElse("")));
+                e.logContext().orElse(""));
         return problem(e.errorCode());
     }
 
@@ -217,7 +217,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Client error [{}] traceId={}: {}",
                 code.code(),
                 TraceIdFilter.currentTraceId(),
-                LogSafe.value(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
+                e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
     }
 
     private static String lastNodeOf(String propertyPath) {

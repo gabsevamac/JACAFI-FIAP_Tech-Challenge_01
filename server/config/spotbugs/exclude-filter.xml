@@ -1,38 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
-    <!-- Decisão técnica: Proteção CSRF desativada intencionalmente,
-         pois a classe SecurityConfig configura uma API puramente
-         stateless (JWT), imune a ataques convencionais de CSRF. -->
+    <!--
+        SPRING_CSRF_PROTECTION_DISABLED: a API é stateless e autentica pelo header
+        Authorization (Bearer JWT), que o navegador não envia por conta própria. Sem cookie
+        de sessão, não há credencial automática para um ataque CSRF explorar.
+        Rever se a autenticação passar a usar cookie ou sessão.
+
+        THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION: o "throws Exception" de
+        securityFilterChain vem da assinatura de HttpSecurity.build(), do Spring Security.
+    -->
     <Match>
         <Class name="com.jacafi.tech.config.SecurityConfig"/>
         <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED, THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
     </Match>
 
-    <!-- Falso Positivo no LOG -->
+    <!--
+        CRLF_INJECTION_LOGS: o FindSecBugs analisa o código e não enxerga a configuração de log.
+        Os logs são estruturados em JSON (logging.structured.format.console: ecs no
+        application.yaml): cada evento ocupa uma única linha, e quebras de linha em mensagens
+        e stack traces são escapadas como \n dentro dos campos, então não é possível forjar
+        linhas de log. A proteção vem da configuração e vale para todo log do projeto, por
+        isso a supressão é global.
+        Rever se o formato de log voltar a ser texto puro.
+    -->
     <Match>
-        <Class name="com.jacafi.tech.serviceorder.adapter.out.notification.ResendStatusEmailSender"/>
-        <Bug pattern="CRLF_INJECTION_LOGS" />
+        <Bug pattern="CRLF_INJECTION_LOGS"/>
     </Match>
 
+    <!--
+        IMPROPER_UNICODE: equalsIgnoreCase usa o mapeamento de maiúsculas do Unicode, então
+        "cuſtomer" (U+017F) é igual a "CUSTOMER". Não é explorável: as roles vêm de um JWT
+        assinado pelo Keycloak e validado a cada requisição, e só um administrador do realm
+        criaria essa variante (e ele já pode atribuir "employee" diretamente).
+        Rever se algum mapper do Keycloak passar a preencher realm_access.roles com dados
+        controlados pelo usuário.
+    -->
     <Match>
-        <Class name="com.jacafi.tech.shared.adapter.in.web.GlobalExceptionHandler"/>
-        <Bug pattern="CRLF_INJECTION_LOGS" />
-    </Match>
-
-    <!-- Bug identificado mesmo depois de tratado. TODO: Validar -->
-    <Match>
-        <Class name="com.jacafi.tech.shared.adapter.in.security.KeycloakJwtAuthenticationConverter" />
-        <Bug pattern="IMPROPER_UNICODE"/>
-    </Match>
-
-    <Match>
-        <Class name="com.jacafi.tech.shared.adapter.in.web.SortableFields" />
+        <Class name="com.jacafi.tech.shared.adapter.in.security.KeycloakJwtAuthenticationConverter"/>
         <Bug pattern="IMPROPER_UNICODE"/>
     </Match>
 
     <!--
-        Bug identificado por conta de não estar sendo enviado como HTML,
-        TODO: Avaliar se necessário enviar assim e validar se compensa criar um Record pra Response.
+        IMPROPER_UNICODE: toUpperCase(Locale.ROOT) faz "deſc" (U+017F) virar "DESC".
+        O Locale.ROOT elimina a dependência do locale da JVM, mas não a equivalência do
+        Unicode. O valor só escolhe a direção da ordenação, sem impacto de segurança.
+    -->
+    <Match>
+        <Class name="com.jacafi.tech.shared.adapter.in.web.SortableFields"/>
+        <Bug pattern="IMPROPER_UNICODE"/>
+    </Match>
+
+    <!--
+        XSS_SERVLET: a URI da requisição é escrita na resposta, e o FindSecBugs não reconhece
+        o escape() como sanitização. A resposta é application/problem+json, o escape() trata
+        o contexto de string JSON e o Spring Security envia X-Content-Type-Options: nosniff,
+        então o navegador não interpreta a resposta como HTML.
+        Rever se o content type da resposta mudar.
     -->
     <Match>
         <Class name="com.jacafi.tech.shared.adapter.in.web.SecurityProblemDetailHandler"/>
@@ -40,16 +63,49 @@
     </Match>
 
     <!--
-    SPRING_ENDPOINT: "Bug" de log da biblioteca, não é um erro em si.
-    CT_CONSTRUCTOR_THROW: Falso positivo ao lançar exceptions dentro de construtores, prática que segue o princípio do Fail-Fast (DDD)
+        SPRING_ENDPOINT: não aponta defeito. O FindSecBugs lista cada método de controller
+        como ponto de entrada para revisão manual. A autorização dos endpoints é definida no
+        SecurityConfig.
     -->
     <Match>
-        <Bug pattern="SPRING_ENDPOINT, CT_CONSTRUCTOR_THROW"/>
+        <Bug pattern="SPRING_ENDPOINT"/>
     </Match>
 
-    <!-- Falso Positivo na injeção de Beans dentro dos construtores dos Controllers e Services -->
+    <!--
+        CT_CONSTRUCTOR_THROW: aponta classes não-final cujo construtor pode lançar exceção
+        (ataque de finalizer: uma subclasse com finalize() captura o objeto parcialmente
+        construído). Os casos são beans Spring que validam dependências com
+        Objects.requireNonNull e a BusinessException, que é abstrata. As classes de domínio
+        não aparecem porque são final ou records.
+        Explorar exige executar código dentro da JVM, e finalization está depreciada
+        (JEP 421). Beans com @Transactional não podem ser final por causa do proxy CGLIB.
+    -->
     <Match>
-        <Class name="~.*\.(controller|service|dto|web)\..*"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!--
+        EI_EXPOSE_REP2 (injeção de dependência): o SpotBugs considera mutável qualquer tipo
+        com método de nome parecido com mutador (remove, append, set, add...), como
+        RemoveInventoryItemService.remove() e InventoryAuditLedgerPort.append(). Os campos
+        apontados são beans singleton sem estado, injetados pelo Spring no construtor.
+    -->
+    <Match>
+        <Class name="~.*\.(adapter\.in\.web\.controller|application\.service)\.[^.]+"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!--
+        EI_EXPOSE_REP / EI_EXPOSE_REP2 (DTOs): records com campos List devolvem a mesma lista
+        que receberam. Nas respostas, as listas vêm de Stream.toList() ou de
+        PageResult.content(), ambas imutáveis. Nos requests, o Jackson cria uma lista nova a
+        cada requisição, que não é compartilhada com outro objeto.
+    -->
+    <Match>
+        <Or>
+            <Class name="~.*\.adapter\.in\.web\.dto\.[^.]+"/>
+            <Class name="com.jacafi.tech.shared.adapter.in.web.PageParameters"/>
+        </Or>
         <Bug pattern="EI_EXPOSE_REP, EI_EXPOSE_REP2"/>
     </Match>
 </FindBugsFilter>

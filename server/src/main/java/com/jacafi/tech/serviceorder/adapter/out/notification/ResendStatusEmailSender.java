@@ -14,7 +14,6 @@ import org.springframework.web.client.RestClient;
 import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
-import com.jacafi.tech.shared.adapter.in.web.LogSafe;
 
 @Component
 public class ResendStatusEmailSender {
@@ -42,7 +41,7 @@ public class ResendStatusEmailSender {
         if (!enabled) {
             LOGGER.info(
                     "Service order status e-mail skipped because Resend is disabled: serviceOrderId={}",
-                    LogSafe.value(serviceOrderId.toString()));
+                    serviceOrderId);
             return;
         }
 
