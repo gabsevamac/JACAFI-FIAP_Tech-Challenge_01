@@ -19,12 +19,20 @@ import org.junit.jupiter.api.Test;
 
 import com.jacafi.tech.inventory.application.port.InventoryAuditLedgerPort;
 import com.jacafi.tech.inventory.application.port.InventoryItemRepository;
+import com.jacafi.tech.inventory.application.port.InventoryQueryPort;
+import com.jacafi.tech.inventory.domain.entity.AuditedOperation;
 import com.jacafi.tech.inventory.domain.entity.InventoryAuditEntry;
 import com.jacafi.tech.inventory.domain.entity.InventoryItem;
 import com.jacafi.tech.inventory.domain.entity.MaterialType;
 import com.jacafi.tech.inventory.domain.entity.Stock;
+import com.jacafi.tech.inventory.domain.exception.DuplicateMaterialException;
+import com.jacafi.tech.inventory.domain.exception.InventoryItemNotFoundException;
 import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
+import com.jacafi.tech.shared.application.PageQuery;
+import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.application.SortCriterion;
+import com.jacafi.tech.shared.domain.ErrorCode;
 import com.jacafi.tech.shared.security.AccountAccessDeniedException;
 import com.jacafi.tech.shared.security.AuthenticatedUser;
 import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
@@ -84,6 +92,101 @@ class InventoryServicesTest {
                         com.jacafi.tech.inventory.domain.entity.AuditedOperation.RESERVED,
                         com.jacafi.tech.inventory.domain.entity.AuditedOperation.WITHDRAWN);
         assertThat(item.stockOnHand()).isEqualTo(Stock.of(1));
+    }
+
+    @Test
+    void employeeFindsAndListsActiveItems() {
+        Items items = new Items();
+        InventoryItem item = items.save(bolt(), "employee");
+        InventoryQueryPort queries = (type, query) -> new InventoryPage(List.of(item), query.page(), query.size(), 1);
+
+        assertThat(new FindInventoryItemService(items, operational()).findById(item.id()))
+                .isSameAs(item);
+        PageResult<InventoryItem> page = new ListInventoryItemsService(queries, operational())
+                .list(MaterialType.PART, new PageQuery(0, 20, List.of(SortCriterion.ascending("id"))))
+                .toPageResult();
+        assertThat(page.content()).containsExactly(item);
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void updateRenamesTheItemAndWritesBothAuditRecords() {
+        Items items = new Items();
+        Ledger ledger = new Ledger();
+        Trail trail = new Trail();
+        InventoryItem item = items.save(bolt(), "employee");
+
+        InventoryItem updated = new UpdateInventoryItemService(items, ledger, trail, operational(), CLOCK)
+                .update(item.id(), "Hex bolt", new BigDecimal("2.50"));
+
+        assertThat(updated.name()).isEqualTo("Hex bolt");
+        assertThat(updated.unitPrice()).isEqualByComparingTo("2.50");
+        assertThat(ledger.entries)
+                .singleElement()
+                .extracting(InventoryAuditEntry::operation)
+                .isEqualTo(AuditedOperation.UPDATED);
+        assertThat(trail.events).singleElement().extracting(AuditEvent::action).isEqualTo("UPDATED");
+    }
+
+    @Test
+    void updateRejectsANameUsedByAnotherActiveItem() {
+        Items items = new Items();
+        Ledger ledger = new Ledger();
+        items.save(
+                InventoryItem.register(UUID.randomUUID(), "Nut", MaterialType.PART, BigDecimal.ONE, Stock.of(1), CLOCK),
+                "employee");
+        InventoryItem bolt = items.save(bolt(), "employee");
+
+        assertThatThrownBy(() -> new UpdateInventoryItemService(items, ledger, new Trail(), operational(), CLOCK)
+                        .update(bolt.id(), "nut", BigDecimal.ONE))
+                .isInstanceOf(DuplicateMaterialException.class);
+        assertThat(ledger.entries).isEmpty();
+    }
+
+    @Test
+    void replenishAddsStockAndRecordsTheQuantity() {
+        Items items = new Items();
+        Ledger ledger = new Ledger();
+        Trail trail = new Trail();
+        InventoryItem item = items.save(bolt(), "employee");
+
+        new ReplenishInventoryStockService(items, ledger, trail, operational(), CLOCK).replenish(item.id(), 2);
+
+        assertThat(item.stockOnHand()).isEqualTo(Stock.of(5));
+        assertThat(ledger.entries)
+                .singleElement()
+                .extracting(InventoryAuditEntry::quantity)
+                .isEqualTo(Stock.of(2));
+        assertThat(trail.events).singleElement().extracting(AuditEvent::action).isEqualTo("REPLENISHED");
+    }
+
+    @Test
+    void removedItemIsNoLongerFoundAndBothAuditRecordsAreWritten() {
+        Items items = new Items();
+        Ledger ledger = new Ledger();
+        Trail trail = new Trail();
+        InventoryItem item = items.save(bolt(), "employee");
+
+        new RemoveInventoryItemService(items, ledger, trail, operational(), CLOCK).remove(item.id());
+
+        assertThat(items.findActiveById(item.id())).isEmpty();
+        assertThat(ledger.entries)
+                .singleElement()
+                .extracting(InventoryAuditEntry::operation)
+                .isEqualTo(AuditedOperation.REMOVED);
+        assertThat(trail.events).singleElement().extracting(AuditEvent::action).isEqualTo("REMOVED");
+    }
+
+    @Test
+    void unknownItemIsReportedAsNotFound() {
+        assertThatThrownBy(() -> new FindInventoryItemService(new Items(), operational()).findById(UUID.randomUUID()))
+                .isInstanceOfSatisfying(
+                        InventoryItemNotFoundException.class,
+                        exception -> assertThat(exception.errorCode()).isEqualTo(ErrorCode.INVENTORY_ITEM_NOT_FOUND));
+    }
+
+    private static InventoryItem bolt() {
+        return InventoryItem.register(UUID.randomUUID(), "Bolt", MaterialType.PART, BigDecimal.ONE, Stock.of(3), CLOCK);
     }
 
     private static InventoryAccessPolicy operational() {

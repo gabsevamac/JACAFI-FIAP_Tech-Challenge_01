@@ -19,6 +19,8 @@
     <properties>
         <java.version>25</java.version>
 
+        <!-- Correções de CVE acima do Spring Boot 4.1.1. Remover quando o Boot gerenciar versões iguais ou mais
+             novas: docs/cicd/imagem-docker.md#varredura-de-vulnerabilidades -->
         <tomcat.version>11.0.26</tomcat.version>
         <jackson-bom.version>3.1.7</jackson-bom.version>
         <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
@@ -33,7 +35,6 @@
         <jacoco.version>0.8.15</jacoco.version>
         <spotbugs-plugin.version>4.10.4.0</spotbugs-plugin.version>
         <findsecbugs.version>1.14.0</findsecbugs.version>
-        <dependency-check.version>13.0.0</dependency-check.version>
     </properties>
 
     <dependencies>
@@ -58,11 +59,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -172,20 +168,16 @@
                                         <exclude>com.fasterxml.jackson.core:*:*:*:compile</exclude>
                                     </excludes>
                                     <message>
-                                        Dependencia direta de com.fasterxml.jackson.core (Jackson 2) em escopo compile.
+                                        Dependência direta de com.fasterxml.jackson.core (Jackson 2) em escopo compile.
 
                                         O Spring Boot 4 serializa com Jackson 3, no pacote tools.jackson. O Jackson 2
-                                        segue no
-                                        classpath apenas por transitividade do springdoc e do jjwt, e nao deve ser
-                                        declarado por nos.
+                                        segue no classpath apenas por transitividade do springdoc (swagger-core) e não
+                                        deve ser declarado por nós.
 
-                                        Se voce adicionou esta dependencia para fazer um import compilar, o import e que
-                                        esta errado:
-                                        troque com.fasterxml.jackson.databind por tools.jackson.databind. As anotacoes
-                                        de
-                                        com.fasterxml.jackson.annotation sao compartilhadas pelas duas linhas e nao
-                                        exigem
-                                        dependencia nova.
+                                        Se você adicionou esta dependência para fazer um import compilar, o import é que
+                                        está errado: troque com.fasterxml.jackson.databind por tools.jackson.databind.
+                                        As anotações de com.fasterxml.jackson.annotation são compartilhadas pelas duas
+                                        linhas e não exigem dependência nova.
                                     </message>
                                 </bannedDependencies>
                             </rules>
@@ -230,43 +222,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <annotationProcessorPaths>
-                                <path>
-                                    <groupId>org.springframework.boot</groupId>
-                                    <artifactId>spring-boot-configuration-processor</artifactId>
-                                </path>
-                            </annotationProcessorPaths>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>default-testCompile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <configuration>
-                            <annotationProcessorPaths>
-                                <path>
-                                    <groupId>org.springframework.boot</groupId>
-                                    <artifactId>spring-boot-configuration-processor</artifactId>
-                                </path>
-                            </annotationProcessorPaths>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>
@@ -362,13 +317,9 @@
                                 <rule>
                                     <element>PACKAGE</element>
                                     <includes>
-                                        <include>com.jacafi.tech.*.domain</include>
-                                        <include>com.jacafi.tech.*.application</include>
+                                        <include>com.jacafi.tech.*.domain*</include>
+                                        <include>com.jacafi.tech.*.application*</include>
                                     </includes>
-                                    <excludes>
-
-                                        <exclude>com.jacafi.tech.features.*</exclude>
-                                    </excludes>
                                     <limits>
                                         <limit>
                                             <counter>LINE</counter>
@@ -405,41 +356,5 @@
 
         </plugins>
     </build>
-
-    <profiles>
-
-        <profile>
-            <id>security-scan</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>${dependency-check.version}</version>
-                        <configuration>
-                            <nvdApiKey>${nvd.api.key}</nvdApiKey>
-                            <failBuildOnCVSS>7</failBuildOnCVSS>
-                            <formats>
-                                <format>HTML</format>
-                                <format>JSON</format>
-                            </formats>
-
-                            <skipTestScope>true</skipTestScope>
-                            <suppressionFiles>
-                                <suppressionFile>config/dependency-check-suppressions.xml</suppressionFile>
-                            </suppressionFiles>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
 </project>

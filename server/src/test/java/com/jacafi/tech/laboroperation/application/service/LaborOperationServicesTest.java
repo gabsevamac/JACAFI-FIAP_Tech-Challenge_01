@@ -20,10 +20,13 @@ import org.junit.jupiter.api.Test;
 import com.jacafi.tech.laboroperation.application.port.LaborOperationRepository;
 import com.jacafi.tech.laboroperation.domain.entity.LaborOperation;
 import com.jacafi.tech.laboroperation.domain.exception.DuplicateLaborOperationException;
+import com.jacafi.tech.laboroperation.domain.exception.LaborOperationNotFoundException;
 import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.application.SortCriterion;
+import com.jacafi.tech.shared.domain.ErrorCode;
 import com.jacafi.tech.shared.security.AccountAccessDeniedException;
 import com.jacafi.tech.shared.security.AuthenticatedUser;
 import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
@@ -65,6 +68,72 @@ class LaborOperationServicesTest {
                 .isInstanceOf(AccountAccessDeniedException.class);
         assertThatThrownBy(() -> new FindLaborOperationService(operations, access).findById(UUID.randomUUID()))
                 .isInstanceOf(AccountAccessDeniedException.class);
+    }
+
+    @Test
+    void employeeFindsAndListsActiveOperations() {
+        Operations operations = new Operations();
+        LaborOperation operation = operations.save(oilChange());
+
+        assertThat(new FindLaborOperationService(operations, employee()).findById(operation.id()))
+                .isSameAs(operation);
+        assertThat(new ListLaborOperationsService(operations, employee())
+                        .list(new PageQuery(0, 20, List.of(SortCriterion.ascending("id"))))
+                        .content())
+                .containsExactly(operation);
+    }
+
+    @Test
+    void updatePersistsTheChangesThenRecordsTheSharedAuditEvent() {
+        Operations operations = new Operations();
+        Trail trail = new Trail();
+        LaborOperation operation = operations.save(oilChange());
+
+        LaborOperation updated = new UpdateLaborOperationService(operations, trail, employee(), CLOCK)
+                .update(operation.id(), "Synthetic oil change", null, new BigDecimal("129.90"));
+
+        assertThat(updated.name()).isEqualTo("Synthetic oil change");
+        assertThat(updated.basePrice()).isEqualByComparingTo("129.90");
+        assertThat(trail.events).singleElement().extracting(AuditEvent::action).isEqualTo("UPDATED");
+    }
+
+    @Test
+    void updateRejectsANameUsedByAnotherActiveOperation() {
+        Operations operations = new Operations();
+        Trail trail = new Trail();
+        operations.save(
+                LaborOperation.register(UUID.randomUUID(), "Tire rotation", null, new BigDecimal("40.00"), CLOCK));
+        LaborOperation operation = operations.save(oilChange());
+
+        assertThatThrownBy(() -> new UpdateLaborOperationService(operations, trail, employee(), CLOCK)
+                        .update(operation.id(), "tire rotation", null, new BigDecimal("40.00")))
+                .isInstanceOf(DuplicateLaborOperationException.class);
+        assertThat(trail.events).isEmpty();
+    }
+
+    @Test
+    void deactivatedOperationIsNoLongerFoundAndTheAuditEventIsRecorded() {
+        Operations operations = new Operations();
+        Trail trail = new Trail();
+        LaborOperation operation = operations.save(oilChange());
+
+        new DeactivateLaborOperationService(operations, trail, employee(), CLOCK).deactivate(operation.id());
+
+        assertThat(operations.findActiveById(operation.id())).isEmpty();
+        assertThat(trail.events).singleElement().extracting(AuditEvent::action).isEqualTo("DEACTIVATED");
+    }
+
+    @Test
+    void unknownOperationIsReportedAsNotFound() {
+        assertThatThrownBy(
+                        () -> new FindLaborOperationService(new Operations(), employee()).findById(UUID.randomUUID()))
+                .isInstanceOfSatisfying(
+                        LaborOperationNotFoundException.class,
+                        exception -> assertThat(exception.errorCode()).isEqualTo(ErrorCode.LABOR_OPERATION_NOT_FOUND));
+    }
+
+    private static LaborOperation oilChange() {
+        return LaborOperation.register(UUID.randomUUID(), "Oil change", null, new BigDecimal("89.90"), CLOCK);
     }
 
     private static LaborOperationAccessPolicy employee() {

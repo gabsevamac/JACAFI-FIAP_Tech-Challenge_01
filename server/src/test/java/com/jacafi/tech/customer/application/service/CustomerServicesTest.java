@@ -22,9 +22,11 @@ import com.jacafi.tech.customer.application.port.CustomerRepository;
 import com.jacafi.tech.customer.domain.entity.Customer;
 import com.jacafi.tech.customer.domain.entity.TaxId;
 import com.jacafi.tech.customer.domain.exception.CustomerAlreadyExistsException;
+import com.jacafi.tech.customer.domain.exception.CustomerNotFoundException;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
 import com.jacafi.tech.shared.application.SortCriterion;
+import com.jacafi.tech.shared.domain.ErrorCode;
 import com.jacafi.tech.shared.security.AccountAccessDeniedException;
 import com.jacafi.tech.shared.security.AuthenticatedUser;
 import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
@@ -103,6 +105,16 @@ class CustomerServicesTest {
                 .isSameAs(customer);
 
         assertThat(customer.name()).isEqualTo("Maria da Silva");
+    }
+
+    @Test
+    void unknownCustomerIsReportedAsNotFound() {
+        operationalUser();
+
+        assertThatThrownBy(() -> new FindCustomerService(customers, access).find(CUSTOMER_ID))
+                .isInstanceOfSatisfying(
+                        CustomerNotFoundException.class,
+                        exception -> assertThat(exception.errorCode()).isEqualTo(ErrorCode.CUSTOMER_NOT_FOUND));
     }
 
     @Test

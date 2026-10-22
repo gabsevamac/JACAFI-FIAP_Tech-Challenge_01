@@ -1,6 +1,7 @@
 package com.jacafi.tech.serviceorder.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -22,10 +23,12 @@ import com.jacafi.tech.serviceorder.domain.entity.LaborLineItem;
 import com.jacafi.tech.serviceorder.domain.entity.Rejection;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrder;
 import com.jacafi.tech.serviceorder.domain.entity.ServiceOrderStatus;
+import com.jacafi.tech.serviceorder.domain.exception.ServiceOrderNotFoundException;
 import com.jacafi.tech.shared.application.AuditEvent;
 import com.jacafi.tech.shared.application.AuditTrailPort;
 import com.jacafi.tech.shared.application.PageQuery;
 import com.jacafi.tech.shared.application.PageResult;
+import com.jacafi.tech.shared.domain.ErrorCode;
 import com.jacafi.tech.shared.security.AuthenticatedUser;
 import com.jacafi.tech.shared.security.CurrentAuthenticatedUserPort;
 import com.jacafi.tech.shared.security.Role;
@@ -72,6 +75,18 @@ class ApproveAndRejectEstimateServicesTest {
                 .extracting(Rejection::estimateId)
                 .isEqualTo(pending.id());
         assertThat(trail.events).singleElement().extracting(AuditEvent::action).isEqualTo("ESTIMATE_REJECTED");
+    }
+
+    @Test
+    void unknownServiceOrderIsReportedAsNotFound() {
+        ServiceOrder order = orderAwaitingApproval();
+        ApproveEstimateService service =
+                new ApproveEstimateService(new Orders(order), notifications(), new Trail(), operational(), CLOCK);
+
+        assertThatThrownBy(() -> service.approve(UUID.randomUUID(), UUID.randomUUID(), "notification-3"))
+                .isInstanceOfSatisfying(
+                        ServiceOrderNotFoundException.class,
+                        exception -> assertThat(exception.errorCode()).isEqualTo(ErrorCode.SERVICE_ORDER_NOT_FOUND));
     }
 
     private static ServiceOrder orderAwaitingApproval() {
