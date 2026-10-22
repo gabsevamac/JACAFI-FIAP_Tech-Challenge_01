@@ -107,7 +107,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@5aaae1cb99ddaebbdc24bea14a57f8ed39eb09e1
         
       - name: Setup Docker Build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
@@ -118,7 +118,7 @@ jobs:
           outputs: type=docker,dest=/tmp/server-image.tar
 
       - name: Upload Image Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: docker-image
           path: /tmp/server-image.tar
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Image Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: docker-image
           path: /tmp
