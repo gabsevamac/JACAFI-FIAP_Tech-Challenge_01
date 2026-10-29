@@ -1,6 +1,6 @@
-﻿# Pipeline de Integração Contínua (CI)
+﻿# Pipeline de Integração e Entrega Contínua (CI/CD)
 
-O workflow em [.github/workflows/ci.yaml](../../.github/workflows/ci.yaml) implementa a esteira de Integração Contínua (CI) do projeto, automatizando desde a verificação do código-fonte até a análise de vulnerabilidades da imagem conteinerizada.
+O workflow em [.github/workflows/ci.yaml](../../.github/workflows/ci.yaml) implementa a esteira de CI/CD do projeto. Ela vai da verificação do código-fonte e da análise de vulnerabilidades da imagem até a publicação no ECR, o provisionamento com Terraform e o deploy no EKS. A infraestrutura e a configuração da AWS estão em [infra/README.md](../../infra/README.md).
 
 ## Triggers
 
@@ -8,9 +8,11 @@ O pipeline é disparado automaticamente nos seguintes eventos:
 
 | Evento | Condição |
 |---|---|
-| `push` | Branch `main` |
-| `pull_request` | Branch `main` (target) |
-| `workflow_dispatch` | Execução manual via GitHub Actions UI |
+| `push` | Branch `main`: CI, publicação da imagem e atualização do ambiente AWS, se ele estiver no ar |
+| `pull_request` | Branch `main` (target): somente CI, sem credenciais da AWS |
+| `workflow_dispatch` | Execução manual na `main`: CI e subida (ou atualização) do ambiente AWS completo |
+
+O workflow [infra-destroy.yaml](../../.github/workflows/infra-destroy.yaml) derruba o ambiente: manualmente, com a confirmação `DESTRUIR`, ou todo dia à meia-noite de Brasília.
 
 ---
 
@@ -25,15 +27,26 @@ graph TD
     slow["3. Testes Lentos\n(slow_tests: Integration & SAST)"]
     build["4. Build da Imagem\n(build_image: Docker tarball)"]
     scan["5. Scan de Segurança\n(docker_image_scan: Trivy)"]
+    gate["6. Ambiente AWS\n(aws_environment: chave AWS configurada? cluster no ar?)"]
+    publish["7. Publicação\n(publish_image: ECR, tag = SHA)"]
+    provision["8. Infra e Banco\n(provision: terraform apply)"]
+    deploy["9. Deploy\n(deploy: overlay eks + smoke test)"]
 
     lint --> |"estilo aprovado"| fast
     lint --> |"estilo aprovado"| slow
     fast --> |"unidade aprovada"| build
     slow --> |"integração & SAST aprovados"| build
     build --> |"imagem gerada (tarball)"| scan
+    scan --> |"sem CVE alta/crítica"| publish
+    gate --> |"AWS configurada"| publish
+    fast --> provision
+    slow --> provision
+    gate --> |"dispatch ou cluster ACTIVE"| provision
+    publish --> |"imagem no ECR"| deploy
+    provision --> |"ALB e RDS prontos"| deploy
 
     classDef jobStyle fill:#2d3748,stroke:#4a5568,stroke-width:2px,color:#fff;
-    class lint,fast,slow,build,scan jobStyle;
+    class lint,fast,slow,build,scan,gate,publish,provision,deploy jobStyle;
 ```
 
 ---
@@ -42,11 +55,17 @@ graph TD
 
 | Job | Identificador YAML | Dependências (`needs`) | Responsabilidade | Ferramentas / Comandos |
 |---|---|---|---|---|
-| **1. Lint** | `lint` | Nenhuma (raiz) | Verifica estilo e formatação do código-fonte. | `actions/checkout@v4`, `actions/setup-java@v4`, `./mvnw spotless:check` |
+| **1. Lint** | `lint` | Nenhuma (raiz) | Verifica estilo e formatação do código-fonte. | `actions/checkout@v7`, `actions/setup-java@v6`, `./mvnw spotless:check` |
 | **2. Testes Leves** | `fast_tests` | Nenhuma (paralelo ao `lint`) | Validação de estilo/formatação e testes unitários isolados. | `./mvnw validate` (Spotless, Checkstyle, Enforcer) e `./mvnw test` (Surefire) |
 | **3. Testes Lentos** | `slow_tests` | Nenhuma (paralelo ao `lint`) | Testes de integração com banco real e análise estática (SAST). | `./mvnw verify -Dskip.unit.tests=true` (Testcontainers) e `./mvnw spotbugs:check` (SpotBugs) |
-| **4. Build da Imagem** | `build_image` | `[fast_tests, slow_tests]` | Empacota a aplicação em imagem Docker e exporta como artefato `.tar`. | `docker/build-push-action@v5` (`push: false`, `outputs: type=docker`), `actions/upload-artifact@v4` |
-| **5. Scan da Imagem** | `docker_image_scan` | `build_image` | Varredura de vulnerabilidades de SO e bibliotecas na imagem gerada. | `actions/download-artifact@v4`, `docker load`, `aquasecurity/trivy-action@master` |
+| **4. Build da Imagem** | `build_image` | `[fast_tests, slow_tests]` | Empacota a aplicação em imagem Docker com a tag do commit e exporta como artefato `.tar`. | `docker/build-push-action@v7` (`push: false`, `outputs: type=docker`), `actions/upload-artifact@v7` |
+| **5. Scan da Imagem** | `docker_image_scan` | `build_image` | Varredura de vulnerabilidades de SO e bibliotecas na imagem gerada. | `actions/download-artifact@v8`, `docker load`, `aquasecurity/trivy-action@v0.36.0` |
+| **6. Ambiente AWS** | `aws_environment` | Nenhuma | Verifica se a AWS está configurada (secret `AWS_ACCESS_KEY_ID`) e decide se o ambiente é atualizado: sempre no `workflow_dispatch`; no `push`, só se o cluster estiver `ACTIVE`. Não roda em PRs. | `aws-actions/configure-aws-credentials@v6` (access key), `aws eks describe-cluster` |
+| **7. Publicação** | `publish_image` | `[docker_image_scan, aws_environment]` | Publica no ECR exatamente o `.tar` escaneado, com a tag igual ao SHA do commit. | `aws-actions/amazon-ecr-login@v2`, `docker push` |
+| **8. Infra e Banco** | `provision` | `[fast_tests, slow_tests, aws_environment]` | Provisiona ou atualiza VPC, EKS, RDS (deploy do banco) e ALB. | `hashicorp/setup-terraform@v4`, `terraform plan` e `terraform apply` |
+| **9. Deploy** | `deploy` | `[publish_image, provision]` | Cria Secret e ConfigMaps, aplica o overlay `k8s/overlays/eks`, aguarda o rollout e testa a API pelo ALB. | `azure/setup-kubectl@v5`, `kubectl kustomize`, `envsubst`, `kubectl apply` |
+
+Todas as actions são fixadas pelo SHA do commit, com a versão em comentário. `provision`, `deploy` e o destroy compartilham o grupo de concorrência `aws-environment`, para que nunca rodem ao mesmo tempo sobre o mesmo ambiente.
 
 ---
 
@@ -82,4 +101,10 @@ A separação entre `fast_tests` e `slow_tests` e sua execução concorrente tra
    - Vulnerabilidades sem correção disponível são ignoradas (`ignore-unfixed: true`), focando apenas em riscos acionáveis.
 
 3. **Controle de Publicação:**
-   - O pipeline atual não inclui um job de publicação (`publish`). A imagem é validada e escaneada, mas não é enviada para nenhum registry. A etapa de publicação pode ser adicionada como job subsequente ao `docker_image_scan`.
+   - Só a imagem aprovada no scan chega ao ECR: `publish_image` depende de `docker_image_scan` e envia o mesmo `.tar`, sem reconstruir.
+   - A tag é o SHA do commit, o que liga cada Pod em execução ao código exato que o gerou.
+
+4. **Credenciais da AWS:**
+   - Os jobs de CD usam a access key do usuário IAM `jacafi-github-actions`, guardada nos secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` do repositório. O OIDC não é usado, porque o plano Free da AWS bloqueia a criação do provedor.
+   - O usuário não tem acesso ao console e suas policies liberam só as ações e os recursos do projeto (`infra/bootstrap/github_pipeline_user.tf`). Os jobs de CD do `ci.yaml` só rodam na `main`; quem tem permissão de escrita no repositório ainda consegue usar a chave em um workflow de outra branch (`infra/README.md`).
+   - Os valores sensíveis (`DB_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`, `RESEND_API_KEY`) ficam em GitHub Secrets e chegam ao cluster como Secret Kubernetes, gravado a partir de um arquivo temporário com permissão `600`.

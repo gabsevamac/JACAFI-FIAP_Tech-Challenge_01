@@ -6,6 +6,7 @@ resource "aws_db_instance" "main" {
   instance_class = var.db_instance_class
 
   allocated_storage = var.db_allocated_storage
+  storage_type      = "gp3"
 
   db_name  = var.db_name
   username = var.db_username
@@ -16,9 +17,11 @@ resource "aws_db_instance" "main" {
   publicly_accessible    = false
   multi_az               = false
 
+  # Ambiente efêmero: destruído ao fim de cada sessão, sem backup nem snapshot final.
   backup_retention_period = 0
   skip_final_snapshot     = true
   deletion_protection     = false
+  apply_immediately       = true
 
   tags = {
     Name = "${local.prefixo_tag}_postgres"

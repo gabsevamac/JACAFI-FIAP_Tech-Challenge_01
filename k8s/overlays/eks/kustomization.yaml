@@ -3,13 +3,16 @@ kind: Kustomization
 namespace: jacafi
 resources:
   - ../../base
-  - ingress.yaml
 components:
+  - ../../components/keycloak
   - ../../components/autoscaling
 images:
   - name: jacafi/server
-    newName: registry.example.invalid/jacafi/server
-    newTag: replace-with-release-tag
+    newName: ${EKS_IMAGE_REPOSITORY}
+    newTag: "${EKS_IMAGE_TAG}"
 patches:
   - path: configmap.yaml
   - path: api.yaml
+  - path: keycloak.yaml
+  - path: service-api.yaml
+  - path: service-keycloak.yaml

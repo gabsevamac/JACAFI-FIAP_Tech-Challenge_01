@@ -4,7 +4,8 @@ namespace: jacafi
 resources:
   - ../../base
   - database.yaml
-  - keycloak.yaml
+components:
+  - ../../components/keycloak
 images:
   - name: jacafi/server
     newTag: k8s-local

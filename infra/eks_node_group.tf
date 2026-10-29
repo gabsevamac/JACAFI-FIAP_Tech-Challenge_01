@@ -1,7 +1,7 @@
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${local.prefixo}-nodes"
-  node_role_arn   = data.aws_iam_role.lab_role.arn
+  node_role_arn   = aws_iam_role.eks_nodes.arn
   subnet_ids      = aws_subnet.sb_public[*].id
 
   ami_type       = "AL2023_x86_64_STANDARD"
@@ -18,4 +18,6 @@ resource "aws_eks_node_group" "main" {
   update_config {
     max_unavailable = 1
   }
+
+  depends_on = [aws_iam_role_policy_attachment.eks_nodes]
 }
