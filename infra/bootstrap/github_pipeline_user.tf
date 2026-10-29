@@ -74,11 +74,13 @@ data "aws_iam_policy_document" "pipeline_artefatos" {
 #===============
 data "aws_iam_policy_document" "pipeline_rede" {
   # As ações Describe da EC2, do ELB e do Auto Scaling não aceitam restrição por recurso.
+  # O ELB consulta ec2:GetSecurityGroupsForVpc com a credencial de quem cria o load balancer.
   statement {
     sid = "Leitura"
     actions = [
       "autoscaling:Describe*",
       "ec2:Describe*",
+      "ec2:GetSecurityGroupsForVpc",
       "elasticloadbalancing:Describe*",
     ]
     resources = ["*"]
@@ -357,6 +359,17 @@ data "aws_iam_policy_document" "pipeline_plataforma" {
         "rds.amazonaws.com",
       ]
     }
+  }
+
+  # O EKS confere, com a credencial de quem chama, se a role vinculada ao serviço já existe. A consulta
+  # usa só o nome da role, então os dois formatos de ARN (com e sem o caminho aws-service-role/) são liberados.
+  statement {
+    sid     = "LerRolesVinculadasAosServicos"
+    actions = ["iam:GetRole"]
+    resources = [
+      "arn:aws:iam::${local.conta}:role/AWSServiceRoleFor*",
+      "arn:aws:iam::${local.conta}:role/aws-service-role/*",
+    ]
   }
 }
 
