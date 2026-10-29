@@ -340,7 +340,7 @@ export EKS_ALB_DNS=$(terraform -chdir=infra output -raw alb_dns)
 export EKS_DB_HOST=$(terraform -chdir=infra output -raw db_host)
 export EKS_IMAGE_REPOSITORY=<ecr_repository_url> EKS_IMAGE_TAG=<sha-publicado>
 export EKS_RESEND_ENABLED=false EKS_RESEND_FROM=
-aws eks update-kubeconfig --name jacafi-eks --region us-east-1
+aws eks update-kubeconfig --name jacafi-eks --region us-east-2
 kubectl apply -f k8s/base/namespace.yaml
 kubectl -n jacafi create secret generic jacafi-secrets --from-env-file=<arquivo-seguro> --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n jacafi create configmap keycloak-realm --from-file=jacafi-realm.json=keycloak/jacafi-realm.json --dry-run=client -o yaml | kubectl apply -f -

@@ -81,6 +81,14 @@ Os valores são de tabela, sem impostos. Confira na [AWS Pricing Calculator](htt
 
 - **Conta AWS** no plano Free ou Paid. No Free, só alguns tipos de EC2 são aceitos; os tipos usados aqui (`t3.small` e `db.t4g.micro`) estão entre eles. A cota de vCPUs sob demanda precisa ser de pelo menos 6: confira em *Service Quotas → Amazon EC2 → Running On-Demand Standard instances*.
 - **AWS CLI v2** (2.32.0 ou mais nova) autenticado como dono da conta, com `aws login`. Ele só é usado no bootstrap e para criar a access key do pipeline.
+
+  O provider da AWS no Terraform não lê as credenciais do `aws login`, porque o SDK (Software Development Kit) para Go v2 ainda não suporta esse login. Antes do bootstrap, crie em `~/.aws/config` um profile que repassa a sessão da CLI (Command Line Interface) e exporte `AWS_PROFILE=jacafi-bootstrap`. Não use o profile `default` para isso, porque ele quebra o `aws login`:
+
+  ```ini
+  [profile jacafi-bootstrap]
+  credential_process = aws configure export-credentials --profile default --format process
+  region = us-east-2
+  ```
 - **Terraform ≥ 1.10.** O pipeline usa a 1.17.1.
 - **Acesso de administrador ao repositório no GitHub**, para criar variables e secrets.
 - **kubectl** (opcional), para acompanhar o cluster localmente.
@@ -185,7 +193,7 @@ curl -H "Authorization: Bearer $TOKEN" "http://$ALB/api/v1/customers"
 Para usar `kubectl`, inclua seu ARN em `EKS_ADMIN_PRINCIPAL_ARNS` antes de subir o ambiente e rode:
 
 ```bash
-aws eks update-kubeconfig --name jacafi-eks --region us-east-1
+aws eks update-kubeconfig --name jacafi-eks --region us-east-2
 kubectl -n jacafi get pods,hpa
 kubectl -n jacafi get hpa api --watch   # acompanhe durante o teste de carga
 ```
@@ -210,7 +218,7 @@ O caminho principal é o pipeline. Para aplicar a partir da sua máquina:
 
 ```bash
 cd infra
-terraform init -backend-config="bucket=<tf_state_bucket>" -backend-config="region=us-east-1"
+terraform init -backend-config="bucket=<tf_state_bucket>" -backend-config="region=us-east-2"
 export TF_VAR_db_password='<mesma senha do secret DB_PASSWORD>'
 terraform apply
 ```

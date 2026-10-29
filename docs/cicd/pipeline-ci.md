@@ -27,7 +27,7 @@ graph TD
     slow["3. Testes Lentos\n(slow_tests: Integration & SAST)"]
     build["4. Build da Imagem\n(build_image: Docker tarball)"]
     scan["5. Scan de Segurança\n(docker_image_scan: Trivy)"]
-    gate["6. Ambiente AWS\n(aws_environment: OIDC configurado? cluster no ar?)"]
+    gate["6. Ambiente AWS\n(aws_environment: chave AWS configurada? cluster no ar?)"]
     publish["7. Publicação\n(publish_image: ECR, tag = SHA)"]
     provision["8. Infra e Banco\n(provision: terraform apply)"]
     deploy["9. Deploy\n(deploy: overlay eks + smoke test)"]
@@ -60,7 +60,7 @@ graph TD
 | **3. Testes Lentos** | `slow_tests` | Nenhuma (paralelo ao `lint`) | Testes de integração com banco real e análise estática (SAST). | `./mvnw verify -Dskip.unit.tests=true` (Testcontainers) e `./mvnw spotbugs:check` (SpotBugs) |
 | **4. Build da Imagem** | `build_image` | `[fast_tests, slow_tests]` | Empacota a aplicação em imagem Docker com a tag do commit e exporta como artefato `.tar`. | `docker/build-push-action@v7` (`push: false`, `outputs: type=docker`), `actions/upload-artifact@v7` |
 | **5. Scan da Imagem** | `docker_image_scan` | `build_image` | Varredura de vulnerabilidades de SO e bibliotecas na imagem gerada. | `actions/download-artifact@v8`, `docker load`, `aquasecurity/trivy-action@v0.36.0` |
-| **6. Ambiente AWS** | `aws_environment` | Nenhuma | Verifica se a AWS está configurada (`AWS_ROLE_ARN`) e decide se o ambiente é atualizado: sempre no `workflow_dispatch`; no `push`, só se o cluster estiver `ACTIVE`. Não roda em PRs. | `aws-actions/configure-aws-credentials@v6` (OIDC), `aws eks describe-cluster` |
+| **6. Ambiente AWS** | `aws_environment` | Nenhuma | Verifica se a AWS está configurada (secret `AWS_ACCESS_KEY_ID`) e decide se o ambiente é atualizado: sempre no `workflow_dispatch`; no `push`, só se o cluster estiver `ACTIVE`. Não roda em PRs. | `aws-actions/configure-aws-credentials@v6` (access key), `aws eks describe-cluster` |
 | **7. Publicação** | `publish_image` | `[docker_image_scan, aws_environment]` | Publica no ECR exatamente o `.tar` escaneado, com a tag igual ao SHA do commit. | `aws-actions/amazon-ecr-login@v2`, `docker push` |
 | **8. Infra e Banco** | `provision` | `[fast_tests, slow_tests, aws_environment]` | Provisiona ou atualiza VPC, EKS, RDS (deploy do banco) e ALB. | `hashicorp/setup-terraform@v4`, `terraform plan` e `terraform apply` |
 | **9. Deploy** | `deploy` | `[publish_image, provision]` | Cria Secret e ConfigMaps, aplica o overlay `k8s/overlays/eks`, aguarda o rollout e testa a API pelo ALB. | `azure/setup-kubectl@v5`, `kubectl kustomize`, `envsubst`, `kubectl apply` |
@@ -105,5 +105,6 @@ A separação entre `fast_tests` e `slow_tests` e sua execução concorrente tra
    - A tag é o SHA do commit, o que liga cada Pod em execução ao código exato que o gerou.
 
 4. **Credenciais da AWS:**
-   - Não há chaves de acesso no GitHub. Os jobs de CD trocam o token OIDC do GitHub por credenciais temporárias da role `jacafi-github-actions`, que só aceita workflows da branch `main` deste repositório.
+   - Os jobs de CD usam a access key do usuário IAM `jacafi-github-actions`, guardada nos secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` do repositório. O OIDC não é usado, porque o plano Free da AWS bloqueia a criação do provedor.
+   - O usuário não tem acesso ao console e suas policies liberam só as ações e os recursos do projeto (`infra/bootstrap/github_pipeline_user.tf`). Os jobs de CD do `ci.yaml` só rodam na `main`; quem tem permissão de escrita no repositório ainda consegue usar a chave em um workflow de outra branch (`infra/README.md`).
    - Os valores sensíveis (`DB_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`, `RESEND_API_KEY`) ficam em GitHub Secrets e chegam ao cluster como Secret Kubernetes, gravado a partir de um arquivo temporário com permissão `600`.

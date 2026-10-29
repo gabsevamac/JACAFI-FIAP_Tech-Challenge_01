@@ -74,9 +74,9 @@ O JACAFI é o back-end de gestão de uma oficina mecânica, desenvolvido para o 
 | E-mail | API HTTP do Resend, opcional | `server/src/main/java/com/jacafi/tech/serviceorder/adapter/out/notification/ResendStatusEmailSender.java` |
 | Imagem | Dockerfile em três estágios, runtime gerado por `jlink`, Alpine, UID 10001 | `server/Dockerfile` |
 | Orquestração | Kubernetes com Kustomize: `base`, componentes e overlays `local`, `load-test` e `eks` | `k8s/` |
-| Nuvem | AWS `us-east-1`: VPC, EKS 1.36, RDS, ALB, ECR, S3 | `infra/`, `infra/bootstrap/` |
+| Nuvem | AWS, na região de `AWS_REGION` (`us-east-2` no exemplo do bootstrap): VPC, EKS 1.36, RDS, ALB, ECR, S3 | `infra/`, `infra/bootstrap/` |
 | IaC | Terraform 1.17.1, provider AWS `~> 6.0` travado em 6.71.0 | `infra/provider.tf`, `infra/.terraform.lock.hcl` |
-| CI/CD | GitHub Actions com actions fixadas por SHA, autenticação na AWS por OIDC | `.github/workflows/` |
+| CI/CD | GitHub Actions com actions fixadas por SHA, autenticação na AWS por access key de um usuário IAM de menor privilégio | `.github/workflows/` |
 
 **Princípios de arquitetura:**
 
@@ -100,7 +100,7 @@ k8s/overlays/local/                   Docker Desktop, com PostgreSQL no cluster
 k8s/overlays/load-test/               Teste de carga isolado, com HPA
 k8s/overlays/eks/                     AWS: RDS, NodePorts para o ALB, placeholders EKS_*
 infra/                                Stack Terraform efêmero: rede, EKS, RDS e ALB
-infra/bootstrap/                      Stack Terraform persistente: estado, OIDC, ECR e orçamento
+infra/bootstrap/                      Stack Terraform persistente: estado, usuário do pipeline, ECR e orçamento
 docs/                                 ADRs, C4 anterior, CI/CD, segurança e relatórios
 ```
 
@@ -129,7 +129,7 @@ flowchart TD
     sistema -->|"Pede o envio do e-mail de<br/>mudança de status [HTTPS]"| resend
     resend -->|"Entrega o e-mail"| cliente
     equipe -->|"push, pull request e<br/>Run workflow [HTTPS]"| github
-    github -->|"Assume role por OIDC,<br/>provisiona e implanta [HTTPS]"| aws
+    github -->|"Autentica com access key,<br/>provisiona e implanta [HTTPS]"| aws
     aws -.->|"Executa"| sistema
 ```
 
@@ -194,11 +194,10 @@ flowchart LR
     subgraph gh["GitHub [Sistema Externo]"]
         ci["Fluxo CI/CD<br/>[Workflow: ci.yaml]<br/>CI, publicação, Terraform e deploy"]:::container
         destroy["Derrubar ambiente AWS<br/>[Workflow: infra-destroy.yaml]<br/>Manual ou diário às 03:00 UTC"]:::container
-        issuer["Emissor OIDC do GitHub<br/>[token.actions.githubusercontent.com]"]:::ext
     end
 
     subgraph boot["AWS: stack bootstrap, persistente"]
-        role["IAM role jacafi-github-actions<br/>[Confiança OIDC restrita à main]"]:::container
+        iam["Usuário IAM jacafi-github-actions<br/>[Sem console; 3 policies de menor privilégio]"]:::container
         ecr[("ECR jacafi/server<br/>[Registro de imagens]")]:::db
         s3[("S3 jacafi-tfstate-ID-da-conta<br/>[Estado e lock do Terraform]")]:::db
         budget["AWS Budget jacafi-mensal<br/>[Alertas em 25, 50, 75 e 90%]"]:::container
@@ -211,10 +210,8 @@ flowchart LR
 
     equipe -->|"push, PR e Run workflow"| ci
     equipe -->|"Run workflow com DESTRUIR"| destroy
-    ci -->|"Pede o token do job"| issuer
-    destroy -->|"Pede o token do job"| issuer
-    ci -->|"AssumeRoleWithWebIdentity"| role
-    destroy -->|"AssumeRoleWithWebIdentity"| role
+    ci -->|"Access key dos secrets do repositório"| iam
+    destroy -->|"Access key dos secrets do repositório"| iam
     ci -->|"docker push :sha"| ecr
     ci -->|"Lê e grava o estado"| s3
     ci -->|"terraform apply"| recursos
@@ -230,7 +227,7 @@ Dois stacks Terraform, com ciclos de vida diferentes:
 | Stack | Pasta | Quem aplica | Estado | Ciclo de vida |
 |---|---|---|---|---|
 | Bootstrap | `infra/bootstrap/` | Administrador da conta, uma vez, da própria máquina | Local, `infra/bootstrap/terraform.tfstate`, ignorado pelo Git | Persistente |
-| Ambiente | `infra/` | Pipeline, via OIDC | S3, chave `jacafi/infra.tfstate`, com `use_lockfile` (`infra/backend.tf:4-8`) | Efêmero |
+| Ambiente | `infra/` | Pipeline, com a access key do usuário IAM | S3, chave `jacafi/infra.tfstate`, com `use_lockfile` (`infra/backend.tf:4-8`) | Efêmero |
 
 ## 5. C4 nível 3: componentes
 
@@ -382,11 +379,13 @@ flowchart LR
 | `slow_tests` | nada | sempre | `contents: read` | `ci.yaml:78-105` |
 | `build_image` | `fast_tests`, `slow_tests` | sempre | `contents: read` | `ci.yaml:107-130` |
 | `docker_image_scan` | `build_image` | sempre | `contents: read` | `ci.yaml:132-154` |
-| `aws_environment` | nada | fora de PR, só na `main` | `id-token: write` | `ci.yaml:159-204` |
-| `publish_image` | `docker_image_scan`, `aws_environment` | `configured == 'true'` | `id-token: write` | `ci.yaml:206-238` |
-| `provision` | `fast_tests`, `slow_tests`, `aws_environment` | `deploy == 'true'` | `id-token: write` | `ci.yaml:240-303` |
-| `deploy` | `publish_image`, `provision` | os dois com sucesso | `id-token: write` | `ci.yaml:305-421` |
-| `destroy` | nada | `schedule`, ou manual com `DESTRUIR` | `id-token: write` | `infra-destroy.yaml:24-77` |
+| `aws_environment` | nada | fora de PR, só na `main` | `contents: read` | `ci.yaml:161-209` |
+| `publish_image` | `docker_image_scan`, `aws_environment` | `configured == 'true'` | `contents: read` | `ci.yaml:211-241` |
+| `provision` | `fast_tests`, `slow_tests`, `aws_environment` | `deploy == 'true'` | `contents: read` | `ci.yaml:243-303` |
+| `deploy` | `publish_image`, `provision` | os dois com sucesso | `contents: read` | `ci.yaml:305-419` |
+| `destroy` | nada | `schedule`, ou manual com `DESTRUIR` | `contents: read` | `infra-destroy.yaml:24-92` |
+
+Nenhum job pede `id-token`: as credenciais da AWS vêm dos secrets do repositório (ver 7.4). Os jobs de AWS leem `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` direto, sem environment.
 
 Divergências entre os jobs e a documentação existente:
 
@@ -408,7 +407,7 @@ flowchart TB
     resend["api.resend.com"]:::ext
     ecr[("ECR jacafi/server")]:::db
 
-    subgraph region["AWS us-east-1"]
+    subgraph region["AWS (região de AWS_REGION)"]
         cp["Plano de controle EKS jacafi-eks 1.36<br/>[Endpoint público, access entries]"]:::ext
         subgraph vpc["VPC 10.0.0.0/16"]
             alb["ALB jacafi-alb<br/>[SG jacafi-alb-sg: 80 e 8080 de 0.0.0.0/0]<br/>Listener 80 para jacafi-api-tg<br/>Listener 8080 para jacafi-keycloak-tg"]:::node
@@ -459,11 +458,11 @@ flowchart TB
 
 | Objeto | Origem | Observação |
 |---|---|---|
-| Namespace `jacafi` | `k8s/base/namespace.yaml` | O pipeline também o aplica isoladamente, antes do Secret (`ci.yaml:338`) |
+| Namespace `jacafi` | `k8s/base/namespace.yaml` | O pipeline também o aplica isoladamente, antes do Secret (`ci.yaml:336`) |
 | ConfigMap `jacafi-config` | `k8s/base/configmap.yaml` com o patch `k8s/overlays/eks/configmap.yaml` | Recebe os placeholders `EKS_*` |
-| Secret `jacafi-secrets` | Criado pelo pipeline (`ci.yaml:340-353`) | `DB_USERNAME`, `DB_PASSWORD`, `KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD`, `RESEND_API_KEY` |
-| ConfigMap `keycloak-realm` | Criado pelo pipeline a partir de `keycloak/jacafi-realm.json` (`ci.yaml:357`) | Montado em `/opt/keycloak/data/import` |
-| ConfigMap `rds-ca` | Criado pelo pipeline, com o `global-bundle.pem` da AWS (`ci.yaml:358-359`) | Montado em `/etc/postgresql/certs` (`k8s/overlays/eks/api.yaml`) |
+| Secret `jacafi-secrets` | Criado pelo pipeline (`ci.yaml:338-351`) | `DB_USERNAME`, `DB_PASSWORD`, `KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD`, `RESEND_API_KEY` |
+| ConfigMap `keycloak-realm` | Criado pelo pipeline a partir de `keycloak/jacafi-realm.json` (`ci.yaml:355`) | Montado em `/opt/keycloak/data/import` |
+| ConfigMap `rds-ca` | Criado pelo pipeline, com o `global-bundle.pem` da AWS (`ci.yaml:356-357`) | Montado em `/etc/postgresql/certs` (`k8s/overlays/eks/api.yaml`) |
 | Deployment `api` | `k8s/base/api.yaml`, componente `autoscaling` e patch `k8s/overlays/eks/api.yaml` | Pede 250m e 512Mi, limita a 1 CPU e 1Gi. Tem init container `pg_isready` e probes de startup, readiness e liveness. Usa `RollingUpdate` com `maxSurge: 1` |
 | Service `api` | `k8s/base/api.yaml` com o patch `service-api.yaml` | NodePort 30080 para a porta 8082 |
 | HPA `api` | `k8s/components/autoscaling/autoscaling.yaml` | De 1 a 3 réplicas, CPU média de 70% e memória média de 800Mi |
@@ -491,8 +490,8 @@ flowchart TB
 
 | Gatilho | Workflow | O que roda |
 |---|---|---|
-| `pull_request` para `main` | Fluxo CI/CD | Só CI. Nenhum job pede `id-token`, então não há credencial da AWS |
-| `push` na `main` | Fluxo CI/CD | CI e publicação da imagem. Provisão e deploy só se o cluster existir |
+| `pull_request` para `main` | Fluxo CI/CD | Só CI. Os jobs de AWS não rodam em PR, então a access key não é usada |
+| `push` na `main` | Fluxo CI/CD | CI e publicação da imagem. Provisão e deploy só se o cluster estiver `ACTIVE` |
 | `workflow_dispatch` na `main` | Fluxo CI/CD | CI, publicação, provisão e deploy: sobe ou atualiza o ambiente completo |
 | `workflow_dispatch` com `DESTRUIR` | Derrubar ambiente AWS | `terraform destroy` |
 | `schedule` `0 3 * * *` | Derrubar ambiente AWS | `terraform destroy`, todo dia à meia-noite de Brasília |
@@ -545,7 +544,7 @@ sequenceDiagram
     par CI e decisão em paralelo
         GH->>CI: lint, fast_tests e slow_tests
     and
-        GH->>Gate: vars.AWS_ROLE_ARN está preenchida?
+        GH->>Gate: O secret AWS_ACCESS_KEY_ID está preenchido?
         Gate-->>GH: configured=true e deploy=true, sem consultar a AWS
     end
     CI-->>GH: Testes aprovados
@@ -563,39 +562,38 @@ sequenceDiagram
     GH-->>Dev: Resumo com as URLs da API, do Keycloak e do issuer
 ```
 
-A primeira execução leva cerca de 25 minutos, a maior parte na criação do EKS e do RDS (`infra/README.md:138`).
+A primeira execução leva cerca de 25 minutos, a maior parte na criação do EKS e do RDS (`infra/README.md:171`).
 
-### 7.4 Autenticação na AWS por OIDC
+### 7.4 Autenticação na AWS por access key
 
-Cada job de CD repete este fluxo: `aws_environment` (só no push), `publish_image`, `provision`, `deploy` e `destroy`.
+O pipeline não usa OIDC: o plano Free da AWS aplica uma service control policy que nega `iam:*Provider*`, então o provedor de identidade do GitHub não pode ser criado (`infra/README.md:110`). Cada job de CD repete este fluxo: `aws_environment` (só no push), `publish_image`, `provision`, `deploy` e `destroy`.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant Job as Job de CD
+    participant Sec as Secrets do repositório
     participant Act as configure-aws-credentials v6.3.0
-    participant Iss as Emissor OIDC do GitHub
-    participant STS as AWS STS
-    participant IAM as IAM: provedor OIDC e role
+    participant AWS as APIs da AWS
 
-    Job->>Act: role-to-assume = vars.AWS_ROLE_ARN
-    Act->>Iss: Pede o ID token, liberado por id-token write
-    Iss-->>Act: JWT com aud sts.amazonaws.com e sub do repositório e da branch
-    Act->>STS: AssumeRoleWithWebIdentity com o JWT
-    STS->>IAM: Valida a assinatura pelo provedor token.actions.githubusercontent.com
-    STS->>IAM: Confere a trust policy: aud e sub com StringEquals
-    alt sub igual a repo:gabsevamac/JACAFI-FIAP_Tech-Challenge_01:ref:refs/heads/main
-        STS-->>Act: Credenciais temporárias de 1 h, ou 2 h em provision e destroy
-        Act-->>Job: Credenciais e AWS_REGION no ambiente do job
-    else Outra branch ou outro repositório
-        STS-->>Act: AccessDenied
+    Job->>Sec: Lê AWS_ACCESS_KEY_ID e AWS_SECRET_ACCESS_KEY
+    Sec-->>Job: Valores, mascarados nos logs
+    Job->>Act: aws-access-key-id, aws-secret-access-key e aws-region = vars.AWS_REGION
+    Act-->>Job: Credenciais e AWS_REGION no ambiente do job
+    Job->>AWS: Chamadas assinadas como o usuário jacafi-github-actions
+    alt Ação e recurso dentro das policies
+        AWS-->>Job: Resposta normal
+    else Fora das policies de artefatos, rede e plataforma
+        AWS-->>Job: AccessDenied, com a ação que faltou
     end
 ```
 
 Evidências:
 
-- **Trust policy:** `infra/bootstrap/github_oidc.tf:7-28`.
-- **Duração da sessão:** 2 h no máximo (`max_session_duration = 7200`, `github_oidc.tf:33`). `provision` e `destroy` pedem as 2 h (`ci.yaml:277`, `infra-destroy.yaml:52`).
+- **Usuário e policies:** `aws_iam_user.pipeline` e as policies `jacafi-pipeline-artefatos`, `-rede` e `-plataforma`, em `infra/bootstrap/github_pipeline_user.tf`. Sem acesso ao console e sem `ec2:RunInstances` nem ações sobre usuários IAM.
+- **Criação da chave:** pela CLI, fora do Terraform, para o segredo não ir parar no estado do bootstrap (`infra/README.md:123-133`).
+- **Validade:** a chave não expira e a rotação é manual (R16).
+- **Quem pode usar:** os jobs de AWS do `ci.yaml` só rodam na `main` (`ci.yaml:163`), mas os secrets são do repositório. Quem tem escrita pode usar a chave em um workflow de outra branch (`infra/README.md:120`).
 - **Região:** os passos `run` usam `$AWS_REGION`, exportada pela action, por exemplo no `terraform init` e no `update-kubeconfig`.
 
 ### 7.5 Provisão (job `provision`)
@@ -669,7 +667,7 @@ sequenceDiagram
     Dep->>Dep: Grava o resumo em GITHUB_STEP_SUMMARY
 ```
 
-**Por que a substituição acontece antes do Kustomize** (`ci.yaml:371-380`): se o `envsubst` rodasse no YAML já gerado, `RESEND_ENABLED: "${EKS_RESEND_ENABLED}"` viraria `RESEND_ENABLED: true` sem aspas. Isso é um booleano YAML, e o ConfigMap seria rejeitado. Substituindo nos arquivos de origem, as aspas continuam no lugar. A lista de variáveis do `envsubst` é explícita, então `$DB_HOST` no comando do init container (`k8s/base/api.yaml:32`) não é tocado.
+**Por que a substituição acontece antes do Kustomize** (`ci.yaml:369-378`): se o `envsubst` rodasse no YAML já gerado, `RESEND_ENABLED: "${EKS_RESEND_ENABLED}"` viraria `RESEND_ENABLED: true` sem aspas. Isso é um booleano YAML, e o ConfigMap seria rejeitado. Substituindo nos arquivos de origem, as aspas continuam no lugar. A lista de variáveis do `envsubst` é explícita, então `$DB_HOST` no comando do init container (`k8s/base/api.yaml:32`) não é tocado.
 
 ### 7.7 Push na main
 
@@ -685,16 +683,21 @@ sequenceDiagram
 
     Dev->>GH: push na main, por exemplo o merge de um PR
     GH->>Gate: Inicia em paralelo ao CI
-    alt AWS_ROLE_ARN vazia
+    alt AWS_ACCESS_KEY_ID vazio
         Gate-->>GH: configured=false
         Note over GH: Só o CI roda. Publicação e deploy ficam skipped, com aviso.
     else AWS configurada
-        Gate->>EKS: aws eks describe-cluster --name jacafi-eks, com credencial OIDC
-        alt Cluster existe, em qualquer status
-            EKS-->>Gate: Status do cluster, por exemplo ACTIVE
+        Gate->>EKS: aws eks describe-cluster --name jacafi-eks, com a access key
+        alt Cluster ACTIVE
+            EKS-->>Gate: ACTIVE
             Gate-->>GH: deploy=true
             GH->>Pub: Publica a imagem depois do scan
             GH->>Prov: terraform apply e deploy, como no Run workflow
+        else Cluster em transição, como CREATING ou DELETING
+            EKS-->>Gate: Status diferente de ACTIVE
+            Gate-->>GH: deploy=false
+            GH->>Pub: Publica a imagem depois do scan
+            Note over Prov: provision e deploy ficam skipped. O push não mexe num ambiente em transição.
         else ResourceNotFoundException
             EKS-->>Gate: Cluster não encontrado
             Gate-->>GH: deploy=false
@@ -727,9 +730,9 @@ sequenceDiagram
     else Agendado
         Cron->>GH: cron 0 3 * * *, meia-noite em Brasília
     end
-    GH->>Job: Roda se AWS_ROLE_ARN estiver preenchida e for schedule ou DESTRUIR
+    GH->>Job: Roda se for schedule ou DESTRUIR
     Note over Job: Grupo aws-environment: espera provision ou deploy em andamento.
-    Job->>AWS: Credenciais por OIDC, com sessão de 2 h
+    Job->>AWS: Credenciais da access key, se AWS_ACCESS_KEY_ID estiver preenchido (senão, aviso e fim)
     Job->>TF: terraform init com o bucket de estado
     TF->>S3: Lê jacafi/infra.tfstate
     Job->>TF: terraform state list
@@ -740,7 +743,7 @@ sequenceDiagram
         TF->>AWS: Remove add-on, node group, EKS, RDS, ALB, security groups, rede e roles
         TF->>S3: Grava o estado vazio
     end
-    Note over S3,AWS: O bootstrap não é tocado: bucket, OIDC, role, ECR e budget continuam.
+    Note over S3,AWS: O bootstrap não é tocado: bucket, usuário do pipeline, ECR e budget continuam.
 ```
 
 O RDS não tem backup nem snapshot final (`infra/rds.tf:21-24`), então os dados do banco não sobrevivem ao destroy. Isso é intencional.
@@ -755,14 +758,15 @@ sequenceDiagram
     participant AWS as APIs da AWS
     participant GH as GitHub: settings do repositório
 
+    Note over Admin,TF: O provider não lê o aws login. Use o profile jacafi-bootstrap, com credential_process (infra/README.md:85-91)
     Admin->>TF: terraform apply em infra/bootstrap, com estado local
     TF->>AWS: S3 jacafi-tfstate com versionamento, AES256 e sem acesso público
-    TF->>AWS: Provedor OIDC token.actions.githubusercontent.com
-    TF->>AWS: Role jacafi-github-actions com PowerUserAccess e IAM restrito a role/jacafi-*
+    TF->>AWS: Usuário IAM jacafi-github-actions, sem console, com 3 policies de menor privilégio
     TF->>AWS: ECR jacafi/server com scan no push e retenção de 10 imagens
     TF->>AWS: Budget jacafi-mensal, medido sem descontar créditos
-    TF-->>Admin: aws_region, aws_role_arn, tf_state_bucket e ecr_repository_url
-    Admin->>GH: gh variable set das 4 variáveis e gh secret set de DB_PASSWORD e KEYCLOAK_ADMIN_PASSWORD
+    TF-->>Admin: aws_region, pipeline_user_name, tf_state_bucket e ecr_repository_url
+    Admin->>AWS: aws iam create-access-key, fora do Terraform
+    Admin->>GH: gh variable set das 3 variáveis e gh secret set de AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DB_PASSWORD e KEYCLOAK_ADMIN_PASSWORD
     Note over Admin,GH: A partir daqui, o Run workflow sobe o ambiente.
 ```
 
@@ -856,7 +860,8 @@ Observações para a revisão:
 
 | Nome | Tipo | Obrigatório | Usado por | Destino |
 |---|---|---|---|---|
-| `AWS_ROLE_ARN` | Variable | Sim; vazia, o CD é ignorado com aviso | Todos os jobs de CD e `destroy` | `role-to-assume` |
+| `AWS_ACCESS_KEY_ID` | Secret | Sim; vazio, o CD é ignorado com aviso | Todos os jobs de CD e `destroy` | `aws-access-key-id` |
+| `AWS_SECRET_ACCESS_KEY` | Secret | Sim, par da anterior | Todos os jobs de CD e `destroy` | `aws-secret-access-key` |
 | `AWS_REGION` | Variable | Sim | Todos os jobs de CD e `destroy` | `aws-region` e `TF_VAR_aws_region`; `$AWS_REGION` no backend |
 | `TF_STATE_BUCKET` | Variable | Sim | `provision`, `destroy` | `-backend-config="bucket=…"` |
 | `ECR_REPOSITORY_URL` | Variable | Sim | `publish_image`, `deploy` | Tag do push; `EKS_IMAGE_REPOSITORY` |
@@ -867,7 +872,7 @@ Observações para a revisão:
 | `KEYCLOAK_ADMIN_PASSWORD` | Secret | Sim | `deploy` | Secret `jacafi-secrets` |
 | `RESEND_API_KEY` | Secret | Não | `deploy` | Secret `jacafi-secrets`; junto com `RESEND_FROM`, liga os e-mails |
 
-A senha do banco também fica no estado do Terraform, no S3 criptografado (`infra/README.md:214`). As restrições de caracteres dela estão em `infra/README.md:120`.
+A senha do banco também fica no estado do Terraform, no S3 criptografado (`infra/README.md:222`). As restrições de caracteres dela estão em `infra/README.md:153`.
 
 ### 9.2 Placeholders do overlay eks
 
@@ -897,16 +902,16 @@ A senha do banco também fica no estado do Terraform, no S3 criptografado (`infr
 | # | Decisão | Motivo | Consequência aceita | Evidência |
 |---|---|---|---|---|
 | D1 | Ambiente efêmero: sobe com Run workflow e cai manualmente ou à meia-noite | O EKS cobra US$ 0,10/h mesmo sem pods; ligado direto, consumiria os créditos em cerca de 3 semanas | Dados perdidos a cada sessão; primeira subida de cerca de 25 min | `infra/README.md:10`, `infra-destroy.yaml:13-14` |
-| D2 | Dois stacks Terraform | Estado, confiança OIDC e imagens sobrevivem ao destroy | O estado do bootstrap é local e precisa ser guardado | `infra/README.md:98` |
+| D2 | Dois stacks Terraform | Estado, usuário do pipeline e imagens sobrevivem ao destroy | O estado do bootstrap é local e precisa ser guardado | `infra/README.md:106` |
 | D3 | ALB do Terraform apontando para NodePorts, sem Load Balancer Controller nem Ingress | Menos peças: sem IRSA, Helm nem CRDs. O destroy não deixa ELB órfão criado pelo Kubernetes | NodePorts fixos, que precisam bater entre Terraform e manifestos; o ALB registra todos os nós | `infra/t-group.tf`, `k8s/overlays/eks/service-*.yaml` |
 | D4 | Só subnets públicas, sem NAT gateway | O NAT custaria cerca de US$ 0,045/h, mais o tráfego | Nós com IP público; RDS em subnet pública, mas sem IP público | `infra/subnets.tf:7,17`, `infra/rds.tf:17` |
-| D5 | Access entries com `authentication_mode = "API"`, e admin para quem cria o cluster | Dispensa o ConfigMap `aws-auth` | Se o cluster for criado fora do pipeline, a role do pipeline precisa entrar em `cluster_admin_principal_arns` | `infra/eks.tf:13-16`, `infra/README.md:192` |
-| D6 | RDS com TLS `verify-full` e o bundle global da AWS | Garante a identidade do servidor do banco | O deploy depende de `truststore.pki.rds.amazonaws.com` | `ci.yaml:358`, `k8s/overlays/eks/configmap.yaml:7` |
+| D5 | Access entries com `authentication_mode = "API"`, e admin para quem cria o cluster | Dispensa o ConfigMap `aws-auth` | Se o cluster for criado fora do pipeline, o usuário do pipeline precisa entrar em `cluster_admin_principal_arns` | `infra/eks.tf:13-16`, `infra/README.md:226` |
+| D6 | RDS com TLS `verify-full` e o bundle global da AWS | Garante a identidade do servidor do banco | O deploy depende de `truststore.pki.rds.amazonaws.com` | `ci.yaml:356`, `k8s/overlays/eks/configmap.yaml:7` |
 | D7 | Keycloak `start-dev` no cluster, com o realm vindo de ConfigMap | Simples e sem banco extra | Não serve para produção; usuários criados no console somem a cada recriação do pod | `k8s/components/keycloak/keycloak.yaml:21` |
-| D8 | HTTP sem TLS no ALB | Não há domínio nem certificado | Tokens trafegam sem criptografia | `infra/alb_listener.tf`, `infra/README.md:212` |
-| D9 | Role do pipeline com `PowerUserAccess`, mais IAM restrito a `role/jacafi-*` | O stack cria as roles do cluster e dos nós | Permissão ampla na conta, aceitável numa conta dedicada | `infra/bootstrap/github_oidc.tf:36-64` |
-| D10 | Imagem publicada só depois do Trivy, com tag igual ao SHA do commit | Rastreabilidade entre commit e imagem | O ECR aceita tags mutáveis, mas o SHA não se repete | `ci.yaml:206-238`, `infra/bootstrap/ecr.tf:4` |
-| D11 | Placeholders com `envsubst` em vez de Helm | Mantém o Kustomize que já existia | Lista de placeholders mantida à mão; o pipeline falha se sobrar algum | `ci.yaml:376-385` |
+| D8 | HTTP sem TLS no ALB | Não há domínio nem certificado | Tokens trafegam sem criptografia | `infra/alb_listener.tf`, `infra/README.md:246` |
+| D9 | Usuário IAM do pipeline com access key e três policies de menor privilégio, no lugar de OIDC | O plano Free bloqueia `iam:*Provider*`, então o provedor OIDC não pode ser criado | Credencial de longa duração (R16); as policies precisam acompanhar o que o Terraform usa, ou o job falha com `AccessDenied` | `infra/bootstrap/github_pipeline_user.tf`, `infra/README.md:110` |
+| D10 | Imagem publicada só depois do Trivy, com tag igual ao SHA do commit | Rastreabilidade entre commit e imagem | O ECR aceita tags mutáveis, mas o SHA não se repete | `ci.yaml:211-241`, `infra/bootstrap/ecr.tf:4` |
+| D11 | Placeholders com `envsubst` em vez de Helm | Mantém o Kustomize que já existia | Lista de placeholders mantida à mão; o pipeline falha se sobrar algum | `ci.yaml:374-383` |
 | D12 | Actions fixadas por SHA, com a versão em comentário | Cadeia de suprimentos | Atualização manual das versões | `ci.yaml` (todas as ocorrências de `uses:`) |
 | D13 | Outbox processado dentro da própria API, por `@Scheduled` | Dispensa um broker | Várias réplicas processam os mesmos eventos (R3) | ADR-004 |
 
@@ -947,7 +952,7 @@ Severidade estimada: **A** (alta), **M** (média), **B** (baixa).
 | R1 | M | **Replay da aprovação ou reprovação duplica e-mail e auditoria.** O domínio devolve o orçamento sem mudar o estado, mas o caso de uso salva e publica os eventos de novo. O novo evento tem outro ID, então a `Idempotency-Key` do Resend também muda, e o cliente recebe o e-mail outra vez. | `server/src/main/java/com/jacafi/tech/serviceorder/domain/entity/ServiceOrder.java:155-159`, `ApproveEstimateService.java:40-43` e o trecho equivalente de `RejectEstimateService.java` | 📄 Aberto |
 | R2 | M | **OS reprovada fica sem saída.** A reprovação devolve a OS para `UNDER_DIAGNOSIS`, mas nenhum endpoint gera um novo orçamento: só a abertura chama `generateEstimate`, e a troca manual de status não aceita `AWAITING_APPROVAL`. Também não há transição para `REJECTED`, que depende da questão Q1 da linguagem ubíqua. | `ServiceOrder.java:184`, `OpenServiceOrderService.java:81-82`, `UpdateServiceOrderStatusService.java:58-62`, `README.md:128` | 📄 Aberto |
 | R3 | M | **Outbox sem coordenação entre réplicas.** Cada réplica roda os dois `@Scheduled` e lê os mesmos `PENDING`, sem `FOR UPDATE SKIP LOCKED`, e a entidade não tem `@Version`. O HPA do EKS permite até 3 réplicas, e o rolling update cria uma a mais. Há duas mitigações parciais: o índice único `ux_audit_trail_outbox_event` faz falhar o lote duplicado de auditoria, que volta inteiro e é reprocessado, e a `Idempotency-Key` por evento evita e-mail duplicado no Resend dentro da janela de idempotência. | `AuditOutboxProcessor.java:32-37`, `ServiceOrderStatusNotificationProcessor.java:31-37`, `V09_20260830__create_event_outbox.sql:6-8`, `ResendStatusEmailSender.java:59`, `k8s/README.md:218` | 📄 Aberto; para demonstrar o HPA, a orientação é usar carga de leitura |
-| R4 | B | **A provisão não espera o scan da imagem.** Se o Trivy reprovar, o ambiente já terá sido criado ou atualizado, o deploy é pulado e o custo corre sem aplicação. | `ci.yaml:242` | 📄 Escolha por tempo total; revisar |
+| R4 | B | **A provisão não espera o scan da imagem.** Se o Trivy reprovar, o ambiente já terá sido criado ou atualizado, o deploy é pulado e o custo corre sem aplicação. | `ci.yaml:245` | 📄 Escolha por tempo total; revisar |
 | R5 | M | **Push durante o destroy recriaria o ambiente.** Um cluster em `DELETING` ainda responde ao `describe-cluster`. | `ci.yaml:195-202` | ✅ Corrigido: o gate exige status `ACTIVE`; outros status só publicam a imagem. Não testado em execução real |
 | R6 | M | **Borda sem proteção:** HTTP sem TLS, console do Keycloak exposto em `:8080`, realm com `sslRequired: none` e usuários de desenvolvimento com senhas publicadas no README. | `infra/alb_listener.tf`, `infra/s-group.tf:13-19`, `README.md:73-76` | Aceito para a demonstração (D7, D8) |
 | R7 | B | **Fila de concorrência do GitHub.** Cada grupo tem no máximo um job rodando e um pendente; um novo pendente cancela o anterior, mesmo com `cancel-in-progress: false`. Um destroy agendado e pendente pode ser cancelado por um `provision` que entre na fila depois. O grupo também fica livre entre `provision` e `deploy`, então um destroy pode rodar entre os dois. | `ci.yaml:245-247,309-311`, `infra-destroy.yaml:28-30` | 📄 Pela documentação do GitHub Actions; não testado |
@@ -959,6 +964,7 @@ Severidade estimada: **A** (alta), **M** (média), **B** (baixa).
 | R13 | A | **Conta AWS.** Não está confirmado que o plano Free aceite EKS; a cota de vCPU precisa ser de pelo menos 6; quando o crédito acaba no plano Free, a conta é suspensa. | `infra/README.md:82` | ⏳ Confirmar antes da primeira execução |
 | R14 | B | **Rede permissiva.** Endpoint público do EKS sem restrição de CIDR; nós com IP público. | `infra/eks.tf:6-10`, `infra/subnets.tf:7` | Aceito (D4) |
 | R15 | M | **Entregáveis pendentes:** README sem os objetivos da fase; diagramas não embutidos no README; sem collection de API; sem script de carga versionado para o vídeo do HPA; tudo ainda sem commit. | `README.md` | Aberto |
+| R16 | M | **Access key de longa duração.** O pipeline autentica com a chave de um usuário IAM, guardada nos secrets do repositório, sem expiração nem rotação agendada. Quem tem escrita no repositório pode usá-la em um workflow de outra branch; o `if` da `main` não impede isso. As policies de menor privilégio limitam o estrago. | `infra/bootstrap/github_pipeline_user.tf`, `infra/README.md:120` | 📄 Aberto; mitigação documentada: environment restrito à `main` e rotação manual |
 
 ## 13. Requisitos da Fase 2 e evidências
 
@@ -973,7 +979,7 @@ O enunciado (`requisitos_pt2.pdf`) não está versionado no repositório.
 | Consulta de status | Cumprido | `ServiceOrderController.java:55-58`, `ServiceOrderStatus.java` |
 | Aprovação e recusa do orçamento | Cumprido, com ressalvas | `ServiceOrderController.java:61-76`; ressalvas em R1 e R2 |
 | Listagem ordenada por prioridade e antiguidade, sem concluídas e entregues | Cumprido | `ListOperationalServiceOrdersService.java`, `README.md:128` |
-| Notificação de status por e-mail | Cumprido; exige conta no Resend | `ResendStatusEmailSender.java`, `ci.yaml:366-370` |
+| Notificação de status por e-mail | Cumprido; exige conta no Resend | `ResendStatusEmailSender.java`, `ci.yaml:364-368` |
 | Dockerfile e docker-compose | Cumprido | `server/Dockerfile`, `docker-compose.yaml` |
 | Deployments, Services, ConfigMaps, Secrets e HPA | Cumprido | `k8s/`, seção 6.3 |
 | Terraform do cluster e do banco, documentado | Cumprido no código (⏳) | `infra/`, `infra/README.md` |
@@ -993,8 +999,9 @@ O enunciado (`requisitos_pt2.pdf`) não está versionado no repositório.
 3. **Órfãos no destroy.** O `terraform destroy` remove tudo, sem ENIs ou security groups órfãos que travem a remoção da VPC? Não há Service `LoadBalancer` nem Ingress, então o Kubernetes não cria ELB próprio.
 4. **Outbox (R3).** As mitigações atuais bastam para uma demonstração com escrita e 2 ou 3 réplicas, ou o claim com `FOR UPDATE SKIP LOCKED` é necessário antes da gravação do vídeo?
 5. **Ordem do pipeline (R4).** Vale fazer `provision` depender de `docker_image_scan`, trocando tempo por custo?
-6. **Primeira execução.** Algum passo do `deploy` depende de algo que só existe depois do primeiro `apply`, além das saídas já passadas pelo `provision`? Considere a access entry da role do pipeline e a propagação do DNS do ALB.
-7. **`RESEND_FROM` e `DB_PASSWORD`.** Valores com caracteres especiais quebram o YAML renderizado ou a URL JDBC? Hoje as restrições existem só na documentação (`infra/README.md:119-120`).
+6. **Primeira execução.** Algum passo do `deploy` depende de algo que só existe depois do primeiro `apply`, além das saídas já passadas pelo `provision`? Considere a access entry do usuário do pipeline e a propagação do DNS do ALB.
+7. **`RESEND_FROM` e `DB_PASSWORD`.** Valores com caracteres especiais quebram o YAML renderizado ou a URL JDBC? Hoje as restrições existem só na documentação (`infra/README.md:152-153`).
+8. **Cobertura das policies do pipeline.** As três policies de `github_pipeline_user.tf` cobrem todas as ações do `terraform apply` e do `destroy`? Só uma execução completa confirma; um `AccessDenied` traz a ação que faltou (R16).
 
 ## 15. Índice de evidências
 

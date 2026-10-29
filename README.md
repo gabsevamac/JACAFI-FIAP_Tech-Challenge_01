@@ -52,7 +52,7 @@ As decisões de desempenho e segurança, a varredura de vulnerabilidades e a man
 
 ## Infraestrutura na AWS e CI/CD
 
-O Terraform em [infra/](infra/README.md) provisiona o ambiente na AWS: VPC, cluster EKS, RDS PostgreSQL e um Application Load Balancer. Esse ALB expõe a API na porta 80 e o Keycloak na 8080. Um stack de bootstrap, aplicado uma única vez, cria o bucket de estado, a confiança OIDC do GitHub, a role do pipeline e o repositório ECR.
+O Terraform em [infra/](infra/README.md) provisiona o ambiente na AWS: VPC, cluster EKS, RDS PostgreSQL e um Application Load Balancer. Esse ALB expõe a API na porta 80 e o Keycloak na 8080. Um stack de bootstrap, aplicado uma única vez, cria o bucket de estado, o usuário IAM do pipeline, o repositório ECR e o orçamento.
 
 O pipeline [Fluxo CI/CD](.github/workflows/ci.yaml) faz, em sequência:
 
@@ -62,7 +62,7 @@ O pipeline [Fluxo CI/CD](.github/workflows/ci.yaml) faz, em sequência:
 4. `terraform apply` da infraestrutura e do banco;
 5. aplicação do overlay [k8s/overlays/eks](k8s/README.md#aws-eks) no cluster.
 
-O pipeline se autentica na AWS por OIDC, sem chaves guardadas no GitHub.
+O pipeline se autentica na AWS com a access key de um usuário IAM de menor privilégio, guardada nos secrets do repositório. O OIDC não é usado porque o plano Free da AWS bloqueia a criação do provedor (detalhes em [infra/README.md](infra/README.md#por-que-access-key-e-não-oidc)).
 
 O ambiente é efêmero, para economizar créditos: sobe com *Run workflow* e cai pelo workflow [Derrubar ambiente AWS](.github/workflows/infra-destroy.yaml), que também roda todo dia à meia-noite. Pré-requisitos, custos e passo a passo estão em [infra/README.md](infra/README.md).
 
