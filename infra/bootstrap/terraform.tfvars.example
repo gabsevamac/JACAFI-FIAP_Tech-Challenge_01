@@ -1,0 +1,6 @@
+budget_alert_email = "seu-email@example.com"
+
+# Opcionais (valores padrão em variables.tf):
+# aws_region        = "us-east-1"
+# github_repository = "gabsevamac/JACAFI-FIAP_Tech-Challenge_01"
+# budget_limit_usd  = 100

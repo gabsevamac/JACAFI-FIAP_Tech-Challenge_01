@@ -6,9 +6,9 @@ Os manifests compartilham a API em `base/` e separam infraestrutura por overlay:
 |---|---|---|---|
 | `overlays/local` | `jacafi` | PostgreSQL com PVC / Keycloak efêmero | Port-forward, uma API com `Recreate` |
 | `overlays/load-test` | `jacafi-load-test` | PostgreSQL e Keycloak próprios, isolados do local | NodePort 30082/30081, HPA e `RollingUpdate` |
-| `overlays/eks` | `jacafi` | RDS PostgreSQL / Keycloak externo persistente | ALB HTTPS, HPA e `RollingUpdate` |
+| `overlays/eks` | `jacafi` | RDS PostgreSQL (Terraform) / Keycloak efêmero no cluster | ALB do Terraform → NodePort 30080/30081, HPA e `RollingUpdate` |
 
-`kubectl apply -k k8s` continua equivalente ao overlay local. Use contextos diferentes para local e EKS. Os overlays de carga/EKS incluem escalonamento, mas **a outbox ainda bloqueia uso concorrente com eventos de negócio**, conforme a seção de HPA. Nenhum deploy AWS é comprovado por estes manifests.
+`kubectl apply -k k8s` continua equivalente ao overlay local. Use contextos diferentes para local e EKS. Os overlays de carga/EKS incluem escalonamento, mas **a outbox ainda bloqueia uso concorrente com eventos de negócio**, conforme a seção de HPA. O Keycloak de `local` e `eks` vem do componente `components/keycloak`. O deploy no EKS é feito pelo pipeline, conforme a seção [AWS EKS](#aws-eks).
 
 ## Ambiente local
 
@@ -217,7 +217,7 @@ O componente `components/autoscaling` é incluído somente por `load-test` e `ek
 
 **O uso operacional de EKS com escritas depende de corrigir a outbox:** cada réplica executa os schedulers, e os processadores não fazem claim/locking dos eventos entre consumidores. HPA e rolling update podem provocar processamento duplicado mesmo com mínimo de uma réplica. Corrija e teste coordenação/idempotência antes da liberação. O local mantém uma réplica e `Recreate`; o teste de carga abaixo é exclusivamente de leitura, com banco isolado sem eventos pendentes e sem escritores concorrentes.
 
-O HPA requer Metrics Server funcional e requests de CPU/memória (já definidos na API). A instalação/configuração do addon é responsabilidade do cluster; estes manifests não instalam addons. Verifique compatibilidade, aggregation layer, autenticação/autorização do kubelet, certificados e conectividade conforme a [documentação do Metrics Server](https://kubernetes-sigs.github.io/metrics-server/). Confira as métricas:
+O HPA requer Metrics Server funcional e requests de CPU/memória (já definidos na API). No EKS, o Terraform instala o add-on `metrics-server` ([infra/eks_addon.tf](../infra/eks_addon.tf)); estes manifests não instalam addons. Verifique compatibilidade, aggregation layer, autenticação/autorização do kubelet, certificados e conectividade conforme a [documentação do Metrics Server](https://kubernetes-sigs.github.io/metrics-server/). Confira as métricas:
 
 ```powershell
 kubectl get apiservice v1beta1.metrics.k8s.io
@@ -225,7 +225,7 @@ kubectl top nodes
 kubectl -n jacafi-load-test top pods
 ```
 
-Se o addon ainda não estiver instalado, a instalação local abaixo usa o manifesto oficial da versão 0.9.0. Execute somente no Docker Desktop, após conferir o contexto; em EKS, a equipe de plataforma deve gerenciar a versão e a configuração compatíveis com seu cluster.
+Se o addon ainda não estiver instalado, a instalação local abaixo usa o manifesto oficial da versão 0.9.0. Execute somente no Docker Desktop, após conferir o contexto; no EKS, use o add-on instalado pelo Terraform.
 
 ```powershell
 if ((kubectl config current-context) -ne 'docker-desktop') { throw 'Selecione o contexto docker-desktop antes de instalar o addon local.' }
@@ -298,54 +298,62 @@ Em 21/10/2026, no Docker Desktop, o teste de leitura autenticada executou 86.424
 
 Após a carga, o alvo inicial de memória de 80% do request mantinha três JVMs ociosas. A configuração foi ajustada para média de 800 MiB e janela de redução de 60 segundos no overlay de carga; o HPA voltou a reduzir as réplicas automaticamente. Esses resultados são de um banco local sem clientes e não representam capacidade de produção, testes de escrita concorrente ou validação AWS.
 
-## Preparação para AWS EKS
+## AWS EKS
 
-O overlay `overlays/eks` entrega somente Namespace, API/Service, ConfigMap público, HPA e Ingress ALB. Não cria EKS, ECR, RDS, Keycloak, IAM, DNS, certificados ou addons. Todos os endereços `example.invalid`, tag de release e ARN de certificado são placeholders que devem ser substituídos antes de aplicar. A concorrência da outbox precisa estar corrigida antes de liberar o ambiente para escritas.
+O overlay `overlays/eks` é aplicado pelo pipeline ([Fluxo CI/CD](../.github/workflows/ci.yaml)) sobre a infraestrutura de [infra/](../infra/README.md): EKS, RDS PostgreSQL e um ALB, todos criados pelo Terraform. O overlay reaproveita a API de `base/`, o Keycloak de `components/keycloak` e o HPA de `components/autoscaling`. Os dois Services ficam como NodePort, que é por onde o ALB alcança os nós:
 
-| Responsável / integração | Entrega necessária |
+| Entrada pública | Service | NodePort |
+|---|---|---|
+| `http://<alb>` | `api` | 30080 |
+| `http://<alb>:8080` | `keycloak` | 30081 |
+
+Alguns valores só existem depois do `terraform apply`. Eles ficam no overlay como placeholders `${EKS_*}`. No deploy, o `envsubst` os preenche numa cópia dos arquivos do overlay, antes do `kustomize`. A ordem importa: assim os valores entre aspas continuam strings no YAML gerado.
+
+| Placeholder | Origem |
 |---|---|
-| Terraform / infraestrutura | EKS, capacidade de execução, rede, RDS, ECR, IAM e acesso autenticado do operador ao cluster |
-| Plataforma do cluster | Metrics Server e AWS Load Balancer Controller com permissões IAM, IngressClass `alb` e subnets adequadas |
-| CI / Docker | Publicar a imagem no ECR, entregar tag imutável ou digest e garantir arquitetura compatível com os nós |
-| Identidade / banco | Keycloak externo persistente com realm e roles da aplicação; banco PostgreSQL e usuário com permissões para Flyway |
-| Configuração da aplicação | Endpoints reais, Secret Kubernetes, bundle CA do RDS, domínio/ARN ACM e validação autenticada |
+| `EKS_IMAGE_REPOSITORY` | variável `ECR_REPOSITORY_URL` do repositório |
+| `EKS_IMAGE_TAG` | SHA do commit publicado no ECR |
+| `EKS_ALB_DNS` | output `alb_dns` do Terraform |
+| `EKS_DB_HOST` | output `db_host` do Terraform |
+| `EKS_RESEND_FROM` | variável `RESEND_FROM` do repositório |
+| `EKS_RESEND_ENABLED` | `true` quando existem o secret `RESEND_API_KEY` e a variável `RESEND_FROM` |
 
-Para o ALB público, prepare subnets públicas em pelo menos duas zonas, descoberta por tags ou seleção explícita, rotas e regras de rede para ALB → Pods:8082. O controller precisa de sua própria identidade/permissões IAM (IRSA ou Pod Identity, conforme a plataforma). Forneça certificado ACM válido na região do ALB, cobrindo o hostname do Ingress, e aponte o DNS desse hostname para o ALB depois de provisionado. Consulte a [configuração oficial de ALB no EKS](https://docs.aws.amazon.com/eks/latest/userguide/alb-ingress.html). Este overlay pressupõe AWS Load Balancer Controller; configuração do EKS Auto Mode pode exigir adaptação.
+Antes de aplicar o overlay, o pipeline cria três objetos:
 
-Os nós precisam resolver e alcançar RDS:5432 e Keycloak:443, acessar ECR e baixar a imagem do init container PostgreSQL. Configure IAM para pull do ECR na identidade de execução apropriada e conectividade por endpoints privados ou saída de rede. `imagePullSecrets` só é necessário quando o mecanismo de autenticação do registry escolhido exigir; um Secret da aplicação não concede permissão ECR. Planeje capacidade para requests/limits e rollout; Metrics Server e HPA não provisionam compute.
+- o Secret `jacafi-secrets`, a partir dos secrets do repositório;
+- o ConfigMap `keycloak-realm`, com o [realm versionado](../keycloak/jacafi-realm.json);
+- o ConfigMap `rds-ca`, com o bundle oficial de certificados da AWS. A conexão com o RDS usa `sslmode=verify-full`.
 
-No `overlays/eks/kustomization.yaml`, substitua `newName` pela URI do repositório ECR e `newTag` pela release publicada. Se usar digest, remova `newTag` e defina `digest: sha256:...`. O CI atual gera tar, mas não publica a imagem: a publicação e atualização da referência ficam com os responsáveis por CI/Docker.
+Diferenças em relação ao ambiente local:
 
-Em `overlays/eks/configmap.yaml`, ajuste `DB_HOST`, `DB_URL`, e, quando necessário, `DB_NAME`/`DB_PORT`; mantenha hostname/porta/banco coerentes entre conexão JDBC e init container. Preserve `sslmode=verify-full` e o caminho `/etc/postgresql/certs/global-bundle.pem`. Use o endpoint real do RDS, com correspondência de hostname no certificado, e obtenha o bundle CA oficial conforme a [documentação TLS do RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html). O bundle é público; crie `ConfigMap/rds-ca` com a chave exata `global-bundle.pem`. Não desabilite verificação TLS para contornar erro de conexão.
+- **Banco:** fica no RDS; não há Deployment `database` nem PVC no cluster.
+- **Keycloak:** roda em `start-dev` e reimporta o realm a cada subida. O issuer é `http://<alb>:8080/realms/jacafi`, e a API busca as chaves pelo Service interno `keycloak`.
+- **Swagger e OpenAPI:** ficam desligados.
+- **Metrics Server:** é instalado pelo Terraform como add-on do EKS.
 
-Configure `KEYCLOAK_ISSUER_URI` com o issuer HTTPS emitido pelo realm `jacafi`; a URI JWK precisa ser alcançável pelos Pods e apresentar certificado confiável. Provisione Keycloak com armazenamento persistente, clientes/roles adequados e contas próprias. O overlay EKS não importa `keycloak-realm`, não cria administrador e não instala o Keycloak local de demonstração.
+A observação sobre a outbox vale aqui também: para demonstrar o HPA, use carga de leitura.
 
-O Secret `jacafi-secrets` no namespace `jacafi` deve conter `DB_USERNAME` e `DB_PASSWORD`; `RESEND_API_KEY` é opcional. Não precisa das credenciais administrativas do Keycloak. Secrets Manager **não é consultado automaticamente**: a equipe deve configurar um mecanismo de sincronização para Secret Kubernetes, ou fazer a injeção explícita abaixo com arquivo seguro externo ao repositório. Não inclua valores em manifests, logs ou argumentos literais. Um Secret Kubernetes exige controles de RBAC e criptografia do cluster; base64 não protege seu conteúdo.
+Para reproduzir o deploy manualmente, use bash (Linux, macOS, WSL ou Git Bash), com o ambiente já provisionado e credenciais AWS de um principal com acesso ao cluster. O arquivo de credenciais precisa conter `DB_USERNAME`, `DB_PASSWORD`, `KEYCLOAK_ADMIN` e `KEYCLOAK_ADMIN_PASSWORD`; `RESEND_API_KEY` é opcional.
 
-Após infraestrutura, correção da outbox e substituição dos placeholders, selecione explicitamente o contexto EKS autorizado. O arquivo de credenciais deve usar linhas `CHAVE=valor`, e o arquivo CA deve vir da fonte oficial:
-
-```powershell
-$eksContext = Read-Host 'Contexto kubectl do EKS de destino'
-kubectl config use-context $eksContext
-if ($LASTEXITCODE -ne 0 -or (kubectl config current-context) -ne $eksContext) { throw 'Contexto EKS não selecionado.' }
-kubectl config current-context
-kubectl get nodes
-kubectl get ingressclass alb
-kubectl get apiservice v1beta1.metrics.k8s.io
-kubectl top nodes
+```bash
+export EKS_ALB_DNS=$(terraform -chdir=infra output -raw alb_dns)
+export EKS_DB_HOST=$(terraform -chdir=infra output -raw db_host)
+export EKS_IMAGE_REPOSITORY=<ecr_repository_url> EKS_IMAGE_TAG=<sha-publicado>
+export EKS_RESEND_ENABLED=false EKS_RESEND_FROM=
+aws eks update-kubeconfig --name jacafi-eks --region us-east-1
 kubectl apply -f k8s/base/namespace.yaml
-$eksSecretsFile = Read-Host 'Caminho absoluto do arquivo seguro de credenciais EKS'
-$rdsCaFile = Read-Host 'Caminho absoluto do global-bundle.pem oficial'
-kubectl -n jacafi create secret generic jacafi-secrets --from-env-file="$eksSecretsFile" --dry-run=client -o yaml | kubectl apply -f -
-kubectl -n jacafi create configmap rds-ca --from-file="global-bundle.pem=$rdsCaFile" --dry-run=client -o yaml | kubectl apply -f -
-kubectl kustomize k8s/overlays/eks
-kubectl apply --dry-run=server -k k8s/overlays/eks
-kubectl apply -k k8s/overlays/eks
-kubectl -n jacafi rollout status deployment/api --timeout=300s
-kubectl -n jacafi get pods,hpa,ingress
+kubectl -n jacafi create secret generic jacafi-secrets --from-env-file=<arquivo-seguro> --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n jacafi create configmap keycloak-realm --from-file=jacafi-realm.json=keycloak/jacafi-realm.json --dry-run=client -o yaml | kubectl apply -f -
+curl -fsSL https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o global-bundle.pem
+kubectl -n jacafi create configmap rds-ca --from-file=global-bundle.pem=global-bundle.pem --dry-run=client -o yaml | kubectl apply -f -
+rm -rf /tmp/k8s-eks && cp -r k8s /tmp/k8s-eks
+for file in /tmp/k8s-eks/overlays/eks/*.yaml; do
+  envsubst '${EKS_IMAGE_REPOSITORY} ${EKS_IMAGE_TAG} ${EKS_ALB_DNS} ${EKS_DB_HOST} ${EKS_RESEND_ENABLED} ${EKS_RESEND_FROM}' < "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+done
+kubectl apply -k /tmp/k8s-eks/overlays/eks
+kubectl -n jacafi rollout status deployment/keycloak --timeout=600s
+kubectl -n jacafi rollout status deployment/api --timeout=600s
 ```
-
-Inspecione a renderização antes de aplicar; não prossiga com placeholders ou pré-requisitos ausentes. Após ALB e DNS disponíveis, valide readiness em `https://<dominio-da-api>/actuator/health/readiness`, obtenha token de uma conta autorizada no Keycloak externo e consulte `/api/v1/customers`. Confirme condições do HPA e métricas. Esses passos são um roteiro de implantação, não evidência de deploy ou teste na AWS.
 
 ## Encerramento e dados
 
@@ -368,7 +376,7 @@ kubectl -n jacafi-load-test rollout status deployment/keycloak --timeout=300s
 kubectl -n jacafi-load-test rollout status deployment/api --timeout=300s
 ```
 
-Reaplicar esse overlay recria também o HPA. As instruções de limpeza local não são um procedimento de desprovisionamento AWS: ALB, DNS, RDS e demais recursos externos exigem coordenação com a equipe responsável, incluindo backups e custos.
+Reaplicar esse overlay recria também o HPA. As instruções de limpeza local não desprovisionam a AWS: para remover EKS, RDS e ALB, use o workflow **Derrubar ambiente AWS** descrito em [infra/README.md](../infra/README.md).
 
 **A exclusão do namespace remove também o PVC e pode apagar definitivamente os dados do volume**, conforme a política de reclaim do provisionador. Faça backup antes. Execute apenas se deseja descartar todo o ambiente:
 

@@ -38,4 +38,4 @@ docs/superpowers/
 *.tfstate
 *.tfstate.*
 *.tfvars
-bootstrap/
+/bootstrap/

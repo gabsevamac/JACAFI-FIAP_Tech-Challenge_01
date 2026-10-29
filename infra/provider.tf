@@ -4,7 +4,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
   }
 }
@@ -14,7 +14,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Projeto = "${local.prefixo_tag}"
+      Projeto = local.prefixo_tag
     }
   }
 }

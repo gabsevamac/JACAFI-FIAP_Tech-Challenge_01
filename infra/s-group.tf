@@ -3,9 +3,17 @@ resource "aws_security_group" "alb" {
   vpc_id = aws_vpc.main.id
 
   ingress {
-    description = "HTTP"
+    description = "HTTP da API"
     from_port   = 80
     to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTP do Keycloak"
+    from_port   = var.keycloak_listener_port
+    to_port     = var.keycloak_listener_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

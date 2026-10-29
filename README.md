@@ -50,6 +50,22 @@ O [Dockerfile](server/Dockerfile) tem três estágios: `build` compila com Maven
 
 As decisões de desempenho e segurança, a varredura de vulnerabilidades e a manutenção da lista de módulos do `jlink` estão em [docs/cicd/imagem-docker.md](docs/cicd/imagem-docker.md).
 
+## Infraestrutura na AWS e CI/CD
+
+O Terraform em [infra/](infra/README.md) provisiona o ambiente na AWS: VPC, cluster EKS, RDS PostgreSQL e um Application Load Balancer. Esse ALB expõe a API na porta 80 e o Keycloak na 8080. Um stack de bootstrap, aplicado uma única vez, cria o bucket de estado, a confiança OIDC do GitHub, a role do pipeline e o repositório ECR.
+
+O pipeline [Fluxo CI/CD](.github/workflows/ci.yaml) faz, em sequência:
+
+1. build e testes;
+2. build da imagem e scan com Trivy;
+3. publicação da imagem no ECR, com a tag do commit;
+4. `terraform apply` da infraestrutura e do banco;
+5. aplicação do overlay [k8s/overlays/eks](k8s/README.md#aws-eks) no cluster.
+
+O pipeline se autentica na AWS por OIDC, sem chaves guardadas no GitHub.
+
+O ambiente é efêmero, para economizar créditos: sobe com *Run workflow* e cai pelo workflow [Derrubar ambiente AWS](.github/workflows/infra-destroy.yaml), que também roda todo dia à meia-noite. Pré-requisitos, custos e passo a passo estão em [infra/README.md](infra/README.md).
+
 ## Autenticação
 
 O Keycloak emite os tokens; a aplicação é apenas um *resource server* e não guarda senha nem lista de usuários. O realm de desenvolvimento traz o client público `jacafi-web` e dois usuários:
