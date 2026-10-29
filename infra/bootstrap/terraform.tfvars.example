@@ -1,6 +1,8 @@
 budget_alert_email = "seu-email@example.com"
 
+# Região do projeto na conta AWS (na nova experiência da AWS, ela é escolhida no cadastro)
+aws_region = "us-east-2"
+
 # Opcionais (valores padrão em variables.tf):
-# aws_region        = "us-east-1"
-# github_repository = "gabsevamac/JACAFI-FIAP_Tech-Challenge_01"
 # budget_limit_usd  = 100
+# db_instance_class = "db.t4g.micro"

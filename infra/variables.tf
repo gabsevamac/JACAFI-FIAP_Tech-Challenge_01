@@ -33,7 +33,7 @@ variable "kubernetes_version" {
 }
 
 variable "cluster_admin_principal_arns" {
-  description = "ARNs IAM, além da role do pipeline, com acesso de administrador ao cluster via kubectl"
+  description = "ARNs IAM, além do usuário do pipeline, com acesso de administrador ao cluster via kubectl"
   type        = list(string)
   default     = []
 }

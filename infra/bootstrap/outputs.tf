@@ -3,9 +3,9 @@ output "aws_region" {
   value       = var.aws_region
 }
 
-output "aws_role_arn" {
-  description = "Variável AWS_ROLE_ARN do GitHub"
-  value       = aws_iam_role.github_actions.arn
+output "pipeline_user_name" {
+  description = "Usuário IAM do pipeline; a access key dele vai para os secrets do repositório no GitHub"
+  value       = aws_iam_user.pipeline.name
 }
 
 output "tf_state_bucket" {

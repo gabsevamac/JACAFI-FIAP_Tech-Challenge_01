@@ -10,16 +10,10 @@ variable "projeto" {
   default     = "jacafi"
 }
 
-variable "github_repository" {
-  description = "Repositório autorizado a assumir a role do pipeline, no formato dono/nome"
+variable "db_instance_class" {
+  description = "Única classe de RDS que o pipeline pode criar; precisa ser a mesma de infra/"
   type        = string
-  default     = "gabsevamac/JACAFI-FIAP_Tech-Challenge_01"
-}
-
-variable "github_branch" {
-  description = "Branch autorizada a assumir a role do pipeline"
-  type        = string
-  default     = "main"
+  default     = "db.t4g.micro"
 }
 
 variable "ecr_repository_name" {

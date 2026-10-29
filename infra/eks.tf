@@ -9,7 +9,7 @@ resource "aws_eks_cluster" "main" {
     endpoint_private_access = false
   }
 
-  # Quem cria o cluster (a role OIDC do pipeline) recebe acesso de administrador.
+  # Quem cria o cluster (o usuário IAM do pipeline) recebe acesso de administrador.
   access_config {
     authentication_mode                         = "API"
     bootstrap_cluster_creator_admin_permissions = true

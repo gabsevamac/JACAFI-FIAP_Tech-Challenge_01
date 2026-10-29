@@ -5,7 +5,7 @@ A infraestrutura fica em dois stacks Terraform:
 | Stack | Pasta | Quem aplica | Ciclo de vida |
 |---|---|---|---|
 | Bootstrap | `infra/bootstrap` | Você, uma vez, com credenciais de administrador | Persistente, com custo de centavos por mês |
-| Ambiente | `infra` | O pipeline, via OIDC | Efêmero: sobe para trabalhar ou gravar e é destruído depois |
+| Ambiente | `infra` | O pipeline, com a access key do usuário `jacafi-github-actions` | Efêmero: sobe para trabalhar ou gravar e é destruído depois |
 
 O ambiente é efêmero porque o EKS cobra US$ 0,10 por hora pelo plano de controle, mesmo sem nenhum pod rodando. Ligado o tempo todo, ele consumiria os US$ 100 de crédito em cerca de três semanas. Subindo só nas sessões de trabalho, 30 horas de uso custam aproximadamente US$ 7.
 
@@ -14,7 +14,7 @@ O ambiente é efêmero porque o EKS cobra US$ 0,10 por hora pelo plano de contro
 ```mermaid
 flowchart LR
     dev(["Desenvolvedor"]) -->|"push / Run workflow"| gha["GitHub Actions<br/>Fluxo CI/CD"]
-    gha -->|"OIDC (sts:AssumeRoleWithWebIdentity)"| role["IAM role<br/>jacafi-github-actions"]
+    gha -->|"access key (secrets do environment aws)"| pipeline_user["Usuário IAM<br/>jacafi-github-actions"]
     gha -->|"docker push :sha"| ecr[("ECR<br/>jacafi/server")]
     gha -->|"terraform apply"| state[("S3<br/>estado do Terraform")]
     gha -->|"kubectl apply"| eks
@@ -55,8 +55,8 @@ flowchart LR
 | Recurso | Para quê | Custo |
 |---|---|---|
 | S3 `jacafi-tfstate-<conta>` | Estado do stack `infra`, com versionamento, criptografia e lock nativo (`use_lockfile`) | Centavos |
-| Provedor OIDC `token.actions.githubusercontent.com` | Confiança da AWS nos tokens do GitHub Actions | — |
-| IAM role `jacafi-github-actions` | Assumida apenas por workflows da branch `main` deste repositório. Usa `PowerUserAccess` e permissão IAM restrita a roles `jacafi-*`. | — |
+| Usuário IAM `jacafi-github-actions` | Identidade do pipeline, sem acesso ao console. A access key fica nos secrets do environment `aws` do GitHub. | — |
+| Policies `jacafi-pipeline-artefatos`, `-rede` e `-plataforma` | Menor privilégio: só as ações que os workflows e o stack `infra` usam, restritas aos nomes do projeto quando o serviço permite (detalhes abaixo) | — |
 | ECR `jacafi/server` | Imagens publicadas pelo pipeline; mantém as 10 mais recentes e faz scan no push | ~US$ 0,10 por GB/mês |
 | AWS Budget `jacafi-mensal` | E-mail em 25%, 50%, 75% e 90% de US$ 100, medidos sem descontar créditos | — |
 
@@ -80,7 +80,7 @@ Os valores são de tabela, sem impostos. Confira na [AWS Pricing Calculator](htt
 ## Pré-requisitos
 
 - **Conta AWS** no plano Free ou Paid. No Free, só alguns tipos de EC2 são aceitos; os tipos usados aqui (`t3.small` e `db.t4g.micro`) estão entre eles. A cota de vCPUs sob demanda precisa ser de pelo menos 6: confira em *Service Quotas → Amazon EC2 → Running On-Demand Standard instances*.
-- **AWS CLI v2** autenticado com um usuário administrador. Ele só é usado no bootstrap.
+- **AWS CLI v2** (2.32.0 ou mais nova) autenticado como dono da conta, com `aws login`. Ele só é usado no bootstrap e para criar a access key do pipeline.
 - **Terraform ≥ 1.10.** O pipeline usa a 1.17.1.
 - **Acesso de administrador ao repositório no GitHub**, para criar variables e secrets.
 - **kubectl** (opcional), para acompanhar o cluster localmente.
@@ -89,7 +89,7 @@ Os valores são de tabela, sem impostos. Confira na [AWS Pricing Calculator](htt
 
 ```bash
 cd infra/bootstrap
-cp terraform.tfvars.example terraform.tfvars   # informe o e-mail dos alertas
+cp terraform.tfvars.example terraform.tfvars   # informe o e-mail dos alertas e a região do projeto
 terraform init
 terraform apply
 terraform output
@@ -97,12 +97,39 @@ terraform output
 
 O estado do bootstrap fica local, em `infra/bootstrap/terraform.tfstate`, e é ignorado pelo Git. Guarde esse arquivo. Se ele se perder, os recursos continuam na AWS, mas precisam ser importados com `terraform import` antes de qualquer alteração.
 
-Se a conta já tiver o provedor OIDC do GitHub, o `apply` falha por duplicidade. Nesse caso, importe-o antes:
+### Por que access key e não OIDC
+
+Contas criadas pela nova experiência da AWS, no plano Free, recebem uma service control policy que nega `iam:*Provider*`. Sem provedor de identidade, o GitHub não consegue trocar o token OIDC por credenciais temporárias. Por isso, o pipeline usa a access key de um usuário IAM sem acesso ao console, com três cuidados:
+
+- **Menor privilégio.** As policies em `github_pipeline_user.tf` liberam só o que o pipeline faz:
+  - estado do Terraform, só na chave do stack `infra`;
+  - push só no repositório ECR do projeto;
+  - EKS, RDS, ALB e roles IAM só com os nomes do projeto;
+  - RDS só PostgreSQL na classe `db.t4g.micro`;
+  - roles do cluster só com as policies gerenciadas do EKS.
+
+  Não há `ec2:RunInstances` nem nenhuma ação sobre usuários IAM, então a chave não cria instâncias soltas nem outras chaves. A rede da EC2 é restrita por ação e região, porque os IDs são gerados na criação.
+- **Secrets de environment.** A chave fica no environment `aws`, liberado só para a branch `main`. Jobs de outras branches e de PRs não recebem a chave.
+- **Fora do estado.** A access key é criada pela CLI, e não pelo Terraform, para o segredo não ficar no estado do bootstrap.
+
+### Criar a access key do pipeline
+
+Primeiro crie o environment `aws` no GitHub. Em *Settings → Environments → New environment*, use o nome `aws`. Em *Deployment branches and tags*, escolha *Selected branches and tags* e adicione a regra `main`. Não configure *Required reviewers*: o destroy agendado precisa rodar sem aprovação.
+
+Depois, ainda em `infra/bootstrap`, crie a chave e grave-a direto nos secrets do environment, sem passar por arquivo:
 
 ```bash
-terraform import aws_iam_openid_connect_provider.github \
-  arn:aws:iam::<conta>:oidc-provider/token.actions.githubusercontent.com
+read -r KEY_ID KEY_SECRET < <(aws iam create-access-key \
+  --user-name "$(terraform output -raw pipeline_user_name)" \
+  --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
+printf '%s' "$KEY_ID" | gh secret set AWS_ACCESS_KEY_ID --env aws
+printf '%s' "$KEY_SECRET" | gh secret set AWS_SECRET_ACCESS_KEY --env aws
+unset KEY_ID KEY_SECRET
 ```
+
+Para trocar a chave, crie uma nova da mesma forma, confirme que o pipeline funciona e apague a antiga com `aws iam delete-access-key --user-name jacafi-github-actions --access-key-id <id antigo>`. O usuário aceita no máximo duas chaves ao mesmo tempo.
+
+Se um job falhar com `AccessDenied`, a mensagem traz a ação que faltou. Inclua essa ação no statement certo de `github_pipeline_user.tf` e rode `terraform apply` no bootstrap.
 
 ## 2. Configurar o repositório no GitHub
 
@@ -111,10 +138,10 @@ Em *Settings → Secrets and variables → Actions*, crie:
 | Tipo | Nome | Valor |
 |---|---|---|
 | Variable | `AWS_REGION` | `terraform output -raw aws_region` |
-| Variable | `AWS_ROLE_ARN` | `terraform output -raw aws_role_arn` |
 | Variable | `TF_STATE_BUCKET` | `terraform output -raw tf_state_bucket` |
 | Variable | `ECR_REPOSITORY_URL` | `terraform output -raw ecr_repository_url` |
-| Variable (opcional) | `EKS_ADMIN_PRINCIPAL_ARNS` | Lista JSON de ARNs IAM com acesso `kubectl`, ex.: `["arn:aws:iam::123456789012:user/voce"]`. Não inclua a role do pipeline, que já é administradora. |
+| Secret do environment `aws` | `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` | Criados no passo [Criar a access key do pipeline](#criar-a-access-key-do-pipeline) |
+| Variable (opcional) | `EKS_ADMIN_PRINCIPAL_ARNS` | Lista JSON de ARNs IAM com acesso `kubectl`, ex.: `["arn:aws:iam::123456789012:role/sua-role"]`. Não inclua o usuário do pipeline, que já é administrador. |
 | Variable (opcional) | `KEYCLOAK_ADMIN` | Usuário do console do Keycloak; padrão `admin` |
 | Variable (opcional) | `RESEND_FROM` | Remetente dos e-mails de status, ex.: `JACAFI <no-reply@seu-dominio.com>`. O domínio precisa estar verificado no Resend e o valor não pode conter aspas. |
 | Secret | `DB_PASSWORD` | Senha do RDS: 8 ou mais caracteres ASCII, sem `/`, `'`, `"`, `@` nem espaço |
@@ -124,14 +151,16 @@ Em *Settings → Secrets and variables → Actions*, crie:
 Com o GitHub CLI, a partir de `infra/bootstrap`:
 
 ```bash
-for name in aws_region aws_role_arn tf_state_bucket ecr_repository_url; do
+for name in aws_region tf_state_bucket ecr_repository_url; do
   gh variable set "$(echo "$name" | tr a-z A-Z)" --body "$(terraform output -raw "$name")"
 done
 gh secret set DB_PASSWORD
 gh secret set KEYCLOAK_ADMIN_PASSWORD
 ```
 
-Enquanto `AWS_ROLE_ARN` estiver vazia, o pipeline roda só o CI e registra um aviso, sem falhar.
+Enquanto o secret `AWS_ACCESS_KEY_ID` do environment `aws` não existir, o pipeline roda só o CI e registra um aviso, sem falhar.
+
+Para que ninguém use a chave sem passar por você, proteja a `main` em *Settings → Branches*: exija pull request com aprovação e não permita bypass. Qualquer workflow que rode na `main` com o environment `aws` terá passado por essa revisão.
 
 ## 3. Subir o ambiente
 
@@ -170,13 +199,14 @@ kubectl -n jacafi get hpa api --watch   # acompanhe durante o teste de carga
 - **Manual:** em *Actions → Derrubar ambiente AWS → Run workflow*, digite `DESTRUIR`.
 - **Automático:** todo dia à meia-noite (horário de Brasília), como rede de segurança contra esquecimento. Se o ambiente já estiver desligado, o job termina sem fazer nada.
 
-O destroy leva de 10 a 15 minutos e remove EKS, RDS, ALB e rede. **Os dados do banco não sobrevivem entre sessões.** O bootstrap continua intacto, com o bucket de estado, a role OIDC, o ECR e o orçamento.
+O destroy leva de 10 a 15 minutos e remove EKS, RDS, ALB e rede. **Os dados do banco não sobrevivem entre sessões.** O bootstrap continua intacto, com o bucket de estado, o usuário do pipeline, o ECR e o orçamento.
 
 Para remover tudo de vez:
 
 1. Derrube o ambiente.
-2. Esvazie o bucket de estado pelo console da S3 (*Empty*), o que remove também as versões antigas.
-3. Rode `terraform destroy` em `infra/bootstrap`.
+2. Apague a access key do pipeline, que não é gerenciada pelo Terraform e impediria a remoção do usuário: liste com `aws iam list-access-keys --user-name jacafi-github-actions` e apague com `aws iam delete-access-key`.
+3. Esvazie o bucket de estado pelo console da S3 (*Empty*), o que remove também as versões antigas.
+4. Rode `terraform destroy` em `infra/bootstrap`.
 
 ## Aplicar o stack `infra` manualmente
 
@@ -189,7 +219,7 @@ export TF_VAR_db_password='<mesma senha do secret DB_PASSWORD>'
 terraform apply
 ```
 
-Quem cria o cluster recebe acesso de administrador automaticamente. Se o cluster for criado da sua máquina, inclua a role do pipeline em `cluster_admin_principal_arns`, ou o deploy pelo GitHub não terá acesso a ele. O deploy manual dos manifestos está descrito em [k8s/README.md](../k8s/README.md#aws-eks).
+Quem cria o cluster recebe acesso de administrador automaticamente. Se o cluster for criado da sua máquina, inclua o ARN do usuário do pipeline (`arn:aws:iam::<conta>:user/jacafi-github-actions`) em `cluster_admin_principal_arns`, ou o deploy pelo GitHub não terá acesso a ele. O deploy manual dos manifestos está descrito em [k8s/README.md](../k8s/README.md#aws-eks).
 
 ## Variáveis do stack `infra`
 
