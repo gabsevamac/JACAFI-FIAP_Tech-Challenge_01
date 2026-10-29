@@ -7,7 +7,7 @@ data:
   DB_URL: jdbc:postgresql://${EKS_DB_HOST}:5432/jacafi?sslmode=verify-full&sslrootcert=/etc/postgresql/certs/global-bundle.pem
   KEYCLOAK_ISSUER_URI: http://${EKS_ALB_DNS}:8080/realms/jacafi
   KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/jacafi/protocol/openid-connect/certs
-  SPRINGDOC_API_DOCS_ENABLED: "false"
-  SPRINGDOC_SWAGGER_UI_ENABLED: "false"
+  SPRINGDOC_API_DOCS_ENABLED: "true"
+  SPRINGDOC_SWAGGER_UI_ENABLED: "true"
   RESEND_ENABLED: "${EKS_RESEND_ENABLED}"
   RESEND_FROM: "${EKS_RESEND_FROM}"
