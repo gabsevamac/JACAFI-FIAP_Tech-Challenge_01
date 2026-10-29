@@ -14,7 +14,7 @@ O ambiente é efêmero porque o EKS cobra US$ 0,10 por hora pelo plano de contro
 ```mermaid
 flowchart LR
     dev(["Desenvolvedor"]) -->|"push / Run workflow"| gha["GitHub Actions<br/>Fluxo CI/CD"]
-    gha -->|"access key (secrets do environment aws)"| pipeline_user["Usuário IAM<br/>jacafi-github-actions"]
+    gha -->|"access key (secrets do repositório)"| pipeline_user["Usuário IAM<br/>jacafi-github-actions"]
     gha -->|"docker push :sha"| ecr[("ECR<br/>jacafi/server")]
     gha -->|"terraform apply"| state[("S3<br/>estado do Terraform")]
     gha -->|"kubectl apply"| eks
@@ -55,7 +55,7 @@ flowchart LR
 | Recurso | Para quê | Custo |
 |---|---|---|
 | S3 `jacafi-tfstate-<conta>` | Estado do stack `infra`, com versionamento, criptografia e lock nativo (`use_lockfile`) | Centavos |
-| Usuário IAM `jacafi-github-actions` | Identidade do pipeline, sem acesso ao console. A access key fica nos secrets do environment `aws` do GitHub. | — |
+| Usuário IAM `jacafi-github-actions` | Identidade do pipeline, sem acesso ao console. A access key fica nos secrets do repositório no GitHub. | — |
 | Policies `jacafi-pipeline-artefatos`, `-rede` e `-plataforma` | Menor privilégio: só as ações que os workflows e o stack `infra` usam, restritas aos nomes do projeto quando o serviço permite (detalhes abaixo) | — |
 | ECR `jacafi/server` | Imagens publicadas pelo pipeline; mantém as 10 mais recentes e faz scan no push | ~US$ 0,10 por GB/mês |
 | AWS Budget `jacafi-mensal` | E-mail em 25%, 50%, 75% e 90% de US$ 100, medidos sem descontar créditos | — |
@@ -109,21 +109,19 @@ Contas criadas pela nova experiência da AWS, no plano Free, recebem uma service
   - roles do cluster só com as policies gerenciadas do EKS.
 
   Não há `ec2:RunInstances` nem nenhuma ação sobre usuários IAM, então a chave não cria instâncias soltas nem outras chaves. A rede da EC2 é restrita por ação e região, porque os IDs são gerados na criação.
-- **Secrets de environment.** A chave fica no environment `aws`, liberado só para a branch `main`. Jobs de outras branches e de PRs não recebem a chave.
+- **Secrets do repositório.** A chave fica em `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`, que qualquer colaborador consegue configurar. A contrapartida: qualquer membro com acesso de escrita pode usar a chave num workflow de outra branch. O que limita o estrago são as policies acima e o plano Free, que não gera cobrança. Para fechar essa porta, o dono do repositório pode criar um environment restrito à `main`. Aí a chave vai para os secrets desse environment, e os jobs de CD passam a declarar `environment:`.
 - **Fora do estado.** A access key é criada pela CLI, e não pelo Terraform, para o segredo não ficar no estado do bootstrap.
 
 ### Criar a access key do pipeline
 
-Primeiro crie o environment `aws` no GitHub. Em *Settings → Environments → New environment*, use o nome `aws`. Em *Deployment branches and tags*, escolha *Selected branches and tags* e adicione a regra `main`. Não configure *Required reviewers*: o destroy agendado precisa rodar sem aprovação.
-
-Depois, ainda em `infra/bootstrap`, crie a chave e grave-a direto nos secrets do environment, sem passar por arquivo:
+Ainda em `infra/bootstrap`, crie a chave e grave-a direto nos secrets do repositório, sem passar por arquivo:
 
 ```bash
 read -r KEY_ID KEY_SECRET < <(aws iam create-access-key \
   --user-name "$(terraform output -raw pipeline_user_name)" \
   --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
-printf '%s' "$KEY_ID" | gh secret set AWS_ACCESS_KEY_ID --env aws
-printf '%s' "$KEY_SECRET" | gh secret set AWS_SECRET_ACCESS_KEY --env aws
+printf '%s' "$KEY_ID" | gh secret set AWS_ACCESS_KEY_ID
+printf '%s' "$KEY_SECRET" | gh secret set AWS_SECRET_ACCESS_KEY
 unset KEY_ID KEY_SECRET
 ```
 
@@ -140,7 +138,7 @@ Em *Settings → Secrets and variables → Actions*, crie:
 | Variable | `AWS_REGION` | `terraform output -raw aws_region` |
 | Variable | `TF_STATE_BUCKET` | `terraform output -raw tf_state_bucket` |
 | Variable | `ECR_REPOSITORY_URL` | `terraform output -raw ecr_repository_url` |
-| Secret do environment `aws` | `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` | Criados no passo [Criar a access key do pipeline](#criar-a-access-key-do-pipeline) |
+| Secret | `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` | Criados no passo [Criar a access key do pipeline](#criar-a-access-key-do-pipeline) |
 | Variable (opcional) | `EKS_ADMIN_PRINCIPAL_ARNS` | Lista JSON de ARNs IAM com acesso `kubectl`, ex.: `["arn:aws:iam::123456789012:role/sua-role"]`. Não inclua o usuário do pipeline, que já é administrador. |
 | Variable (opcional) | `KEYCLOAK_ADMIN` | Usuário do console do Keycloak; padrão `admin` |
 | Variable (opcional) | `RESEND_FROM` | Remetente dos e-mails de status, ex.: `JACAFI <no-reply@seu-dominio.com>`. O domínio precisa estar verificado no Resend e o valor não pode conter aspas. |
@@ -158,9 +156,7 @@ gh secret set DB_PASSWORD
 gh secret set KEYCLOAK_ADMIN_PASSWORD
 ```
 
-Enquanto o secret `AWS_ACCESS_KEY_ID` do environment `aws` não existir, o pipeline roda só o CI e registra um aviso, sem falhar.
-
-Para que ninguém use a chave sem passar por você, proteja a `main` em *Settings → Branches*: exija pull request com aprovação e não permita bypass. Qualquer workflow que rode na `main` com o environment `aws` terá passado por essa revisão.
+Enquanto o secret `AWS_ACCESS_KEY_ID` não existir, o pipeline roda só o CI e registra um aviso, sem falhar.
 
 ## 3. Subir o ambiente
 

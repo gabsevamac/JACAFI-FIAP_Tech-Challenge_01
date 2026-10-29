@@ -25,8 +25,6 @@ jobs:
     name: Destruir ambiente (Terraform)
     if: github.event_name == 'schedule' || inputs.confirmacao == 'DESTRUIR'
     runs-on: ubuntu-latest
-    # Sem revisores obrigatórios no environment: o destroy agendado precisa rodar sozinho.
-    environment: aws
     concurrency:
       group: aws-environment
       cancel-in-progress: false
@@ -50,7 +48,7 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::AWS não configurada (secret AWS_ACCESS_KEY_ID do environment aws vazio): nada para destruir."
+            echo "::notice::AWS não configurada (secret AWS_ACCESS_KEY_ID vazio): nada para destruir."
           fi
 
       - name: Code Checkout

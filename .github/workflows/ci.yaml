@@ -156,13 +156,12 @@ jobs:
   #===============
   # CD (AWS com a access key do usuário IAM do pipeline)
   #===============
-  # As credenciais são secrets do environment "aws", liberado só para a branch main: jobs de outras
-  # branches e de PRs não as recebem. O plano Free da AWS bloqueia OIDC (veja infra/README.md).
+  # As credenciais ficam nos secrets AWS_ACCESS_KEY_ID e AWS_SECRET_ACCESS_KEY do repositório.
+  # O plano Free da AWS bloqueia OIDC (veja infra/README.md).
   aws_environment:
     name: Ambiente AWS
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: aws
     outputs:
       configured: ${{ steps.config.outputs.configured }}
       deploy: ${{ steps.decision.outputs.deploy }}
@@ -176,7 +175,7 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::AWS não configurada (secret AWS_ACCESS_KEY_ID do environment aws vazio): publicação e deploy ignorados. Veja infra/README.md."
+            echo "::notice::AWS não configurada (secret AWS_ACCESS_KEY_ID vazio): publicação e deploy ignorados. Veja infra/README.md."
           fi
 
       - name: Configurar credenciais AWS
@@ -214,7 +213,6 @@ jobs:
     needs: [docker_image_scan, aws_environment]
     if: needs.aws_environment.outputs.configured == 'true'
     runs-on: ubuntu-latest
-    environment: aws
     steps:
       - name: Download Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -250,7 +248,6 @@ jobs:
     concurrency:
       group: aws-environment
       cancel-in-progress: false
-    environment: aws
     defaults:
       run:
         working-directory: infra
@@ -312,7 +309,6 @@ jobs:
     concurrency:
       group: aws-environment
       cancel-in-progress: false
-    environment: aws
     env:
       EKS_IMAGE_REPOSITORY: ${{ vars.ECR_REPOSITORY_URL }}
       EKS_IMAGE_TAG: ${{ github.sha }}
