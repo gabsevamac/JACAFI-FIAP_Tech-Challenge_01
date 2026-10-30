@@ -1,0 +1,150 @@
+name: Fluxo CI (LOCAL) OLD
+#===============
+# TRIGGER
+#===============
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: "25"
+  IMAGE_NAME: "jacafi/server:latest"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+        with:
+          java-version: ${{  env.JAVA_VERSION  }}
+          distribution: "temurin"
+          cache: "maven"
+          cache-dependency-path: "server/pom.xml"
+
+      - name: Make Maven Wrapper Executable
+        working-directory: "./server"
+        run: chmod +x mvnw
+
+      - name: Run Lint and Build Validation
+        working-directory: "./server"
+        run: ./mvnw spotless:check
+
+  fast_tests:
+    name: Light Weight Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: "maven"
+          cache-dependency-path: "server/pom.xml"
+
+      - name: Make Maven Wrapper Executable
+        working-directory: "./server"
+        run: chmod +x mvnw
+
+      - name: Executar Lint e Validação de Estilo (Spotless, Checkstyle, Enforcer)
+        working-directory: "./server"
+        run: ./mvnw validate
+
+      - name: Run Unit Tests
+        working-directory: "./server"
+        env:
+          TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+        run: ./mvnw test
+
+  slow_tests:
+    name: Testes Lentos (Integration & SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: "maven"
+          cache-dependency-path: "server/pom.xml"
+
+      - name: Make Maven Wrapper Executable
+        working-directory: "./server"
+        run: chmod +x mvnw
+
+      - name: Run Integration Tests
+        working-directory: "./server"
+        env:
+          TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+          TESTCONTAINERS_RYUK_DISABLED: true # Previne o erro de timeout do Ryuk em execuções locais
+        # Executa a fase de verificação (integração) saltando os testes unitários já feitos
+        run: ./mvnw verify -Dskip.unit.tests=true
+
+      - name: Run SAST (SpotBugs)
+        working-directory: "./server"
+        run: ./mvnw spotbugs:check
+
+  build_image:
+    name: Build da Imagem Docker
+    #needs: [fast_tests, slow_tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      
+      - name: Setup Docker Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: ./server
+          tags: ${{ env.IMAGE_NAME }}
+          push: false
+          outputs: type=docker,dest=/tmp/server-image.tar
+
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/myimage.tar
+  
+  docker_image_scan:
+    name: Scan da imagem Docker
+    needs: build_image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+      
+      - name: Load Docker Image
+        run: docker load -i /tmp/server-image.tar
+      
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+

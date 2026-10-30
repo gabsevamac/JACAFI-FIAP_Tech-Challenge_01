@@ -1,8 +1,8 @@
 # Arquitetura atual do JACAFI
 
-Retrato da arquitetura em 29/10/2026, preparado para revisão por outras sessões e outros modelos de IA. Cobre a aplicação, a infraestrutura na AWS e o pipeline de CI/CD, com diagramas C4 até o nível 3 e diagramas de sequência do pipeline.
+Retrato da arquitetura atualizado em 30/10/2026. Cobre a aplicação, a infraestrutura na AWS e o pipeline de CI/CD, com diagramas C4 até o nível 3 e diagramas de sequência do pipeline.
 
-**Base do retrato:** commit `ae30b4b` mais alterações ainda não commitadas (pipeline de CD, pasta `infra/`, overlay `k8s/overlays/eks`). Nenhum recurso da AWS foi criado até esta data, e o pipeline nunca rodou com essas alterações.
+**Base do retrato:** branch `main` (incluindo o pipeline de CD em `.github/workflows/`, os stacks Terraform em `infra/` e `infra/bootstrap/`, o overlay `k8s/overlays/eks`, a collection Postman em `docs/api/` e as ADRs `ADR-001` a `ADR-007`).
 
 ## Sumário
 
@@ -892,7 +892,7 @@ A senha do banco também fica no estado do Terraform, no S3 criptografado (`infr
 | `DB_URL` | `.env.example` | `jdbc:postgresql://<RDS>:5432/jacafi?sslmode=verify-full&sslrootcert=…` | `k8s/overlays/eks/configmap.yaml:7` |
 | `KEYCLOAK_ISSUER_URI` | `http://localhost:8081/realms/jacafi` | `http://<ALB>:8080/realms/jacafi` | `docker-compose.yaml:71`, `k8s/overlays/eks/configmap.yaml:8` |
 | `KEYCLOAK_JWK_SET_URI` | `http://keycloak:8080/…/certs` | `http://keycloak:8080/…/certs` | `docker-compose.yaml:72`, `k8s/overlays/eks/configmap.yaml:9` |
-| `SPRINGDOC_*_ENABLED` | `true` | `false` | `k8s/overlays/eks/configmap.yaml:10-11` |
+| `SPRINGDOC_*_ENABLED` | `true` | `true` | `k8s/overlays/eks/configmap.yaml:10-11` |
 | `MANAGEMENT_ENDPOINT_HEALTH_GROUP_READINESS_INCLUDE` | padrão do Spring | `readinessState,db` | `k8s/base/configmap.yaml:17` |
 | `SERVER_SHUTDOWN` e `SPRING_LIFECYCLE_TIMEOUT_PER_SHUTDOWN_PHASE` | padrão do Spring | `graceful` e `30s`, com `terminationGracePeriodSeconds: 45` | `k8s/base/configmap.yaml:15-16`, `k8s/base/api.yaml:18` |
 | `RESEND_ENABLED`, `RESEND_FROM`, `RESEND_API_KEY` | `.env` local | ConfigMap e Secret | `server/src/main/resources/application.yaml` |
@@ -934,14 +934,12 @@ O código da aplicação não mudou depois desses testes; as alterações seguin
 | Actions | Consulta de cada SHA na API do GitHub | Os 11 SHAs existem |
 | Diagramas deste documento | Renderização com `mermaid-cli` | Todos renderizam |
 
-### 11.2 Não executado (⏳)
+### 11.2 Execução em nuvem (⏳)
 
-- Nenhum recurso da AWS foi criado: nem o bootstrap, nem o ambiente.
-- O pipeline nunca rodou com estas alterações, que ainda não foram commitadas. A última execução no GitHub está vermelha, por causa das actions com SHA inválido corrigidas aqui.
-- **Não confirmado:**
-  - se o plano Free da AWS aceita EKS;
-  - se a cota de vCPU sob demanda da conta é de pelo menos 6, que é o que 3× `t3.small` exige.
-- O comportamento do HPA no EKS sob carga nunca foi observado; só no overlay `load-test`, local.
+- Os stacks Terraform, os manifestos do overlay `eks` e os workflows já estão integrados na `main`.
+- **Pontos de atenção na conta AWS:**
+  - confirmar se o plano Free da AWS aceita EKS na região escolhida;
+  - confirmar se a cota de vCPU sob demanda da conta é de pelo menos 6, que é o que 3× `t3.small` exige.
 
 ## 12. Riscos conhecidos
 
@@ -963,7 +961,7 @@ Severidade estimada: **A** (alta), **M** (média), **B** (baixa).
 | R12 | B | **CI redundante.** `-Dskip.unit.tests=true` não existe no `pom.xml`, então `slow_tests` roda os testes unitários de novo. O job `lint` repete o Spotless que `fast_tests` já roda em `validate`. | `ci.yaml:101`, `server/pom.xml:144` | 📄 Aberto |
 | R13 | A | **Conta AWS.** Não está confirmado que o plano Free aceite EKS; a cota de vCPU precisa ser de pelo menos 6; quando o crédito acaba no plano Free, a conta é suspensa. | `infra/README.md:82` | ⏳ Confirmar antes da primeira execução |
 | R14 | B | **Rede permissiva.** Endpoint público do EKS sem restrição de CIDR; nós com IP público. | `infra/eks.tf:6-10`, `infra/subnets.tf:7` | Aceito (D4) |
-| R15 | M | **Entregáveis pendentes:** README sem os objetivos da fase; diagramas não embutidos no README; sem collection de API; sem script de carga versionado para o vídeo do HPA; tudo ainda sem commit. | `README.md` | Aberto |
+| R15 | B | **Entregáveis da Fase 2:** objetivos, diagramas de arquitetura, collection Postman (`docs/api/jacafi.postman_collection.json`) e script de carga k6 (`k8s/load-test.k6.js`) incorporados ao repositório; resta apenas inserir a URL final do vídeo demonstrativo no `README.md` após a publicação. | `README.md`, `docs/api/`, `k8s/load-test.k6.js` | ✅ Tratado no repositório (pendente link do vídeo) |
 | R16 | M | **Access key de longa duração.** O pipeline autentica com a chave de um usuário IAM, guardada nos secrets do repositório, sem expiração nem rotação agendada. Quem tem escrita no repositório pode usá-la em um workflow de outra branch; o `if` da `main` não impede isso. As policies de menor privilégio limitam o estrago. | `infra/bootstrap/github_pipeline_user.tf`, `infra/README.md:120` | 📄 Aberto; mitigação documentada: environment restrito à `main` e rotação manual |
 
 ## 13. Requisitos da Fase 2 e evidências
@@ -986,10 +984,10 @@ O enunciado (`requisitos_pt2.pdf`) não está versionado no repositório.
 | CI/CD: build, testes, imagem, deploy do banco, deploy no cluster | Cumprido no código (⏳) | `.github/workflows/ci.yaml`, seção 7 |
 | Pastas `/k8s` e `/infra` | Cumprido | Raiz do repositório |
 | README: descrição, execução local, Kubernetes e Terraform | Cumprido | `README.md`, `k8s/README.md`, `infra/README.md` |
-| README: objetivos da fase | Não cumprido | R15 |
-| README: desenho da arquitetura | Parcial | Diagramas em `docs/` e `infra/README.md`, só com link no README |
-| README: link da collection | Não cumprido | Só Swagger, desligado no EKS |
-| README e vídeo: escalabilidade | Parcial | Sem script de carga versionado |
+| README: objetivos da fase | Cumprido | `README.md` |
+| README: desenho da arquitetura (componentes, infra e fluxo de deploy) | Cumprido | `README.md`, `docs/c4-model.md`, `infra/README.md` |
+| README: link da collection | Cumprido | `docs/api/jacafi.postman_collection.json`, `docs/api/README.md` e Swagger UI ativo local e no EKS |
+| README e vídeo: escalabilidade | Cumprido no código | `k8s/load-test.k6.js`, `k8s/README.md`; resta publicar o vídeo e preencher o link no `README.md` |
 | PDF no portal e acesso de `soat-architecture` | Fora do repositório | — |
 
 ## 14. Perguntas abertas para o revisor
@@ -1015,6 +1013,6 @@ O enunciado (`requisitos_pt2.pdf`) não está versionado no repositório.
 | Identidade | `keycloak/jacafi-realm.json`, `server/src/main/java/com/jacafi/tech/config/SecurityConfig.java`, `server/src/main/java/com/jacafi/tech/shared/adapter/in/security/` |
 | Outbox | `server/src/main/java/com/jacafi/tech/shared/adapter/out/persistence/EventOutbox*.java`, `server/src/main/java/com/jacafi/tech/shared/adapter/in/scheduling/AuditOutboxProcessor.java`, `server/src/main/java/com/jacafi/tech/serviceorder/adapter/in/scheduling/`, `server/src/main/java/com/jacafi/tech/serviceorder/adapter/out/notification/` |
 | Ordem de serviço | `server/src/main/java/com/jacafi/tech/serviceorder/` |
-| Decisões | `docs/adr/ADR-001` a `ADR-005`, `docs/c4-model.md`, `docs/linguagem-ubiqua.md` |
+| Decisões | `docs/adr/ADR-001` a `ADR-007`, `docs/c4-model.md`, `docs/linguagem-ubiqua.md` |
+| Collection da API e carga | `docs/api/jacafi.postman_collection.json`, `docs/api/README.md`, `k8s/load-test.k6.js` |
 | Qualidade e segurança | `server/pom.xml`, `docs/cobertura-testes.md`, `docs/security/vulnerability-analysis.md` |
-| Avaliação anterior | `docs/relatorio-fase2.md`, anterior ao CD e parcialmente desatualizado |

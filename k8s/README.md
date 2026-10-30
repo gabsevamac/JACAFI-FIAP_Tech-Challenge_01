@@ -286,10 +286,16 @@ kubectl -n jacafi-load-test get hpa,pods
 
 O tráfego da carga deve entrar pelo NodePort, distribuído pelo Service entre réplicas. Um `port-forward` de Service fixa um Pod e não serve para medir distribuição. Se o provisionador do Desktop não expuser NodePorts em localhost, configure o acesso às portas dos nós conforme seu provisionador e ajuste o hostname público/issuer do Keycloak de forma consistente; não substitua silenciosamente o acesso por port-forward para esse teste. Renove tokens antes de expirar (15 minutos no realm local).
 
-Mantenha o script k6 de leitura fora do repositório, configure nele o endpoint NodePort e a autenticação, e execute a partir do caminho onde foi salvo. Por exemplo, se estiver na pasta temporária:
+Use o script k6 de leitura versionado em [k8s/load-test.k6.js](load-test.k6.js) (que executa exclusivamente requisições `GET` autenticadas em `/api/v1/customers` e `/api/v1/service-orders`):
 
 ```powershell
-k6 run "$env:TEMP/jacafi-k6.js"
+k6 run k8s/load-test.k6.js
+```
+
+Para apontar o mesmo script ao ambiente AWS EKS, sobrescreva `API_URL` e `KEYCLOAK_URL`:
+
+```powershell
+k6 run -e API_URL="http://$ALB" -e KEYCLOAK_URL="http://$ALB:8080" k8s/load-test.k6.js
 ```
 
 ### Evidência local de escalonamento
@@ -328,7 +334,7 @@ Diferenças em relação ao ambiente local:
 
 - **Banco:** fica no RDS; não há Deployment `database` nem PVC no cluster.
 - **Keycloak:** roda em `start-dev` e reimporta o realm a cada subida. O issuer é `http://<alb>:8080/realms/jacafi`, e a API busca as chaves pelo Service interno `keycloak`.
-- **Swagger e OpenAPI:** ficam desligados.
+- **Swagger e OpenAPI:** habilitados no overlay efêmero do EKS (`http://<alb>/swagger-ui/index.html`) para facilitar a exploração manual e a demonstração em vídeo.
 - **Metrics Server:** é instalado pelo Terraform como add-on do EKS.
 
 A observação sobre a outbox vale aqui também: para demonstrar o HPA, use carga de leitura.

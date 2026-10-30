@@ -1,4 +1,4 @@
-﻿# Pipeline de Integração e Entrega Contínua (CI/CD)
+# Pipeline de Integração e Entrega Contínua (CI/CD)
 
 O workflow em [.github/workflows/ci.yaml](../../.github/workflows/ci.yaml) implementa a esteira de CI/CD do projeto. Ela vai da verificação do código-fonte e da análise de vulnerabilidades da imagem até a publicação no ECR, o provisionamento com Terraform e o deploy no EKS. A infraestrutura e a configuração da AWS estão em [infra/README.md](../../infra/README.md).
 
@@ -32,8 +32,6 @@ graph TD
     provision["8. Infra e Banco\n(provision: terraform apply)"]
     deploy["9. Deploy\n(deploy: overlay eks + smoke test)"]
 
-    lint --> |"estilo aprovado"| fast
-    lint --> |"estilo aprovado"| slow
     fast --> |"unidade aprovada"| build
     slow --> |"integração & SAST aprovados"| build
     build --> |"imagem gerada (tarball)"| scan
@@ -108,3 +106,13 @@ A separação entre `fast_tests` e `slow_tests` e sua execução concorrente tra
    - Os jobs de CD usam a access key do usuário IAM `jacafi-github-actions`, guardada nos secrets `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` do repositório. O OIDC não é usado, porque o plano Free da AWS bloqueia a criação do provedor.
    - O usuário não tem acesso ao console e suas policies liberam só as ações e os recursos do projeto (`infra/bootstrap/github_pipeline_user.tf`). Os jobs de CD do `ci.yaml` só rodam na `main`; quem tem permissão de escrita no repositório ainda consegue usar a chave em um workflow de outra branch (`infra/README.md`).
    - Os valores sensíveis (`DB_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`, `RESEND_API_KEY`) ficam em GitHub Secrets e chegam ao cluster como Secret Kubernetes, gravado a partir de um arquivo temporário com permissão `600`.
+
+---
+
+## Workflow de Destruição do Ambiente (`infra-destroy.yaml`)
+
+Para preservar os créditos da conta AWS, o workflow [.github/workflows/infra-destroy.yaml](../../.github/workflows/infra-destroy.yaml) desprovisiona toda a infraestrutura efêmera (`infra/`), mantendo intactos os recursos do `infra/bootstrap` (bucket S3 de estado, repositório ECR, usuário IAM e orçamento):
+
+- **Disparo manual (`workflow_dispatch`):** exige digitar explicitamente `DESTRUIR` no input `confirmacao`.
+- **Disparo agendado (`schedule`):** roda diariamente às `03:00 UTC` (meia-noite no horário de Brasília) como rede de segurança caso o ambiente tenha ficado ligado após uma sessão de trabalho.
+- **Execução segura e idempotente:** compartilha o grupo de concorrência `aws-environment` (`cancel-in-progress: false`), verifica se as credenciais estão configuradas e consulta `terraform state list` antes de agir — se o estado já estiver vazio, encerra imediatamente sem erro.
