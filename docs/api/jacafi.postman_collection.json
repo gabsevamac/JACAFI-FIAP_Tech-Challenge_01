@@ -1,0 +1,739 @@
+{
+  "info": {
+    "name": "JACAFI - Sistema de Gestão de Oficina",
+    "description": "Collection completa da API do JACAFI (Tech Challenge FIAP, Fase 2).\n\nUso:\n1. Ajuste `baseUrl` e `keycloakUrl` (local: `http://localhost:8082` e `http://localhost:8081`; EKS: `http://<alb_dns>` e `http://<alb_dns>:8080`).\n2. Rode as requisições de `00 - Autenticação` para gravar `employeeToken` e `customerToken` (os tokens valem 15 minutos).\n3. Execute as pastas em ordem, ou a collection inteira pelo Collection Runner. Os IDs criados ficam em variáveis da collection e alimentam as requisições seguintes.\n\nO CPF e a placa são gerados a cada execução, para a collection poder rodar várias vezes no mesmo banco. Guia completo em docs/api/README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{employeeToken}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8082" },
+    { "key": "keycloakUrl", "value": "http://localhost:8081" },
+    { "key": "realm", "value": "jacafi" },
+    { "key": "clientId", "value": "jacafi-web" },
+    { "key": "employeeUsername", "value": "dev-employee" },
+    { "key": "employeePassword", "value": "Dev-employee-2026" },
+    { "key": "customerUsername", "value": "dev-customer" },
+    { "key": "customerPassword", "value": "Dev-customer-2026" },
+    { "key": "customerSubjectId", "value": "f0000000-0000-0000-0000-000000000002" },
+    { "key": "employeeToken", "value": "" },
+    { "key": "customerToken", "value": "" },
+    { "key": "taxId", "value": "" },
+    { "key": "licensePlate", "value": "" },
+    { "key": "customerId", "value": "" },
+    { "key": "vehicleId", "value": "" },
+    { "key": "laborOperationId", "value": "" },
+    { "key": "inventoryItemId", "value": "" },
+    { "key": "serviceOrderId", "value": "" },
+    { "key": "estimateId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 - Autenticação (Keycloak)",
+      "description": "Tokens emitidos pelo Keycloak (password grant do client público `jacafi-web`). A API só valida o JWT; não há login na aplicação.",
+      "item": [
+        {
+          "name": "Token do funcionário (EMPLOYEE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('token emitido', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('employeeToken', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "client_id", "value": "{{clientId}}" },
+                { "key": "grant_type", "value": "password" },
+                { "key": "username", "value": "{{employeeUsername}}" },
+                { "key": "password", "value": "{{employeePassword}}" }
+              ]
+            },
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token"
+          }
+        },
+        {
+          "name": "Token do cliente (CUSTOMER)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('token emitido', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('customerToken', pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "client_id", "value": "{{clientId}}" },
+                { "key": "grant_type", "value": "password" },
+                { "key": "username", "value": "{{customerUsername}}" },
+                { "key": "password", "value": "{{customerPassword}}" }
+              ]
+            },
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Saúde",
+      "description": "Probes públicos usados pelo Kubernetes e pelo health check do ALB.",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health/liveness"
+          }
+        },
+        {
+          "name": "Readiness (inclui o banco)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health/readiness"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Clientes",
+      "description": "Exige `EMPLOYEE`. CPF/CNPJ são validados pelo dígito verificador; valores formatados são aceitos.",
+      "item": [
+        {
+          "name": "Cadastrar cliente",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Gera um CPF válido a cada execução, para o cadastro não colidir com execuções anteriores.",
+                  "const digits = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));",
+                  "const checkDigit = (arr) => {",
+                  "  const factor = arr.length + 1;",
+                  "  const sum = arr.reduce((acc, n, i) => acc + n * (factor - i), 0);",
+                  "  const rest = (sum * 10) % 11;",
+                  "  return rest === 10 ? 0 : rest;",
+                  "};",
+                  "digits.push(checkDigit(digits));",
+                  "digits.push(checkDigit(digits));",
+                  "pm.collectionVariables.set('taxId', digits.join(''));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('cliente criado', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('customerId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"taxId\": \"{{taxId}}\",\n  \"name\": \"Maria da Silva\",\n  \"tradeName\": null,\n  \"email\": \"maria.silva@example.com\",\n  \"phone\": \"+55 11 98765-4321\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/customers"
+          }
+        },
+        {
+          "name": "Buscar cliente por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        },
+        {
+          "name": "Buscar cliente por CPF/CNPJ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/customers/lookup?taxId={{taxId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "customers", "lookup"],
+              "query": [{ "key": "taxId", "value": "{{taxId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Listar clientes (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/customers?active=true&page=0&size=20&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "customers"],
+              "query": [
+                { "key": "active", "value": "true", "description": "Opcional: filtra ativos ou inativos" },
+                { "key": "page", "value": "0", "description": "Página, a partir de 0" },
+                { "key": "size", "value": "20", "description": "Itens por página, de 1 a 100" },
+                { "key": "sort", "value": "name,asc", "description": "campo ou campo,asc|desc; repetível" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar cliente",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria da Silva Souza\",\n  \"tradeName\": null,\n  \"email\": \"maria.souza@example.com\",\n  \"phone\": \"+55 11 91234-5678\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        },
+        {
+          "name": "Vincular identidade do Keycloak (dev-customer)",
+          "request": {
+            "description": "Liga o `sub` do usuário `dev-customer` a este cadastro. Depois disso, o token do cliente alcança `/me` e as OS deste cliente. Cada identidade fica ligada a um único cadastro: se o `sub` já estava vinculado a outro cliente, o vínculo é movido para este.",
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectId\": \"{{customerSubjectId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}/identity"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Veículos",
+      "description": "Exige `EMPLOYEE`. A placa aceita os padrões antigo (ABC1234) e Mercosul (ABC1D23).",
+      "item": [
+        {
+          "name": "Cadastrar veículo",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Gera uma placa Mercosul aleatória, para o cadastro não colidir com execuções anteriores.",
+                  "const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';",
+                  "const letter = () => letters[Math.floor(Math.random() * letters.length)];",
+                  "const digit = () => Math.floor(Math.random() * 10);",
+                  "pm.collectionVariables.set('licensePlate', `${letter()}${letter()}${letter()}${digit()}${letter()}${digit()}${digit()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('veículo criado', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('vehicleId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licensePlate\": \"{{licensePlate}}\",\n  \"make\": \"Volkswagen\",\n  \"model\": \"Gol\",\n  \"modelYear\": 2020,\n  \"customerId\": \"{{customerId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/vehicles"
+          }
+        },
+        {
+          "name": "Buscar veículo por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/vehicles/{{vehicleId}}"
+          }
+        },
+        {
+          "name": "Buscar veículo por placa",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles/lookup?licensePlate={{licensePlate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles", "lookup"],
+              "query": [{ "key": "licensePlate", "value": "{{licensePlate}}" }]
+            }
+          }
+        },
+        {
+          "name": "Listar veículos do cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles?customerId={{customerId}}&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles"],
+              "query": [
+                { "key": "customerId", "value": "{{customerId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar veículo",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"make\": \"Volkswagen\",\n  \"model\": \"Gol G7\",\n  \"modelYear\": 2021\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/vehicles/{{vehicleId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Catálogo de serviços",
+      "description": "Exige `EMPLOYEE`. Serviços oferecidos pela oficina, com preço base usado no orçamento.",
+      "item": [
+        {
+          "name": "Cadastrar serviço",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('serviço criado', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('laborOperationId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Troca de óleo\",\n  \"description\": \"Troca de óleo do motor e do filtro\",\n  \"basePrice\": 120.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/labor-operations"
+          }
+        },
+        {
+          "name": "Buscar serviço por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/labor-operations/{{laborOperationId}}"
+          }
+        },
+        {
+          "name": "Listar serviços",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/labor-operations?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "labor-operations"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar serviço",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Troca de óleo\",\n  \"description\": \"Troca de óleo sintético e filtro\",\n  \"basePrice\": 150.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/labor-operations/{{laborOperationId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Estoque",
+      "description": "Exige `EMPLOYEE`. Peças (`PART`) e insumos (`SUPPLY`), com reposição, reserva por OS, liberação e baixa. As alterações de saldo bloqueiam a linha do item (`SELECT ... FOR UPDATE`) durante a transação.",
+      "item": [
+        {
+          "name": "Cadastrar item de estoque",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('item criado', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('inventoryItemId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Filtro de óleo\",\n  \"type\": \"PART\",\n  \"unitPrice\": 35.90,\n  \"initialStock\": 10\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inventory/items"
+          }
+        },
+        {
+          "name": "Buscar item por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/inventory/items/{{inventoryItemId}}"
+          }
+        },
+        {
+          "name": "Listar itens",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/inventory/items?type=PART&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "inventory", "items"],
+              "query": [
+                { "key": "type", "value": "PART", "description": "Opcional: PART ou SUPPLY" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar item",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Filtro de óleo\",\n  \"unitPrice\": 39.90\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inventory/items/{{inventoryItemId}}"
+          }
+        },
+        {
+          "name": "Repor estoque",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inventory/items/{{inventoryItemId}}/replenishments"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Ordens de serviço",
+      "description": "Fluxo principal da Fase 2: abertura (retorna a identificação da OS e do orçamento), consulta de status, aprovação ou reprovação do orçamento, mudança de status e fila operacional.",
+      "item": [
+        {
+          "name": "Abrir OS (gera o orçamento)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('OS aberta', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('serviceOrderId', body.serviceOrderId);",
+                  "pm.collectionVariables.set('estimateId', body.estimateId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"reportedIssue\": \"Luz do óleo acesa no painel\",\n  \"laborOperations\": [\n    { \"laborOperationId\": \"{{laborOperationId}}\", \"quantity\": 1 }\n  ],\n  \"materials\": [\n    { \"inventoryItemId\": \"{{inventoryItemId}}\", \"quantity\": 1 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/service-orders"
+          }
+        },
+        {
+          "name": "Consultar status da OS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/service-orders/{{serviceOrderId}}/status"
+          }
+        },
+        {
+          "name": "Aprovar orçamento",
+          "request": {
+            "description": "Idempotente pela `idempotencyKey`. Leva a OS para `IN_PROGRESS`. Funcionários e o cliente dono da OS podem decidir.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"approval-{{estimateId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/service-orders/{{serviceOrderId}}/estimates/{{estimateId}}/approval"
+          }
+        },
+        {
+          "name": "Reprovar orçamento (alternativa à aprovação)",
+          "request": {
+            "description": "Idempotente pela `idempotencyKey`. Devolve a OS para `UNDER_DIAGNOSIS`. Use em uma OS cujo orçamento ainda não foi aprovado.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"rejection-{{estimateId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/service-orders/{{serviceOrderId}}/estimates/{{estimateId}}/rejection"
+          }
+        },
+        {
+          "name": "Listar fila operacional",
+          "request": {
+            "description": "Ordenada por prioridade (IN_PROGRESS, AWAITING_APPROVAL, UNDER_DIAGNOSIS, RECEIVED) e depois pela mais antiga; exclui COMPLETED e DELIVERED.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/service-orders?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "service-orders"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Finalizar OS (COMPLETED)",
+          "request": {
+            "description": "Status aceitos neste endpoint: UNDER_DIAGNOSIS, COMPLETED e DELIVERED, conforme as transições do domínio. COMPLETED só é aceito com a OS em execução.",
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/service-orders/{{serviceOrderId}}/status"
+          }
+        },
+        {
+          "name": "Entregar veículo (DELIVERED)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DELIVERED\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/service-orders/{{serviceOrderId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Reserva e baixa de material",
+      "description": "Operações de estoque ligadas a uma OS. A abertura da OS já reserva os materiais pedidos; uma nova reserva para a mesma OS soma à existente. A baixa consome toda a reserva da OS, e a liberação a desfaz: use uma ou outra.",
+      "item": [
+        {
+          "name": "Reservar material adicional para a OS",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceOrderId\": \"{{serviceOrderId}}\",\n  \"quantity\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inventory/items/{{inventoryItemId}}/reservations"
+          }
+        },
+        {
+          "name": "Dar baixa na reserva da OS",
+          "request": {
+            "description": "Consome toda a quantidade reservada para a OS e reduz o saldo físico.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceOrderId\": \"{{serviceOrderId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/inventory/items/{{inventoryItemId}}/withdrawals"
+          }
+        },
+        {
+          "name": "Liberar reserva da OS (alternativa à baixa)",
+          "request": {
+            "description": "Desfaz a reserva ainda não consumida e devolve a quantidade ao saldo disponível. Depois de uma baixa não há reserva a liberar, e a resposta é de recurso não encontrado.",
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/inventory/items/{{inventoryItemId}}/reservations/{{serviceOrderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Área do cliente (CUSTOMER)",
+      "description": "Requisições com o token do `dev-customer`. Exigem que a identidade dele tenha sido vinculada a um cadastro (pasta 02).",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          { "key": "token", "value": "{{customerToken}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Meu cadastro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/customers/me"
+          }
+        },
+        {
+          "name": "Atualizar meu cadastro",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria da Silva Souza\",\n  \"tradeName\": null,\n  \"email\": \"maria.souza@example.com\",\n  \"phone\": \"+55 11 91234-5678\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/customers/me"
+          }
+        },
+        {
+          "name": "Meus veículos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vehicles/me?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vehicles", "me"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Status da minha OS",
+          "request": {
+            "description": "Só responde para OS do próprio cliente; para outras, retorna acesso negado.",
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/service-orders/{{serviceOrderId}}/status"
+          }
+        },
+        {
+          "name": "Bloqueio: cliente listando todos os clientes (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('cliente não alcança recursos de funcionário', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/customers"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Remoções",
+      "description": "Desativação e remoção dos registros criados. Rode por último: as pastas anteriores dependem deles.",
+      "item": [
+        {
+          "name": "Desativar serviço do catálogo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/labor-operations/{{laborOperationId}}"
+          }
+        },
+        {
+          "name": "Remover item de estoque",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/inventory/items/{{inventoryItemId}}"
+          }
+        },
+        {
+          "name": "Remover veículo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/vehicles/{{vehicleId}}"
+          }
+        },
+        {
+          "name": "Desativar cliente",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/customers/{{customerId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
